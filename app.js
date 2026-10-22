@@ -579,7 +579,10 @@ export function initMap() {
     center: [51.5, 12.0],
     zoom: 4,
     zoomControl: true,
-    scrollWheelZoom: true
+    scrollWheelZoom: true,
+    tapHold: true,
+    touchZoom: true,
+    bounceAtZoomLimits: false
   });
 
   // OpenStreetMap standard tiles (reliable, clean, no API key required)
@@ -851,35 +854,35 @@ export function renderOverview() {
               </p>
             </div>
             
-            <div class="flex items-center gap-0.5">
+            <div class="flex items-center gap-1 sm:gap-0.5">
               <button 
                 title="Flytt opp i reiseruten" 
                 onclick="moveStopOrder('${stop.id}', -1)" 
-                class="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-white transition ${isStart ? 'opacity-20 cursor-not-allowed' : ''}"
+                class="p-1.5 sm:p-1 rounded-lg sm:rounded-md text-slate-500 hover:text-slate-800 bg-white sm:bg-transparent border border-slate-200/80 sm:border-none shadow-2xs sm:shadow-none transition ${isStart ? 'opacity-20 cursor-not-allowed' : ''}"
                 ${isStart ? 'disabled' : ''}
               >
-                <i data-lucide="chevron-up" class="w-3.5 h-3.5"></i>
+                <i data-lucide="chevron-up" class="w-4 h-4 sm:w-3.5 sm:h-3.5"></i>
               </button>
 
               <button 
                 title="Flytt ned i reiseruten" 
                 onclick="moveStopOrder('${stop.id}', 1)" 
-                class="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-white transition ${isEnd ? 'opacity-20 cursor-not-allowed' : ''}"
+                class="p-1.5 sm:p-1 rounded-lg sm:rounded-md text-slate-500 hover:text-slate-800 bg-white sm:bg-transparent border border-slate-200/80 sm:border-none shadow-2xs sm:shadow-none transition ${isEnd ? 'opacity-20 cursor-not-allowed' : ''}"
                 ${isEnd ? 'disabled' : ''}
               >
-                <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+                <i data-lucide="chevron-down" class="w-4 h-4 sm:w-3.5 sm:h-3.5"></i>
               </button>
 
-              <button title="Rediger stoppested" onclick="openEditStopModal('${stop.id}')" class="p-1 rounded-md text-slate-400 hover:text-brand-600 hover:bg-white transition">
-                <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+              <button title="Rediger stoppested" onclick="openEditStopModal('${stop.id}')" class="p-1.5 sm:p-1 rounded-lg sm:rounded-md text-slate-500 hover:text-brand-600 bg-white sm:bg-transparent border border-slate-200/80 sm:border-none shadow-2xs sm:shadow-none transition">
+                <i data-lucide="pencil" class="w-4 h-4 sm:w-3.5 sm:h-3.5"></i>
               </button>
 
-              <button title="Sentrér i kartet" onclick="centerMapOnStop(${stop.lat}, ${stop.lng})" class="p-1 rounded-md text-slate-400 hover:text-brand-600 hover:bg-white transition">
-                <i data-lucide="crosshair" class="w-3.5 h-3.5"></i>
+              <button title="Sentrér i kartet" onclick="centerMapOnStop(${stop.lat}, ${stop.lng})" class="p-1.5 sm:p-1 rounded-lg sm:rounded-md text-slate-500 hover:text-brand-600 bg-white sm:bg-transparent border border-slate-200/80 sm:border-none shadow-2xs sm:shadow-none transition">
+                <i data-lucide="crosshair" class="w-4 h-4 sm:w-3.5 sm:h-3.5"></i>
               </button>
 
-              <button title="Fjern stoppested" onclick="deleteStop('${stop.id}')" class="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-white transition">
-                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              <button title="Fjern stoppested" onclick="deleteStop('${stop.id}')" class="p-1.5 sm:p-1 rounded-lg sm:rounded-md text-slate-400 hover:text-rose-600 bg-white sm:bg-transparent border border-slate-200/80 sm:border-none shadow-2xs sm:shadow-none transition">
+                <i data-lucide="trash-2" class="w-4 h-4 sm:w-3.5 sm:h-3.5"></i>
               </button>
             </div>
           </div>
