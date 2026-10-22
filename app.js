@@ -165,11 +165,11 @@ export async function handleLogout() {
 // =============================================================================
 const defaultTripState = {
   trip: {
-    title: "Sommerens Europaturné 2026",
+    title: "Eksempelreise: Europaturné 2026",
     startDate: "2026-07-01",
-    endDate: "2026-07-22",
+    endDate: "2026-07-15",
     totalPassDays: 7,
-    totalBudget: 22000,
+    totalBudget: 20000,
     currency: "NOK",
   },
   stops: [
@@ -180,7 +180,7 @@ const defaultTripState = {
       arrival: "2026-07-01",
       departure: "2026-07-02",
       accommodationStatus: "Hjemme / Start",
-      accommodationNote: "Reisen starter fra Oslo S",
+      accommodationNote: "Eksempel: Reisen starter fra Oslo S",
       lat: 59.9139,
       lng: 10.7522,
       order: 1
@@ -190,9 +190,9 @@ const defaultTripState = {
       city: "København",
       country: "Danmark",
       arrival: "2026-07-02",
-      departure: "2026-07-05",
+      departure: "2026-07-06",
       accommodationStatus: "Bestilt",
-      accommodationNote: "Urban House Copenhagen by Meininger",
+      accommodationNote: "Eksempel: Sentralt hostel eller hotell",
       lat: 55.6761,
       lng: 12.5683,
       order: 2
@@ -201,10 +201,10 @@ const defaultTripState = {
       id: "stop-3",
       city: "Berlin",
       country: "Tyskland",
-      arrival: "2026-07-05",
-      departure: "2026-07-09",
-      accommodationStatus: "Bestilt",
-      accommodationNote: "The Circus Hostel Berlin Mitte",
+      arrival: "2026-07-06",
+      departure: "2026-07-10",
+      accommodationStatus: "Ser etter hotell",
+      accommodationNote: "Eksempel: Sjekker område Mitte eller Friedrichshain",
       lat: 52.5200,
       lng: 13.4050,
       order: 3
@@ -213,49 +213,13 @@ const defaultTripState = {
       id: "stop-4",
       city: "Praha",
       country: "Tsjekkia",
-      arrival: "2026-07-09",
-      departure: "2026-07-13",
-      accommodationStatus: "Bestilt",
-      accommodationNote: "Sophie's Hostel Vinohrady",
+      arrival: "2026-07-10",
+      departure: "2026-07-15",
+      accommodationStatus: "Ikke bestilt",
+      accommodationNote: "Eksempel: Ønsker overnatting nær gamlebyen",
       lat: 50.0755,
       lng: 14.4378,
       order: 4
-    },
-    {
-      id: "stop-5",
-      city: "Wien",
-      country: "Østerrike",
-      arrival: "2026-07-13",
-      departure: "2026-07-16",
-      accommodationStatus: "Ser etter hotell",
-      accommodationNote: "Vurderer Neubau eller Museumsquartier",
-      lat: 48.2082,
-      lng: 16.3738,
-      order: 5
-    },
-    {
-      id: "stop-6",
-      city: "Venezia",
-      country: "Italia",
-      arrival: "2026-07-16",
-      departure: "2026-07-19",
-      accommodationStatus: "Ikke bestilt",
-      accommodationNote: "Ønsker sentralt ved Santa Lucia / Cannaregio",
-      lat: 45.4408,
-      lng: 12.3155,
-      order: 6
-    },
-    {
-      id: "stop-7",
-      city: "Zürich",
-      country: "Sveits",
-      arrival: "2026-07-19",
-      departure: "2026-07-22",
-      accommodationStatus: "Bestilt",
-      accommodationNote: "Hotel Montana Zürich nær Hauptbahnhof",
-      lat: 47.3769,
-      lng: 8.5417,
-      order: 7
     }
   ],
   trains: [
@@ -277,12 +241,12 @@ const defaultTripState = {
       id: "tr-2",
       fromCity: "København H",
       toCity: "Berlin Hbf",
-      date: "2026-07-05",
+      date: "2026-07-06",
       departureTime: "09:14",
       arrivalTime: "16:22",
       trainType: "DSB / DB Eurocity",
       trainNumber: "EC 393",
-      reservationStatus: "confirmed",
+      reservationStatus: "required",
       reservationPrice: 45,
       duration: "7t 08m",
       isTravelDay: true
@@ -291,7 +255,7 @@ const defaultTripState = {
       id: "tr-3",
       fromCity: "Berlin Hbf",
       toCity: "Praha hl.n.",
-      date: "2026-07-09",
+      date: "2026-07-10",
       departureTime: "11:16",
       arrivalTime: "15:35",
       trainType: "České Dráhy / Eurocity",
@@ -300,225 +264,48 @@ const defaultTripState = {
       reservationPrice: 0,
       duration: "4t 19m",
       isTravelDay: true
-    },
-    {
-      id: "tr-4",
-      fromCity: "Praha hl.n.",
-      toCity: "Wien Hbf",
-      date: "2026-07-13",
-      departureTime: "08:44",
-      arrivalTime: "13:00",
-      trainType: "ÖBB Railjet",
-      trainNumber: "RJ 73",
-      reservationStatus: "required",
-      reservationPrice: 40,
-      duration: "4t 16m",
-      isTravelDay: true
-    },
-    {
-      id: "tr-5",
-      fromCity: "Wien Hbf",
-      toCity: "Venezia S. Lucia",
-      date: "2026-07-16",
-      departureTime: "21:29",
-      arrivalTime: "08:34",
-      trainType: "ÖBB Nightjet (Nattog)",
-      trainNumber: "NJ 233",
-      reservationStatus: "required",
-      reservationPrice: 380,
-      duration: "11t 05m (Liggende)",
-      isTravelDay: false
-    },
-    {
-      id: "tr-6",
-      fromCity: "Venezia S. Lucia",
-      toCity: "Zürich HB",
-      date: "2026-07-19",
-      departureTime: "09:18",
-      arrivalTime: "15:27",
-      trainType: "Frecciarossa / SBB EC",
-      trainNumber: "EC 318",
-      reservationStatus: "confirmed",
-      reservationPrice: 130,
-      duration: "6t 09m",
-      isTravelDay: false
     }
   ],
   expenses: [
-    { id: "exp-1", title: "Interrail Global Pass (7 dager)", category: "Transport", amount: 4250, date: "2026-05-10" },
-    { id: "exp-2", title: "Hostel København (3 netter)", category: "Overnatting", amount: 2400, date: "2026-06-01" },
-    { id: "exp-3", title: "The Circus Hostel Berlin (4 netter)", category: "Overnatting", amount: 2850, date: "2026-06-04" },
-    { id: "exp-4", title: "Sophie's Hostel Praha (4 netter)", category: "Overnatting", amount: 1950, date: "2026-06-10" },
-    { id: "exp-5", title: "Plassreservasjoner SJ & DSB", category: "Transport", amount: 110, date: "2026-06-15" },
-    { id: "exp-6", title: "Middag & street food Berlin", category: "Mat", amount: 850, date: "2026-07-06" },
-    { id: "exp-7", title: "Museums- og kanaltur København", category: "Aktiviteter", amount: 620, date: "2026-07-03" },
-    { id: "exp-8", title: "Gondol / Båtpass Venezia", category: "Aktiviteter", amount: 480, date: "2026-07-17" },
-    { id: "exp-9", title: "Gelati og kaféer i Italia", category: "Mat", amount: 560, date: "2026-07-18" }
+    { id: "exp-1", title: "Eksempel: Interrail Global Pass (7 dager)", category: "Transport", amount: 3900, date: "2026-06-01" },
+    { id: "exp-2", title: "Eksempel: Hostel København", category: "Overnatting", amount: 2100, date: "2026-06-10" },
+    { id: "exp-3", title: "Eksempel: Middag & street food Berlin", category: "Mat", amount: 450, date: "2026-07-07" },
+    { id: "exp-4", title: "Eksempel: Kanaltur & båtbillett", category: "Aktiviteter", amount: 280, date: "2026-07-03" }
   ],
   packingList: [
-    { id: "pack-1", category: "Dokumenter & Billetter", text: "Pass og nasjonalt ID-kort (sjekk gyldighet)", checked: true },
-    { id: "pack-2", category: "Dokumenter & Billetter", text: "Interrail Rail Planner App installert & aktivert", checked: true },
-    { id: "pack-3", category: "Dokumenter & Billetter", text: "Europeisk helsetrygdkort (Helfo)", checked: true },
-    { id: "pack-4", category: "Dokumenter & Billetter", text: "Reiseforsikringsbevis og nødnummer lagret", checked: true },
-    { id: "pack-5", category: "Dokumenter & Billetter", text: "Kredittkort (minst 2 stk) og litt nødkontanter i EUR/CZK", checked: false },
-    
-    { id: "pack-6", category: "Togkomfort & Sove", text: "Støyreduserende hodetelefoner (ANC)", checked: true },
-    { id: "pack-7", category: "Togkomfort & Sove", text: "Nakkepute og øyemaske (uunnværlig på nattog)", checked: true },
-    { id: "pack-8", category: "Togkomfort & Sove", text: "Lakenpose / silkelaken til nattog og hosteller", checked: false },
-    { id: "pack-9", category: "Togkomfort & Sove", text: "Gjenbrukbar termoflaske for vann", checked: true },
-    { id: "pack-10", category: "Togkomfort & Sove", text: "Hurtigtørkende mikrofiberhåndkle", checked: false },
+    { id: "pack-1", category: "Dokumenter & Billetter", text: "Pass / Nasjonalt ID-kort", checked: false },
+    { id: "pack-2", category: "Dokumenter & Billetter", text: "Interrail Rail Planner App (Pass aktivert)", checked: false },
+    { id: "pack-3", category: "Dokumenter & Billetter", text: "Europeisk helsetrygdkort (Helfo) & Reiseforsikring", checked: false },
 
-    { id: "pack-11", category: "Elektronikk", text: "Powerbank (min. 10 000 – 20 000 mAh)", checked: true },
-    { id: "pack-12", category: "Elektronikk", text: "Universell reiseadapter & lang USB-C ladekabel", checked: true },
-    { id: "pack-13", category: "Elektronikk", text: "E-bokleser eller Kindle lastet med bøker", checked: false },
+    { id: "pack-4", category: "Togkomfort & Sove", text: "Nakkepute og øyemaske til tog", checked: false },
+    { id: "pack-5", category: "Togkomfort & Sove", text: "Gjenbrukbar vannflaske", checked: false },
+    { id: "pack-6", category: "Togkomfort & Sove", text: "Lakenpose / silkelaken til hostel", checked: false },
 
-    { id: "pack-14", category: "Klær & Fottøy", text: "Gode gåsko / sneakers som er godt inngått", checked: true },
-    { id: "pack-15", category: "Klær & Fottøy", text: "Lett komprimerbar regn- og vindjakke", checked: true },
-    { id: "pack-16", category: "Klær & Fottøy", text: "Solbriller og lett caps/hatt", checked: false },
-    { id: "pack-17", category: "Klær & Fottøy", text: "Pakke-kuber (packing cubes) for sekken", checked: true },
+    { id: "pack-7", category: "Elektronikk", text: "Powerbank (minst 10 000 mAh)", checked: false },
+    { id: "pack-8", category: "Elektronikk", text: "Lader & reiseadapter", checked: false },
 
-    { id: "pack-18", category: "Toalettsaker & Apotek", text: "Solkrem faktor 30/50 og leppepomade", checked: true },
-    { id: "pack-19", category: "Toalettsaker & Apotek", text: "Gnagsårplaster (Compeed) og paracetamol", checked: false },
-    { id: "pack-20", category: "Toalettsaker & Apotek", text: "Håndsprit og antibac-våtservietter til tog", checked: true }
+    { id: "pack-9", category: "Klær & Fottøy", text: "Gode gåsko / sneakers for storbyer", checked: false },
+    { id: "pack-10", category: "Klær & Fottøy", text: "Regnjakke / lett jakke", checked: false },
+
+    { id: "pack-11", category: "Toalettsaker & Apotek", text: "Solkrem & personlige toalettsaker", checked: false },
+    { id: "pack-12", category: "Toalettsaker & Apotek", text: "Gnagsårplaster (Compeed)", checked: false }
   ]
 };
 
-// Starter Proposal 1: Full Europaturné 2026
-const starterProposal1 = {
-  id: "forslag-1",
-  title: "Forslag 1 for Europaturné 2026",
+// Starter Proposal: Single clean sample proposal
+const starterProposal = {
+  id: "eksempel-1",
+  title: "Eksempelreise: Europaturné 2026",
   createdAt: new Date().toISOString(),
-  trip: {
-    title: "Forslag 1 for Europaturné 2026",
-    startDate: "2026-07-01",
-    endDate: "2026-07-22",
-    totalPassDays: 7,
-    totalBudget: 22000,
-    currency: "NOK",
-  },
+  trip: JSON.parse(JSON.stringify(defaultTripState.trip)),
   stops: JSON.parse(JSON.stringify(defaultTripState.stops)),
   trains: JSON.parse(JSON.stringify(defaultTripState.trains)),
   expenses: JSON.parse(JSON.stringify(defaultTripState.expenses)),
   packingList: JSON.parse(JSON.stringify(defaultTripState.packingList))
 };
 
-// Starter Proposal 2: Sentral-Europa Rute
-const starterProposal2 = {
-  id: "forslag-2",
-  title: "Forslag 2 for Europaturné 2026 (Sentral-Europa)",
-  createdAt: new Date().toISOString(),
-  trip: {
-    title: "Forslag 2 for Europaturné 2026 (Sentral-Europa)",
-    startDate: "2026-07-05",
-    endDate: "2026-07-18",
-    totalPassDays: 5,
-    totalBudget: 16500,
-    currency: "NOK",
-  },
-  stops: [
-    {
-      id: "p2-stop-1",
-      city: "Oslo",
-      country: "Norge",
-      arrival: "2026-07-05",
-      departure: "2026-07-06",
-      accommodationStatus: "Hjemme / Start",
-      accommodationNote: "Startreise fra Oslo S",
-      lat: 59.9139,
-      lng: 10.7522,
-      order: 1
-    },
-    {
-      id: "p2-stop-2",
-      city: "København",
-      country: "Danmark",
-      arrival: "2026-07-06",
-      departure: "2026-07-09",
-      accommodationStatus: "Bestilt",
-      accommodationNote: "Next House Copenhagen",
-      lat: 55.6761,
-      lng: 12.5683,
-      order: 2
-    },
-    {
-      id: "p2-stop-3",
-      city: "Hamburg",
-      country: "Tyskland",
-      arrival: "2026-07-09",
-      departure: "2026-07-12",
-      accommodationStatus: "Bestilt",
-      accommodationNote: "Generator Hostel Hamburg Hbf",
-      lat: 53.5511,
-      lng: 9.9937,
-      order: 3
-    },
-    {
-      id: "p2-stop-4",
-      city: "Amsterdam",
-      country: "Nederland",
-      arrival: "2026-07-12",
-      departure: "2026-07-18",
-      accommodationStatus: "Ser etter hotell",
-      accommodationNote: "Jordaan eller De Pijp område",
-      lat: 52.3676,
-      lng: 4.9041,
-      order: 4
-    }
-  ],
-  trains: [
-    {
-      id: "p2-tr-1",
-      fromCity: "Oslo S",
-      toCity: "København H",
-      date: "2026-07-06",
-      departureTime: "07:30",
-      arrivalTime: "15:20",
-      trainType: "Vy Regional / SJ",
-      trainNumber: "SJ 381",
-      reservationStatus: "confirmed",
-      reservationPrice: 65,
-      duration: "7t 50m",
-      isTravelDay: true
-    },
-    {
-      id: "p2-tr-2",
-      fromCity: "København H",
-      toCity: "Hamburg Hbf",
-      date: "2026-07-09",
-      departureTime: "09:26",
-      arrivalTime: "14:02",
-      trainType: "DSB / DB Eurocity",
-      trainNumber: "EC 395",
-      reservationStatus: "required",
-      reservationPrice: 45,
-      duration: "4t 36m",
-      isTravelDay: true
-    },
-    {
-      id: "p2-tr-3",
-      fromCity: "Hamburg Hbf",
-      toCity: "Amsterdam Centraal",
-      date: "2026-07-12",
-      departureTime: "10:46",
-      arrivalTime: "16:00",
-      trainType: "DB Intercity",
-      trainNumber: "IC 142",
-      reservationStatus: "not_needed",
-      reservationPrice: 0,
-      duration: "5t 14m",
-      isTravelDay: true
-    }
-  ],
-  expenses: [
-    { id: "p2-exp-1", title: "Interrail Global Pass 5 dager", category: "Transport", amount: 3400, date: "2026-06-01" },
-    { id: "p2-exp-2", title: "Next House København", category: "Overnatting", amount: 1850, date: "2026-07-06" },
-    { id: "p2-exp-3", title: "Generator Hostel Hamburg", category: "Overnatting", amount: 1400, date: "2026-07-09" }
-  ],
-  packingList: JSON.parse(JSON.stringify(defaultTripState.packingList))
-};
-
-export let allTrips = [starterProposal1, starterProposal2];
-export let activeTripId = "forslag-1";
+export let allTrips = [starterProposal];
+export let activeTripId = "eksempel-1";
 
 // Deep clone active state container
 export const appState = JSON.parse(JSON.stringify(defaultTripState));
@@ -565,7 +352,7 @@ export function saveAllTripsToLocalStorage() {
       activeTripId,
       allTrips
     };
-    localStorage.setItem("railsync_all_trips_v2", JSON.stringify(payload));
+    localStorage.setItem("railsync_all_trips_v3", JSON.stringify(payload));
     localStorage.setItem("railsync_state_v1", JSON.stringify(appState));
   } catch (e) {
     console.warn("Feil ved lagring av alle reiser til localStorage:", e);
@@ -647,9 +434,9 @@ export async function loadAppState() {
     }
   }
 
-  // 3. Load from railsync_all_trips_v2
+  // 3. Load from railsync_all_trips_v3
   try {
-    const savedTrips = localStorage.getItem("railsync_all_trips_v2");
+    const savedTrips = localStorage.getItem("railsync_all_trips_v3");
     if (savedTrips) {
       const parsed = JSON.parse(savedTrips);
       if (parsed && Array.isArray(parsed.allTrips) && parsed.allTrips.length > 0) {
@@ -660,12 +447,12 @@ export async function loadAppState() {
       }
     }
   } catch (err) {
-    console.warn("Kunne ikke lese railsync_all_trips_v2:", err);
+    console.warn("Kunne ikke lese railsync_all_trips_v3:", err);
   }
 
-  // 4. Default starter proposals
-  allTrips = [starterProposal1, starterProposal2];
-  activeTripId = "forslag-1";
+  // 4. Default starter proposal
+  allTrips = [starterProposal];
+  activeTripId = "eksempel-1";
   syncActiveTripToState();
 }
 
