@@ -18,7 +18,8 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  updateProfile
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 // =============================================================================
@@ -104,51 +105,95 @@ export async function handleGoogleSignIn() {
   }
 }
 
-export async function handleEmailAuth(e) {
+export async function handleUsernameAuth(e) {
   e.preventDefault();
   if (!auth) {
     showToast("Firebase Auth ikke aktiv", "Sjekk at Firebase-nøklene i app.js er gyldige.", "alert-triangle");
     return;
   }
 
-  const email = document.getElementById("auth-email").value.trim();
+  const rawInput = (document.getElementById("auth-username") || document.getElementById("auth-email")).value.trim();
   const password = document.getElementById("auth-password").value;
   const isNewUser = document.getElementById("auth-is-new-user").checked;
+
+  if (!rawInput) return;
+
+  // 1. SMART GMAIL DETECTION:
+  // If the user typed their gmail or googlemail address, advise them to click Google login!
+  if (rawInput.toLowerCase().includes("@gmail.") || rawInput.toLowerCase().includes("@googlemail.")) {
+    showToast(
+      "Bruk Google-knappen!", 
+      "For din Google-konto logger du inn direkte med 'Fortsett med Google'-knappen ovenfor uten passord.", 
+      "info"
+    );
+    const googleBtn = document.getElementById("btn-google-auth");
+    if (googleBtn) {
+      googleBtn.classList.add("ring-2", "ring-brand-500", "ring-offset-2");
+      setTimeout(() => googleBtn.classList.remove("ring-2", "ring-brand-500", "ring-offset-2"), 3000);
+    }
+    return;
+  }
+
+  // 2. Format username into internal email if no @ present
+  let authEmail = rawInput;
+  let username = rawInput;
+
+  if (!rawInput.includes("@")) {
+    const cleanUsername = rawInput.toLowerCase().replace(/[^a-z0-9._-]/g, "");
+    if (cleanUsername.length < 3) {
+      showToast("For kort brukernavn", "Brukernavnet må ha minst 3 tegn.", "alert-triangle");
+      return;
+    }
+    authEmail = `${cleanUsername}@railsync.user`;
+    username = rawInput;
+  } else {
+    username = rawInput.split("@")[0];
+  }
 
   const btn = document.getElementById("btn-auth-submit");
   if (btn) {
     btn.disabled = true;
-    btn.textContent = isNewUser ? "Oppretter konto..." : "Logger inn...";
+    btn.textContent = isNewUser ? "Oppretter bruker..." : "Logger inn...";
   }
 
   try {
     if (isNewUser) {
-      const res = await createUserWithEmailAndPassword(auth, email, password);
-      showToast("Konto opprettet!", `Velkommen, ${res.user.email}`);
+      const res = await createUserWithEmailAndPassword(auth, authEmail, password);
+      try {
+        await updateProfile(res.user, { displayName: username });
+      } catch (profErr) {
+        console.warn("Kunne ikke sette visningsnavn:", profErr);
+      }
+      showToast("Bruker opprettet!", `Velkommen, ${username}!`);
     } else {
-      const res = await signInWithEmailAndPassword(auth, email, password);
-      showToast("Velkommen tilbake!", `Logget inn som ${res.user.email}`);
+      const res = await signInWithEmailAndPassword(auth, authEmail, password);
+      showToast("Velkommen tilbake!", `Logget inn som ${res.user.displayName || username}`);
     }
     closeModal("modal-auth");
-    document.getElementById("form-auth").reset();
+    const form = document.getElementById("form-auth");
+    if (form) form.reset();
   } catch (err) {
-    console.error("E-post innlogging feilet:", err);
+    console.error("Innlogging feilet:", err);
     let msg = "Kunne ikke gjennomføre innlogging.";
     if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password") {
-      msg = "Feil e-post eller passord.";
+      msg = "Feil brukernavn eller passord.";
     } else if (err.code === "auth/email-already-in-use") {
-      msg = "E-postadressen er allerede i bruk. Fjern haken for 'ny konto' for å logge inn.";
+      msg = `Brukernavnet "${username}" er allerede opptatt. Fjern haken for "ny konto" for å logge inn, eller velg et annet brukernavn.`;
     } else if (err.code === "auth/weak-password") {
       msg = "Passordet må ha minst 6 tegn.";
+    } else if (err.code === "auth/user-not-found") {
+      msg = "Fant ingen bruker med dette brukernavnet. Huk av for 'Jeg vil opprette en ny bruker'.";
     }
     showToast("Innlogging feilet", msg, "alert-triangle");
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = "Logg inn";
+      btn.textContent = isNewUser ? "Opprett ny bruker" : "Logg inn med brukernavn";
     }
   }
 }
+
+export const handleEmailAuth = handleUsernameAuth;
 
 export async function handleLogout() {
   if (!auth) return;
@@ -796,6 +841,9 @@ export function renderOverview() {
   const sidebarPassRemaining = document.getElementById("sidebar-pass-remaining");
   if (sidebarPassRemaining) sidebarPassRemaining.textContent = `${Math.max(0, totalPassDays - usedPassDays)} dager`;
 
+  const mobilePassEl = document.getElementById("mobile-subbar-pass");
+  if (mobilePassEl) mobilePassEl.textContent = `${usedPassDays} / ${totalPassDays} dager brukt`;
+
   // Budget
   const totalSpent = appState.expenses.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
   const totalBudget = appState.trip.totalBudget || 22000;
@@ -840,49 +888,49 @@ export function renderOverview() {
           ${idx + 1}
         </div>
 
-        <div class="bg-slate-50 hover:bg-slate-100/90 rounded-xl p-3 border border-slate-200/70 transition-all flex flex-col gap-1.5 shadow-2xs">
-          <div class="flex items-start justify-between gap-2">
-            <div>
-              <div class="flex items-center gap-2">
-                <h3 class="font-bold text-slate-900 text-sm hover:text-brand-600 cursor-pointer" onclick="centerMapOnStop(${stop.lat}, ${stop.lng})">
+        <div class="bg-slate-50 hover:bg-slate-100/90 rounded-xl p-3 border border-slate-200/70 transition-all flex flex-col gap-2 shadow-2xs w-full min-w-0 overflow-hidden">
+          <div class="flex items-start justify-between gap-2 min-w-0">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-1.5 min-w-0 flex-wrap">
+                <h3 class="font-bold text-slate-900 text-sm hover:text-brand-600 cursor-pointer truncate max-w-[130px] sm:max-w-none" onclick="centerMapOnStop(${stop.lat}, ${stop.lng})">
                   ${escapeHtml(stop.city)}
                 </h3>
-                <span class="text-xs text-slate-500 font-medium">${escapeHtml(stop.country)}</span>
+                <span class="text-xs text-slate-500 font-medium truncate max-w-[100px] sm:max-w-none">${escapeHtml(stop.country)}</span>
               </div>
               <p class="text-[11px] text-slate-400">
                 ${formatDate(stop.arrival)} – ${formatDate(stop.departure)}
               </p>
             </div>
             
-            <div class="flex items-center gap-1 sm:gap-0.5">
+            <div class="flex items-center gap-1 shrink-0">
               <button 
                 title="Flytt opp i reiseruten" 
                 onclick="moveStopOrder('${stop.id}', -1)" 
-                class="p-1.5 sm:p-1 rounded-lg sm:rounded-md text-slate-500 hover:text-slate-800 bg-white sm:bg-transparent border border-slate-200/80 sm:border-none shadow-2xs sm:shadow-none transition ${isStart ? 'opacity-20 cursor-not-allowed' : ''}"
+                class="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-800 bg-white border border-slate-200/80 shadow-2xs transition ${isStart ? 'opacity-20 cursor-not-allowed' : ''}"
                 ${isStart ? 'disabled' : ''}
               >
-                <i data-lucide="chevron-up" class="w-4 h-4 sm:w-3.5 sm:h-3.5"></i>
+                <i data-lucide="chevron-up" class="w-3.5 h-3.5"></i>
               </button>
 
               <button 
                 title="Flytt ned i reiseruten" 
                 onclick="moveStopOrder('${stop.id}', 1)" 
-                class="p-1.5 sm:p-1 rounded-lg sm:rounded-md text-slate-500 hover:text-slate-800 bg-white sm:bg-transparent border border-slate-200/80 sm:border-none shadow-2xs sm:shadow-none transition ${isEnd ? 'opacity-20 cursor-not-allowed' : ''}"
+                class="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-800 bg-white border border-slate-200/80 shadow-2xs transition ${isEnd ? 'opacity-20 cursor-not-allowed' : ''}"
                 ${isEnd ? 'disabled' : ''}
               >
-                <i data-lucide="chevron-down" class="w-4 h-4 sm:w-3.5 sm:h-3.5"></i>
+                <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
               </button>
 
-              <button title="Rediger stoppested" onclick="openEditStopModal('${stop.id}')" class="p-1.5 sm:p-1 rounded-lg sm:rounded-md text-slate-500 hover:text-brand-600 bg-white sm:bg-transparent border border-slate-200/80 sm:border-none shadow-2xs sm:shadow-none transition">
-                <i data-lucide="pencil" class="w-4 h-4 sm:w-3.5 sm:h-3.5"></i>
+              <button title="Rediger stoppested" onclick="openEditStopModal('${stop.id}')" class="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-brand-600 bg-white border border-slate-200/80 shadow-2xs transition">
+                <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
               </button>
 
-              <button title="Sentrér i kartet" onclick="centerMapOnStop(${stop.lat}, ${stop.lng})" class="p-1.5 sm:p-1 rounded-lg sm:rounded-md text-slate-500 hover:text-brand-600 bg-white sm:bg-transparent border border-slate-200/80 sm:border-none shadow-2xs sm:shadow-none transition">
-                <i data-lucide="crosshair" class="w-4 h-4 sm:w-3.5 sm:h-3.5"></i>
+              <button title="Sentrér i kartet" onclick="centerMapOnStop(${stop.lat}, ${stop.lng})" class="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-brand-600 bg-white border border-slate-200/80 shadow-2xs transition">
+                <i data-lucide="crosshair" class="w-3.5 h-3.5"></i>
               </button>
 
-              <button title="Fjern stoppested" onclick="deleteStop('${stop.id}')" class="p-1.5 sm:p-1 rounded-lg sm:rounded-md text-slate-400 hover:text-rose-600 bg-white sm:bg-transparent border border-slate-200/80 sm:border-none shadow-2xs sm:shadow-none transition">
-                <i data-lucide="trash-2" class="w-4 h-4 sm:w-3.5 sm:h-3.5"></i>
+              <button title="Fjern stoppested" onclick="deleteStop('${stop.id}')" class="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-600 bg-white border border-slate-200/80 shadow-2xs transition">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
               </button>
             </div>
           </div>
@@ -891,7 +939,7 @@ export function renderOverview() {
             <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full border ${badgeStyle}">
               ${escapeHtml(stop.accommodationStatus)}
             </span>
-            ${stop.accommodationNote ? `<span class="text-[11px] text-slate-500 truncate max-w-[220px]" title="${escapeHtml(stop.accommodationNote)}">${escapeHtml(stop.accommodationNote)}</span>` : ''}
+            ${stop.accommodationNote ? `<span class="text-[11px] text-slate-500 truncate max-w-[200px]" title="${escapeHtml(stop.accommodationNote)}">${escapeHtml(stop.accommodationNote)}</span>` : ''}
           </div>
         </div>
       </div>
@@ -1243,6 +1291,9 @@ export function renderTripManagerList() {
 
   const headerBadge = document.getElementById("header-trip-count-badge");
   if (headerBadge) headerBadge.textContent = allTrips.length;
+
+  const mobileHeaderBadge = document.getElementById("header-trip-count-badge-mobile");
+  if (mobileHeaderBadge) mobileHeaderBadge.textContent = allTrips.length;
 
   const modalCountText = document.getElementById("modal-trips-count-text");
   if (modalCountText) modalCountText.textContent = `${allTrips.length} forslag`;
@@ -1916,6 +1967,7 @@ window.renameTripInManager = renameTripInManager;
 window.openAuthModal = openAuthModal;
 window.handleGoogleSignIn = handleGoogleSignIn;
 window.handleEmailAuth = handleEmailAuth;
+window.handleUsernameAuth = handleUsernameAuth;
 window.handleLogout = handleLogout;
 
 // =============================================================================

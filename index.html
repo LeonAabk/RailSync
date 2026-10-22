@@ -155,6 +155,28 @@
       }
     }
 
+    /* CRITICAL MOBILE SCROLL & OVERFLOW STABILIZATION */
+    html, body {
+      width: 100%;
+      max-width: 100vw;
+      overflow-x: hidden !important;
+      overscroll-behavior-x: none;
+      -webkit-text-size-adjust: 100%;
+      margin: 0;
+      padding: 0;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    /* Prevent accidental flex blowout across viewports */
+    main, section.tab-content, header {
+      width: 100%;
+      max-width: 100vw;
+      overflow-x: hidden;
+    }
+
     /* Hide scrollbar for smooth swipe */
     .no-scrollbar::-webkit-scrollbar {
       display: none;
@@ -165,7 +187,7 @@
     }
   </style>
 </head>
-<body class="h-full text-slate-800 antialiased bg-slate-50 flex flex-col md:flex-row overflow-x-hidden">
+<body class="min-h-screen md:h-full text-slate-800 antialiased bg-slate-50 flex flex-col md:flex-row w-full max-w-full overflow-x-hidden">
 
   <!-- ========================================================================= -->
   <!-- DESKTOP SIDEBAR NAVIGATION                                                -->
@@ -263,113 +285,131 @@
   <!-- ========================================================================= -->
   <!-- MAIN APPLICATION VIEWPORT                                                 -->
   <!-- ========================================================================= -->
-  <main class="flex-1 flex flex-col h-full min-w-0 pb-28 md:pb-0 overflow-y-auto">
+  <main class="flex-1 flex flex-col min-w-0 w-full max-w-full pb-28 md:pb-0 md:h-full md:overflow-y-auto overflow-x-hidden">
 
     <!-- Top Mobile / Global Header -->
-    <header class="bg-white border-b border-slate-200 px-4 sm:px-6 py-3.5 flex items-center justify-between sticky top-0 z-20 shadow-xs">
-      <div class="flex items-center gap-2.5 sm:gap-3.5 flex-wrap">
-        <!-- Mobile Logo Icon -->
-        <div class="md:hidden w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center text-white shadow">
-          <i data-lucide="train" class="w-4 h-4"></i>
-        </div>
-        <div onclick="openTripSettingsModal()" class="cursor-pointer group select-none" title="Klikk for å redigere reiseinnstillinger">
-          <div class="flex items-center gap-2">
-            <h1 id="header-trip-title" class="text-base sm:text-lg font-bold text-slate-900 leading-tight group-hover:text-brand-600 transition">Sommerens Europaturné 2026</h1>
-            <i data-lucide="pencil" class="w-3.5 h-3.5 text-slate-400 group-hover:text-brand-600 transition"></i>
+    <header class="bg-white border-b border-slate-200 px-3.5 sm:px-6 py-2.5 sm:py-3.5 sticky top-0 z-20 shadow-xs w-full max-w-full">
+      <div class="flex items-center justify-between gap-2 w-full min-w-0">
+        <!-- Left: Logo & Trip Title -->
+        <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+          <!-- Mobile Logo Icon -->
+          <div class="md:hidden w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center text-white shadow shrink-0">
+            <i data-lucide="train" class="w-4 h-4"></i>
           </div>
-          <p id="header-trip-dates" class="text-xs text-slate-500 font-medium">1. jul – 22. jul 2026 • 22 dager på skinner</p>
+          <div onclick="openTripSettingsModal()" class="cursor-pointer group select-none min-w-0 flex-1" title="Klikk for å redigere reiseinnstillinger">
+            <div class="flex items-center gap-1.5 min-w-0">
+              <h1 id="header-trip-title" class="text-sm sm:text-lg font-bold text-slate-900 leading-tight truncate group-hover:text-brand-600 transition">Sommerens Europaturné 2026</h1>
+              <i data-lucide="pencil" class="w-3 h-3 text-slate-400 group-hover:text-brand-600 transition shrink-0"></i>
+            </div>
+            <p id="header-trip-dates" class="text-[11px] sm:text-xs text-slate-500 font-medium truncate">1. jul – 22. jul 2026 • 22 dager på skinner</p>
+          </div>
+
+          <!-- MINE REISER SWITCHER BUTTON (DESKTOP / TABLET) -->
+          <button onclick="openTripManagerModal()" class="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-brand-50 text-slate-800 font-bold text-xs border border-slate-200 hover:border-brand-300 transition shadow-2xs shrink-0">
+            <i data-lucide="folder-open" class="w-3.5 h-3.5 text-brand-600"></i>
+            <span>Mine reiser</span>
+            <span id="header-trip-count-badge" class="px-1.5 py-0.2 rounded-full bg-brand-600 text-white font-extrabold text-[10px]">2</span>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
+          </button>
         </div>
 
-        <!-- MINE REISER SWITCHER BUTTON IN HEADER -->
-        <button onclick="openTripManagerModal()" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-brand-50 text-slate-800 font-bold text-xs border border-slate-200 hover:border-brand-300 transition shadow-2xs">
-          <i data-lucide="folder-open" class="w-3.5 h-3.5 text-brand-600"></i>
-          <span>Mine reiser</span>
-          <span id="header-trip-count-badge" class="px-1.5 py-0.2 rounded-full bg-brand-600 text-white font-extrabold text-[10px]">2</span>
-          <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
-        </button>
+        <!-- Right: Action buttons (Profile, Settings, Save & Share) -->
+        <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <!-- USER AUTH HEADER BUTTON / PROFILE -->
+          <div id="auth-header-container" class="shrink-0">
+            <!-- Logged Out Button -->
+            <button id="btn-open-login" onclick="openAuthModal()" class="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs border border-slate-200 transition">
+              <i data-lucide="user" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-brand-600"></i>
+              <span class="hidden sm:inline">Logg inn</span>
+            </button>
+            <!-- Logged In Profile Pill -->
+            <div id="user-profile-pill" class="hidden flex items-center gap-1 sm:gap-2 pl-2 sm:pl-3 pr-1 py-1 rounded-xl bg-brand-50 border border-brand-200 text-brand-900 text-xs font-bold shrink-0">
+              <span id="user-display-name" class="truncate max-w-[65px] sm:max-w-[120px]">Bruker</span>
+              <button onclick="handleLogout()" class="p-1 rounded-lg text-brand-600 hover:text-rose-600 transition" title="Logg ut">
+                <i data-lucide="log-out" class="w-3 h-3 sm:w-3.5 sm:h-3.5"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Settings Button -->
+          <button onclick="openTripSettingsModal()" class="p-1.5 sm:p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 border border-slate-200 transition shrink-0" title="Reiseinnstillinger">
+            <i data-lucide="settings" class="w-4 h-4"></i>
+          </button>
+
+          <!-- LAGRE & DEL REISE-KNAPP -->
+          <button id="btn-save-share" onclick="handleSaveAndShareTrip()" class="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-rail-accent hover:bg-rail-accentHover active:bg-orange-700 text-white font-semibold text-xs shadow-sm transition shrink-0">
+            <i data-lucide="share-2" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+            <span class="hidden sm:inline">Lagre & Del</span>
+            <span class="sm:hidden">Del</span>
+          </button>
+        </div>
       </div>
 
-      <!-- Action buttons: Auth, Settings & Save & Share -->
-      <div class="flex items-center gap-2">
-        <!-- USER AUTH HEADER BUTTON / PROFILE -->
-        <div id="auth-header-container">
-          <!-- Logged Out Button -->
-          <button id="btn-open-login" onclick="openAuthModal()" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm border border-slate-200 transition">
-            <i data-lucide="user" class="w-4 h-4 text-brand-600"></i>
-            <span class="hidden sm:inline">Logg inn</span>
-          </button>
-          <!-- Logged In Profile Pill (hidden by default) -->
-          <div id="user-profile-pill" class="hidden flex items-center gap-2 pl-3 pr-1.5 py-1 rounded-xl bg-brand-50 border border-brand-200 text-brand-900 text-xs font-bold">
-            <span id="user-display-name" class="truncate max-w-[100px] sm:max-w-[140px]">Bruker</span>
-            <button onclick="handleLogout()" class="p-1 rounded-lg text-brand-600 hover:text-rose-600 hover:bg-rose-50 transition" title="Logg ut">
-              <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
-            </button>
-          </div>
-        </div>
-
-        <button onclick="openTripSettingsModal()" class="p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 border border-slate-200 transition" title="Reiseinnstillinger">
-          <i data-lucide="settings" class="w-4 h-4"></i>
+      <!-- Mobile Sub-bar: Mine reiser switcher + quick pass indicator -->
+      <div class="sm:hidden flex items-center justify-between pt-2 mt-2 border-t border-slate-100 text-xs">
+        <button onclick="openTripManagerModal()" class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 active:bg-slate-200 text-slate-800 font-bold text-xs border border-slate-200 transition shadow-2xs">
+          <i data-lucide="folder-open" class="w-3.5 h-3.5 text-brand-600"></i>
+          <span>Mine reiser</span>
+          <span id="header-trip-count-badge-mobile" class="px-1.5 py-0.2 rounded-full bg-brand-600 text-white font-extrabold text-[10px]">2</span>
+          <i data-lucide="chevron-down" class="w-3 h-3 text-slate-400"></i>
         </button>
-        <!-- LAGRE & DEL REISE-KNAPP -->
-        <button id="btn-save-share" onclick="handleSaveAndShareTrip()" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rail-accent hover:bg-rail-accentHover active:bg-orange-700 text-white font-semibold text-xs sm:text-sm shadow-sm transition">
-          <i data-lucide="share-2" class="w-4 h-4"></i>
-          <span class="hidden sm:inline">Lagre & Del Reise</span>
-          <span class="sm:hidden">Lagre & Del</span>
-        </button>
+        <span id="mobile-subbar-pass" class="text-[11px] font-semibold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200/60">
+          4 / 7 dager brukt
+        </span>
       </div>
     </header>
 
     <!-- CONTENT CONTAINERS FOR 4 TABS -->
-    <div class="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
+    <div class="p-3.5 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-5 sm:space-y-6 min-w-0 overflow-x-hidden">
 
       <!-- ===================================================================== -->
       <!-- TAB 1: OVERSIKT & KART                                                -->
       <!-- ===================================================================== -->
-      <section id="tab-overview" class="tab-content space-y-6">
+      <section id="tab-overview" class="tab-content space-y-5 sm:space-y-6 w-full max-w-full">
         
         <!-- Key Metrics Cards Grid -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 w-full">
           <!-- Stat 1: Antall land -->
-          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-3.5">
-            <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+          <div class="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-3 overflow-hidden min-w-0">
+            <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
               <i data-lucide="globe" class="w-5 h-5"></i>
             </div>
-            <div>
-              <p class="text-xs font-medium text-slate-500">Antall land</p>
-              <h3 id="stat-countries-count" class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">6 land</h3>
-              <p id="stat-countries-sub" class="text-[11px] text-slate-400 truncate">NO, DK, DE, CZ, AT, IT, CH</p>
+            <div class="flex-1 min-w-0">
+              <p class="text-[11px] sm:text-xs font-medium text-slate-500 truncate">Antall land</p>
+              <h3 id="stat-countries-count" class="text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight truncate">4 land</h3>
+              <p id="stat-countries-sub" class="text-[10px] sm:text-[11px] text-slate-400 truncate">Norge, Danmark, Tyskland...</p>
             </div>
           </div>
 
           <!-- Stat 2: Totalt antall dager -->
-          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-3.5">
-            <div class="w-11 h-11 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
+          <div class="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-3 overflow-hidden min-w-0">
+            <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
               <i data-lucide="calendar" class="w-5 h-5"></i>
             </div>
-            <div>
-              <p class="text-xs font-medium text-slate-500">Total reisetid</p>
-              <h3 id="stat-total-days" class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">22 dager</h3>
-              <p id="stat-total-days-sub" class="text-[11px] text-slate-400">1. juli – 22. juli</p>
+            <div class="flex-1 min-w-0">
+              <p class="text-[11px] sm:text-xs font-medium text-slate-500 truncate">Total reisetid</p>
+              <h3 id="stat-total-days" class="text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight truncate">14 dager</h3>
+              <p id="stat-total-days-sub" class="text-[10px] sm:text-[11px] text-slate-400 truncate">1. jul – 15. jul</p>
             </div>
           </div>
 
           <!-- Stat 3: Reisedager brukt -->
-          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-3.5">
-            <div class="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+          <div class="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-3 overflow-hidden min-w-0">
+            <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
               <i data-lucide="ticket" class="w-5 h-5"></i>
             </div>
             <div class="flex-1 min-w-0">
-              <p class="text-xs font-medium text-slate-500">Reisedager på pass</p>
-              <h3 id="stat-pass-days" class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">4 / 7 dager</h3>
+              <p class="text-[11px] sm:text-xs font-medium text-slate-500 truncate">Reisedager på pass</p>
+              <h3 id="stat-pass-days" class="text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight truncate">3 / 7 dager</h3>
               <div class="w-full bg-slate-100 rounded-full h-1.5 mt-1 overflow-hidden">
-                <div id="stat-pass-bar" class="bg-amber-500 h-1.5 rounded-full" style="width: 57%"></div>
+                <div id="stat-pass-bar" class="bg-amber-500 h-1.5 rounded-full" style="width: 43%"></div>
               </div>
             </div>
           </div>
 
           <!-- Stat 4: Budsjett brukt -->
-          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-3.5">
-            <div class="w-11 h-11 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+          <div class="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-3 overflow-hidden min-w-0">
+            <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
               <i data-lucide="pie-chart" class="w-5 h-5"></i>
             </div>
             <div class="flex-1 min-w-0">
@@ -1122,9 +1162,13 @@
         </button>
       </div>
 
-      <!-- Google Sign-In Button -->
-      <div>
-        <button onclick="handleGoogleSignIn()" class="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 font-bold text-xs sm:text-sm text-slate-700 shadow-2xs transition">
+      <!-- Option A: Google (Primary) -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-slate-700 uppercase tracking-wider">Alternativ 1: Google</span>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">1-klikk • Anbefalt</span>
+        </div>
+        <button id="btn-google-auth" onclick="handleGoogleSignIn()" class="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 font-bold text-xs sm:text-sm text-slate-700 shadow-2xs hover:border-slate-400 active:scale-[0.99] transition">
           <svg class="w-4.5 h-4.5" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
             <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -1133,36 +1177,53 @@
           </svg>
           <span>Fortsett med Google</span>
         </button>
+        <p class="text-[11px] text-slate-400 text-center">Logger deg inn automatisk med din Google-bruker</p>
       </div>
 
       <div class="flex items-center gap-3 my-1">
         <div class="flex-1 h-px bg-slate-200"></div>
-        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Eller e-post</span>
+        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Eller eget brukernavn</span>
         <div class="flex-1 h-px bg-slate-200"></div>
       </div>
 
-      <!-- Email / Password Form -->
-      <form id="form-auth" onsubmit="handleEmailAuth(event)" class="space-y-3.5">
+      <!-- Option B: Brukernavn & Passord Form -->
+      <form id="form-auth" onsubmit="handleUsernameAuth(event)" class="space-y-3">
         <div>
-          <label for="auth-email" class="block text-xs font-semibold text-slate-700 mb-1">E-postadresse *</label>
-          <input type="email" id="auth-email" required placeholder="deg@eksempel.no" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3.5 py-2.5 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          <label for="auth-username" class="block text-xs font-semibold text-slate-700 mb-1">Brukernavn *</label>
+          <input 
+            type="text" 
+            id="auth-username" 
+            required 
+            placeholder="f.eks. togreisende eller interrailer26" 
+            autocomplete="username"
+            class="w-full bg-slate-50 border border-slate-200 text-base sm:text-sm rounded-xl px-3.5 py-2.5 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none"
+          >
+          <p class="text-[10px] text-slate-400 mt-1">Velg et kallenavn eller brukernavn (trenger ikke e-post)</p>
         </div>
 
         <div>
           <label for="auth-password" class="block text-xs font-semibold text-slate-700 mb-1">Passord *</label>
-          <input type="password" id="auth-password" required minlength="6" placeholder="Minst 6 tegn" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3.5 py-2.5 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          <input 
+            type="password" 
+            id="auth-password" 
+            required 
+            minlength="6" 
+            placeholder="Minst 6 tegn" 
+            autocomplete="current-password"
+            class="w-full bg-slate-50 border border-slate-200 text-base sm:text-sm rounded-xl px-3.5 py-2.5 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none"
+          >
         </div>
 
         <div class="flex items-center justify-between text-xs pt-1">
-          <label class="flex items-center gap-2 cursor-pointer">
+          <label class="flex items-center gap-2 cursor-pointer select-none">
             <input type="checkbox" id="auth-is-new-user" class="w-4 h-4 rounded text-brand-600 focus:ring-brand-500 border-slate-300">
-            <span class="font-semibold text-slate-700">Jeg vil opprette en ny konto</span>
+            <span class="font-semibold text-slate-700">Jeg vil opprette en ny bruker</span>
           </label>
         </div>
 
-        <div class="pt-2">
-          <button type="submit" id="btn-auth-submit" class="w-full py-2.5 px-4 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm shadow-sm transition">
-            Logg inn
+        <div class="pt-1">
+          <button type="submit" id="btn-auth-submit" class="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white font-semibold text-sm shadow-sm transition">
+            Logg inn med brukernavn
           </button>
         </div>
       </form>
