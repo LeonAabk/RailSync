@@ -872,13 +872,19 @@
           <input type="number" id="settings-total-budget" required step="500" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3.5 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
         </div>
 
-        <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
-          <button type="button" onclick="closeModal('modal-trip-settings')" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-semibold text-sm transition">
-            Avbryt
+        <div class="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+          <button type="button" onclick="duplicateCurrentTripFromSettings()" class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm border border-slate-200 transition flex items-center gap-1.5" title="Opprett en kopi av denne reisen">
+            <i data-lucide="copy" class="w-4 h-4 text-brand-600"></i>
+            <span>Kopier reise</span>
           </button>
-          <button type="submit" class="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm shadow-sm transition">
-            Lagre innstillinger
-          </button>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="closeModal('modal-trip-settings')" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-semibold text-sm transition">
+              Avbryt
+            </button>
+            <button type="submit" class="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm shadow-sm transition">
+              Lagre innstillinger
+            </button>
+          </div>
         </div>
       </form>
     </div>
@@ -1110,9 +1116,9 @@
           <i data-lucide="plus" class="w-4 h-4"></i>
           <span>Ny tom reise</span>
         </button>
-        <button onclick="duplicateActiveTrip()" class="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs sm:text-sm border border-slate-200 transition">
+        <button onclick="duplicateActiveTrip()" class="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs sm:text-sm border border-slate-200 transition" title="Kopier hele den aktive reisen til et nytt forslag">
           <i data-lucide="copy" class="w-4 h-4 text-brand-600"></i>
-          <span>Dupliser denne reisen</span>
+          <span>Kopier aktiv reise</span>
         </button>
       </div>
 
@@ -1135,6 +1141,107 @@
         </p>
         <button onclick="closeModal('modal-trip-manager')" class="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition">
           Lukk
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: DEL & KOPIER REISE (SHARE & COPY MODAL)                            -->
+  <!-- ========================================================================= -->
+  <div id="modal-share-trip" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-5" role="dialog" aria-modal="true" aria-labelledby="modal-share-title">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-orange-50 text-rail-accent flex items-center justify-center font-bold">
+            <i data-lucide="share-2" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 id="modal-share-title" class="font-bold text-slate-900 text-lg">Del eller kopier reise</h3>
+            <p class="text-xs text-slate-500">Del lenken med reisefølget eller lag en egen kopi</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-share-trip')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Section 1: Copy Share URL -->
+      <div class="space-y-2">
+        <label for="share-url-input" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+          Delingslenke til reisen
+        </label>
+        <div class="flex items-center gap-2">
+          <input 
+            type="text" 
+            id="share-url-input" 
+            readonly 
+            onclick="this.select()"
+            class="flex-1 bg-slate-50 border border-slate-200 text-xs rounded-xl px-3 py-2.5 text-slate-700 font-mono focus:ring-2 focus:ring-brand-500 focus:outline-none"
+          >
+          <button 
+            type="button" 
+            id="btn-copy-url" 
+            onclick="copyShareTripUrl()" 
+            class="px-4 py-2.5 rounded-xl bg-rail-accent hover:bg-rail-accentHover active:scale-[0.98] text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 shrink-0"
+          >
+            <i data-lucide="copy" class="w-4 h-4"></i>
+            <span id="btn-copy-url-text">Kopier lenke</span>
+          </button>
+        </div>
+        <p class="text-[11px] text-slate-500">
+          Enhver som åpner denne lenken får se hele reiseruten, stoppene, togene og pakkelisten din.
+        </p>
+      </div>
+
+      <!-- Native Share Button (Mobile) -->
+      <div id="native-share-container" class="hidden">
+        <button 
+          type="button" 
+          onclick="triggerNativeShare()" 
+          class="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs sm:text-sm border border-slate-200 transition"
+        >
+          <i data-lucide="send" class="w-4 h-4 text-brand-600"></i>
+          <span>Del via apper (Meldinger, WhatsApp, etc.)</span>
+        </button>
+      </div>
+
+      <div class="flex items-center gap-3 my-1">
+        <div class="flex-1 h-px bg-slate-200"></div>
+        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Eller lag en kopi</span>
+        <div class="flex-1 h-px bg-slate-200"></div>
+      </div>
+
+      <!-- Section 2: Duplicate / Copy trip to local proposals -->
+      <div class="bg-brand-50/60 rounded-2xl p-4 border border-brand-200/70 space-y-2">
+        <div class="flex items-start gap-2.5">
+          <div class="w-7 h-7 rounded-lg bg-brand-100 text-brand-700 flex items-center justify-center shrink-0 mt-0.5">
+            <i data-lucide="copy" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h4 class="text-xs sm:text-sm font-bold text-slate-900 leading-tight">Vil du lage et nytt forslag av denne turen?</h4>
+            <p class="text-[11px] text-slate-600 mt-0.5">
+              Oppretter en uavhengig kopi i dine lagrede reiser slik at du kan teste alternative ruter.
+            </p>
+          </div>
+        </div>
+
+        <button 
+          type="button" 
+          onclick="duplicateActiveTripAndCloseModal()" 
+          class="w-full mt-2 py-2.5 px-4 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs sm:text-sm shadow-xs transition flex items-center justify-center gap-2"
+        >
+          <i data-lucide="copy" class="w-4 h-4"></i>
+          <span>Kopier reise til nytt forslag</span>
+        </button>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="pt-2 border-t border-slate-100 flex items-center justify-end">
+        <button onclick="closeModal('modal-share-trip')" class="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition">
+          Ferdig
         </button>
       </div>
     </div>

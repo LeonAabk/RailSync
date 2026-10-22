@@ -506,9 +506,49 @@ export function persistState() {
 }
 
 /**
+ * Safe multi-platform clipboard copy helper with execCommand fallback
+ */
+export async function copyToClipboardFallback(textToCopy) {
+  if (!textToCopy) return false;
+
+  // 1. Modern Navigator Clipboard API
+  if (navigator.clipboard && typeof navigator.clipboard.writeText === "function" && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(textToCopy);
+      return true;
+    } catch (err) {
+      console.warn("navigator.clipboard.writeText feilet, prøver execCommand:", err);
+    }
+  }
+
+  // 2. Fallback via temporary <textarea> and execCommand
+  try {
+    const textarea = document.createElement("textarea");
+    textarea.value = textToCopy;
+    textarea.style.position = "fixed";
+    textarea.style.top = "-9999px";
+    textarea.style.left = "-9999px";
+    textarea.style.opacity = "0";
+    textarea.setAttribute("readonly", "");
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    textarea.setSelectionRange(0, 99999);
+
+    const successful = document.execCommand("copy");
+    document.body.removeChild(textarea);
+    if (successful) return true;
+  } catch (err) {
+    console.warn("execCommand fallback feilet:", err);
+  }
+
+  return false;
+}
+
+/**
  * Handle Save & Share Trip:
- * Saves the entire appState to Firestore 'trips' collection, updates URL with ?trip=ID,
- * and copies the link to the clipboard with toast feedback.
+ * Saves the entire appState to Firestore 'trips' collection or local cache,
+ * updates URL with ?trip=ID, opens the Del & Kopier modal, and auto-copies the link.
  */
 export async function handleSaveAndShareTrip() {
   const btn = document.getElementById("btn-save-share");
@@ -532,16 +572,9 @@ export async function handleSaveAndShareTrip() {
         tripId = docRef.id;
       } catch (fsError) {
         console.warn("Firestore lagring feilet (sjekk Security Rules):", fsError);
-        // Fallback to local trip saving so user experience is not blocked
         tripId = "trip_" + Math.random().toString(36).substring(2, 9);
         localStorage.setItem(`railsync_trip_${tripId}`, JSON.stringify(appState));
         persistState();
-
-        showToast(
-          "Merk: Firestore tilgang sperret", 
-          "Husk å tillate read/write i Security Rules i Firebase Console. Reisen er lagret lokalt.",
-          "alert-triangle"
-        );
       }
     } else {
       // Local demo mode
@@ -554,23 +587,36 @@ export async function handleSaveAndShareTrip() {
     const shareUrl = `${window.location.origin}${window.location.pathname}?trip=${tripId}`;
     window.history.replaceState({ path: shareUrl }, "", shareUrl);
 
-    // Copy URL to clipboard
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      if (tripId && !tripId.startsWith("trip_")) {
-        showToast(
-          "Lenke kopiert!", 
-          "Reisen er lagret i skyen og delingslenken er kopiert!", 
-          "check"
-        );
+    // Populate modal input
+    const shareInput = document.getElementById("share-url-input");
+    if (shareInput) {
+      shareInput.value = shareUrl;
+    }
+
+    // Toggle native share button if supported by browser/device
+    const nativeShareContainer = document.getElementById("native-share-container");
+    if (nativeShareContainer) {
+      if (typeof navigator.share === "function") {
+        nativeShareContainer.classList.remove("hidden");
+      } else {
+        nativeShareContainer.classList.add("hidden");
       }
-    } catch (clipErr) {
-      // Clipboard fallback
-      showToast(
-        "Reise lagret!", 
-        `Lenke: ${shareUrl}`, 
-        "share-2"
-      );
+    }
+
+    // Open share modal
+    openModal("modal-share-trip");
+
+    // Attempt automated clipboard copy
+    const copied = await copyToClipboardFallback(shareUrl);
+    const copyBtnText = document.getElementById("btn-copy-url-text");
+    if (copied) {
+      if (copyBtnText) copyBtnText.textContent = "Kopiert!";
+      showToast("Lenke kopiert!", "Delingslenken er kopiert til utklippstavlen.", "check");
+      setTimeout(() => {
+        if (copyBtnText) copyBtnText.textContent = "Kopier lenke";
+      }, 3000);
+    } else {
+      showToast("Reise lagret!", "Delingsdialogen er åpnet.", "share-2");
     }
 
   } catch (error) {
@@ -581,6 +627,53 @@ export async function handleSaveAndShareTrip() {
       btn.innerHTML = originalHtml;
       btn.disabled = false;
       if (window.lucide) lucide.createIcons();
+    }
+  }
+}
+
+export async function copyShareTripUrl() {
+  const shareInput = document.getElementById("share-url-input");
+  const url = shareInput ? shareInput.value : window.location.href;
+  if (shareInput) {
+    shareInput.select();
+    shareInput.setSelectionRange(0, 99999);
+  }
+
+  const copied = await copyToClipboardFallback(url);
+  const copyBtn = document.getElementById("btn-copy-url");
+  const copyBtnText = document.getElementById("btn-copy-url-text");
+
+  if (copied) {
+    if (copyBtn) {
+      copyBtn.classList.remove("bg-rail-accent", "hover:bg-rail-accentHover");
+      copyBtn.classList.add("bg-emerald-600", "hover:bg-emerald-500");
+    }
+    if (copyBtnText) copyBtnText.textContent = "Kopiert!";
+    showToast("Lenke kopiert!", "Delingslenken er klar til å limes inn.", "check");
+    setTimeout(() => {
+      if (copyBtn) {
+        copyBtn.classList.add("bg-rail-accent", "hover:bg-rail-accentHover");
+        copyBtn.classList.remove("bg-emerald-600", "hover:bg-emerald-500");
+      }
+      if (copyBtnText) copyBtnText.textContent = "Kopier lenke";
+    }, 2500);
+  } else {
+    showToast("Lenke merket", "Trykk Kopier i nettleseren din.", "share-2");
+  }
+}
+
+export async function triggerNativeShare() {
+  const shareInput = document.getElementById("share-url-input");
+  const url = shareInput ? shareInput.value : window.location.href;
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: appState.trip.title || "RailSync Interrail-reise",
+        text: `Se min interrail-plan: ${appState.trip.title || "Europaturné 2026"}`,
+        url: url
+      });
+    } catch (err) {
+      console.log("Deling avbrutt:", err);
     }
   }
 }
@@ -1326,20 +1419,21 @@ export function renderTripManagerList() {
         </div>
 
         <!-- Action buttons -->
-        <div class="flex items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+        <div class="flex items-center gap-1.5 sm:gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 flex-wrap sm:flex-nowrap">
           ${!isActive ? `
-            <button onclick="switchActiveTrip('${tripItem.id}')" class="px-3.5 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs transition shadow-xs">
-              Velg reise
+            <button onclick="switchActiveTrip('${tripItem.id}')" class="px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs transition shadow-xs">
+              Velg
             </button>
           ` : ''}
-          <button onclick="renameTripInManager('${tripItem.id}')" class="p-2 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition" title="Endre navn">
+          <button onclick="duplicateTrip('${tripItem.id}')" class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:text-brand-700 bg-slate-100 hover:bg-brand-50 border border-slate-200 transition" title="Kopier denne reisen">
+            <i data-lucide="copy" class="w-3.5 h-3.5 text-brand-600"></i>
+            <span>Kopier</span>
+          </button>
+          <button onclick="renameTripInManager('${tripItem.id}')" class="p-1.5 sm:p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition" title="Endre navn">
             <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
           </button>
-          <button onclick="duplicateTrip('${tripItem.id}')" class="p-2 rounded-lg text-slate-500 hover:text-brand-600 hover:bg-brand-50 transition" title="Dupliser forslag">
-            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
-          </button>
           ${allTrips.length > 1 ? `
-            <button onclick="deleteTrip('${tripItem.id}')" class="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition" title="Slett forslag">
+            <button onclick="deleteTrip('${tripItem.id}')" class="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition" title="Slett forslag">
               <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
             </button>
           ` : ''}
@@ -1363,31 +1457,62 @@ export function switchActiveTrip(tripId) {
   showToast("Endret reise", `Byttet til "${appState.trip.title}"`);
 }
 
+export function duplicateActiveTripAndCloseModal() {
+  closeModal('modal-share-trip');
+  closeModal('modal-trip-settings');
+  closeModal('modal-trip-manager');
+  duplicateActiveTrip();
+}
+
+export function duplicateCurrentTripFromSettings() {
+  closeModal('modal-trip-settings');
+  duplicateActiveTrip();
+}
+
 export function duplicateActiveTrip() {
   duplicateTrip(activeTripId);
 }
 
 export function duplicateTrip(tripId) {
   syncStateToActiveTrip();
-  const source = allTrips.find(t => t.id === tripId) || allTrips[0];
+  const targetId = tripId || activeTripId;
+  const sourceIndex = allTrips.findIndex(t => t.id === targetId);
+  const source = sourceIndex !== -1 ? allTrips[sourceIndex] : (allTrips[0] || null);
   if (!source) return;
 
   const newId = "trip_" + Date.now();
-  const newTitle = `${source.title} (Kopi)`;
+  const baseTitle = source.title ? source.title.replace(/\s*\(Kopi(?:\s*\d+)?\)$/i, "") : "Reise";
+  
+  // Count how many trips have this base title to number smoothly
+  const existingCopies = allTrips.filter(t => t.title && t.title.startsWith(baseTitle)).length;
+  const newTitle = existingCopies > 1 ? `${baseTitle} (Kopi ${existingCopies})` : `${baseTitle} (Kopi)`;
 
   const newTrip = JSON.parse(JSON.stringify(source));
   newTrip.id = newId;
   newTrip.title = newTitle;
+  if (!newTrip.trip) newTrip.trip = {};
   newTrip.trip.title = newTitle;
 
-  allTrips.push(newTrip);
+  // Insert right adjacent to the source trip so the user immediately sees it
+  if (sourceIndex !== -1) {
+    allTrips.splice(sourceIndex + 1, 0, newTrip);
+  } else {
+    allTrips.unshift(newTrip);
+  }
+
   activeTripId = newId;
   syncActiveTripToState();
   persistState();
   renderAll();
   updateMapLayers();
   renderTripManagerList();
-  showToast("Reise duplisert", `Opprettet "${newTitle}"`);
+
+  // Close modals so the main screen switches directly to the copy
+  closeModal('modal-trip-manager');
+  closeModal('modal-share-trip');
+  closeModal('modal-trip-settings');
+
+  showToast("Reise kopiert!", `Opprettet "${newTitle}". Du er nå inne på kopien.`, "check");
 }
 
 export function createNewTrip() {
@@ -1961,6 +2086,11 @@ window.openTripManagerModal = openTripManagerModal;
 window.switchActiveTrip = switchActiveTrip;
 window.duplicateActiveTrip = duplicateActiveTrip;
 window.duplicateTrip = duplicateTrip;
+window.duplicateActiveTripAndCloseModal = duplicateActiveTripAndCloseModal;
+window.duplicateCurrentTripFromSettings = duplicateCurrentTripFromSettings;
+window.copyShareTripUrl = copyShareTripUrl;
+window.triggerNativeShare = triggerNativeShare;
+window.copyToClipboardFallback = copyToClipboardFallback;
 window.createNewTrip = createNewTrip;
 window.deleteTrip = deleteTrip;
 window.renameTripInManager = renameTripInManager;
