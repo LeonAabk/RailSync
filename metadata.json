@@ -1,0 +1,8 @@
+{
+  "name": "RailSync - Interrail Planlegger",
+  "description": "Moderne og responsiv interrail-planlegger for Europa med interaktivt kart, tidslinje, togoversikt, budsjett og pakkeliste.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

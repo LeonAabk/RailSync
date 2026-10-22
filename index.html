@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="no" class="h-full bg-slate-50">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RailSync - Interrail Planlegger</title>
+  <meta name="description" content="Moderne og responsiv interrail-planlegger for Europa med interaktivt kart, tidslinje, togoversikt, budsjett og pakkeliste." />
+  <meta property="og:title" content="RailSync - Interrail Planlegger" />
+  <meta property="og:description" content="Moderne og responsiv interrail-planlegger for Europa med interaktivt kart, tidslinje, togoversikt, budsjett og pakkeliste." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f0fdfa',
+              100: '#ccfbf1',
+              200: '#99f6e4',
+              500: '#14b8a6',
+              600: '#0d9488',
+              700: '#0f766e',
+              800: '#115e59',
+              900: '#134e4a',
+              950: '#042f2e',
+            },
+            rail: {
+              navy: '#0f172a',
+              petrol: '#0a3641',
+              accent: '#f97316',
+              accentHover: '#ea580c',
+              coral: '#fb7185',
+              surface: '#ffffff',
+              muted: '#64748b'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Leaflet CSS & JS via CDN -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <!-- Lucide Icons via CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    /* Custom Leaflet Map styling: wide, roomy, and never clipped */
+    .leaflet-popup-content-wrapper {
+      border-radius: 1rem !important;
+      box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.18), 0 8px 10px -6px rgba(15, 23, 42, 0.08) !important;
+      padding: 0 !important;
+      overflow: hidden !important;
+      font-family: 'Plus Jakarta Sans', sans-serif !important;
+      min-width: 250px !important;
+      max-width: 310px !important;
+    }
+    .leaflet-popup-content {
+      margin: 0 !important;
+      line-height: 1.4 !important;
+      width: auto !important;
+      box-sizing: border-box !important;
+    }
+    .leaflet-container a.leaflet-popup-close-button {
+      top: 10px !important;
+      right: 10px !important;
+      padding: 2px !important;
+      color: #94a3b8 !important;
+      width: 20px !important;
+      height: 20px !important;
+      font-size: 16px !important;
+    }
+    .leaflet-container a.leaflet-popup-close-button:hover {
+      color: #334155 !important;
+    }
+    .leaflet-container {
+      font-family: inherit;
+    }
+
+    /* Custom pulse pin */
+    .rail-marker-pin {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #0d9488;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 13px;
+      border: 3px solid #ffffff;
+      box-shadow: 0 4px 12px rgba(13, 148, 136, 0.45);
+      transition: transform 0.2s ease;
+    }
+    .rail-marker-pin:hover {
+      transform: scale(1.15);
+      background: #f97316;
+      box-shadow: 0 6px 16px rgba(249, 115, 22, 0.5);
+    }
+    .rail-marker-pin.start {
+      background: #0f172a;
+    }
+    .rail-marker-pin.current {
+      background: #f97316;
+      animation: pulse-ring 2s infinite;
+    }
+    @keyframes pulse-ring {
+      0% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.6); }
+      70% { box-shadow: 0 0 0 10px rgba(249, 115, 22, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); }
+    }
+    /* Hide scrollbar for tabs */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="h-full text-slate-800 antialiased bg-slate-50 flex flex-col md:flex-row overflow-x-hidden">
+
+  <!-- ========================================================================= -->
+  <!-- DESKTOP SIDEBAR NAVIGATION                                                -->
+  <!-- ========================================================================= -->
+  <aside class="hidden md:flex flex-col w-72 bg-slate-900 text-slate-100 shrink-0 border-r border-slate-800 z-30 select-none">
+    <!-- Brand Header -->
+    <div class="p-6 border-b border-slate-800 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center text-white shadow-lg shadow-brand-900/40">
+          <i data-lucide="train" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-extrabold text-lg tracking-tight text-white">RailSync</span>
+            <span class="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-brand-500/20 text-brand-300 border border-brand-500/30">2026</span>
+          </div>
+          <p class="text-xs text-slate-400 font-medium">Interrail Planlegger</p>
+        </div>
+      </div>
+      <button onclick="openTripSettingsModal()" class="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition" title="Reiseinnstillinger">
+        <i data-lucide="settings" class="w-4 h-4"></i>
+      </button>
+    </div>
+
+    <!-- Main Navigation Links -->
+    <nav class="flex-1 p-4 space-y-1.5 overflow-y-auto" aria-label="Hovednavigasjon">
+      <p class="px-3 pt-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">Reiseplan</p>
+      
+      <button onclick="switchTab('overview')" id="nav-btn-overview" class="nav-item w-full flex items-center gap-3.5 px-3.5 py-3 rounded-xl font-semibold text-sm transition-all duration-150 text-white bg-slate-800 shadow-sm border border-slate-700/60">
+        <i data-lucide="map-pin" class="w-4 h-4 text-brand-400"></i>
+        <span>Oversikt & Kart</span>
+      </button>
+
+      <button onclick="switchTab('trains')" id="nav-btn-trains" class="nav-item w-full flex items-center gap-3.5 px-3.5 py-3 rounded-xl font-medium text-sm transition-all duration-150 text-slate-300 hover:text-white hover:bg-slate-800/60">
+        <i data-lucide="train-track" class="w-4 h-4 text-slate-400"></i>
+        <span>Tog & Reisedager</span>
+        <span id="sidebar-train-badge" class="ml-auto text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">6</span>
+      </button>
+
+      <button onclick="switchTab('budget')" id="nav-btn-budget" class="nav-item w-full flex items-center gap-3.5 px-3.5 py-3 rounded-xl font-medium text-sm transition-all duration-150 text-slate-300 hover:text-white hover:bg-slate-800/60">
+        <i data-lucide="wallet" class="w-4 h-4 text-slate-400"></i>
+        <span>Budsjett</span>
+        <span id="sidebar-budget-badge" class="ml-auto text-xs px-2 py-0.5 rounded-full bg-slate-800 text-emerald-400 border border-slate-700">NOK</span>
+      </button>
+
+      <button onclick="switchTab('packing')" id="nav-btn-packing" class="nav-item w-full flex items-center gap-3.5 px-3.5 py-3 rounded-xl font-medium text-sm transition-all duration-150 text-slate-300 hover:text-white hover:bg-slate-800/60">
+        <i data-lucide="check-square" class="w-4 h-4 text-slate-400"></i>
+        <span>Pakkeliste</span>
+        <span id="sidebar-packing-progress" class="ml-auto text-xs px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30">12/20</span>
+      </button>
+
+      <!-- Manage Trips / Mine Reiser Section in Sidebar -->
+      <div class="pt-3 border-t border-slate-800">
+        <button onclick="openTripManagerModal()" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-brand-300 bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/20 transition">
+          <div class="flex items-center gap-2">
+            <i data-lucide="folder-open" class="w-4 h-4 text-brand-400"></i>
+            <span>Mine lagrede reiser</span>
+          </div>
+          <span id="sidebar-trips-count-badge" class="px-2 py-0.5 rounded-full bg-brand-500/30 text-white font-bold text-[10px]">2</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Pass Status Card in Sidebar -->
+    <div class="p-4 m-4 rounded-2xl bg-gradient-to-b from-slate-800/90 to-slate-800/50 border border-slate-700/60">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+          <i data-lucide="ticket" class="w-3.5 h-3.5 text-amber-400"></i>
+          Interrail Global Pass
+        </span>
+        <button onclick="openTripSettingsModal()" class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 transition">Endre</button>
+      </div>
+      <div class="text-xs text-slate-400 mb-2">
+        <span id="sidebar-pass-days-text" class="text-white font-bold">4 av 7</span> reisedager brukt
+      </div>
+      <!-- Progress Bar -->
+      <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden">
+        <div id="sidebar-pass-progress-bar" class="bg-gradient-to-r from-brand-500 to-amber-500 h-2 rounded-full transition-all duration-300" style="width: 57%"></div>
+      </div>
+      <div class="mt-3 pt-3 border-t border-slate-700/50 flex justify-between items-center text-[11px] text-slate-400">
+        <span>Gjenstående dager:</span>
+        <span id="sidebar-pass-remaining" class="font-bold text-amber-400">3 dager</span>
+      </div>
+    </div>
+
+    <!-- Quick action button: Legg til stoppested -->
+    <div class="p-4 pt-0">
+      <button onclick="openAddStopModal()" class="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-brand-600 hover:bg-brand-500 active:bg-brand-700 text-white font-semibold text-sm shadow-md shadow-brand-900/40 transition">
+        <i data-lucide="plus-circle" class="w-4 h-4"></i>
+        <span>Legg til stoppested</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ========================================================================= -->
+  <!-- MAIN APPLICATION VIEWPORT                                                 -->
+  <!-- ========================================================================= -->
+  <main class="flex-1 flex flex-col h-full min-w-0 pb-20 md:pb-0 overflow-y-auto">
+
+    <!-- Top Mobile / Global Header -->
+    <header class="bg-white border-b border-slate-200 px-4 sm:px-6 py-3.5 flex items-center justify-between sticky top-0 z-20 shadow-xs">
+      <div class="flex items-center gap-2.5 sm:gap-3.5 flex-wrap">
+        <!-- Mobile Logo Icon -->
+        <div class="md:hidden w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center text-white shadow">
+          <i data-lucide="train" class="w-4 h-4"></i>
+        </div>
+        <div onclick="openTripSettingsModal()" class="cursor-pointer group select-none" title="Klikk for å redigere reiseinnstillinger">
+          <div class="flex items-center gap-2">
+            <h1 id="header-trip-title" class="text-base sm:text-lg font-bold text-slate-900 leading-tight group-hover:text-brand-600 transition">Sommerens Europaturné 2026</h1>
+            <i data-lucide="pencil" class="w-3.5 h-3.5 text-slate-400 group-hover:text-brand-600 transition"></i>
+          </div>
+          <p id="header-trip-dates" class="text-xs text-slate-500 font-medium">1. jul – 22. jul 2026 • 22 dager på skinner</p>
+        </div>
+
+        <!-- MINE REISER SWITCHER BUTTON IN HEADER -->
+        <button onclick="openTripManagerModal()" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-brand-50 text-slate-800 font-bold text-xs border border-slate-200 hover:border-brand-300 transition shadow-2xs">
+          <i data-lucide="folder-open" class="w-3.5 h-3.5 text-brand-600"></i>
+          <span>Mine reiser</span>
+          <span id="header-trip-count-badge" class="px-1.5 py-0.2 rounded-full bg-brand-600 text-white font-extrabold text-[10px]">2</span>
+          <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
+        </button>
+      </div>
+
+      <!-- Action buttons: Auth, Settings & Save & Share -->
+      <div class="flex items-center gap-2">
+        <!-- USER AUTH HEADER BUTTON / PROFILE -->
+        <div id="auth-header-container">
+          <!-- Logged Out Button -->
+          <button id="btn-open-login" onclick="openAuthModal()" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm border border-slate-200 transition">
+            <i data-lucide="user" class="w-4 h-4 text-brand-600"></i>
+            <span class="hidden sm:inline">Logg inn</span>
+          </button>
+          <!-- Logged In Profile Pill (hidden by default) -->
+          <div id="user-profile-pill" class="hidden flex items-center gap-2 pl-3 pr-1.5 py-1 rounded-xl bg-brand-50 border border-brand-200 text-brand-900 text-xs font-bold">
+            <span id="user-display-name" class="truncate max-w-[100px] sm:max-w-[140px]">Bruker</span>
+            <button onclick="handleLogout()" class="p-1 rounded-lg text-brand-600 hover:text-rose-600 hover:bg-rose-50 transition" title="Logg ut">
+              <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+
+        <button onclick="openTripSettingsModal()" class="p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 border border-slate-200 transition" title="Reiseinnstillinger">
+          <i data-lucide="settings" class="w-4 h-4"></i>
+        </button>
+        <!-- LAGRE & DEL REISE-KNAPP -->
+        <button id="btn-save-share" onclick="handleSaveAndShareTrip()" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rail-accent hover:bg-rail-accentHover active:bg-orange-700 text-white font-semibold text-xs sm:text-sm shadow-sm transition">
+          <i data-lucide="share-2" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">Lagre & Del Reise</span>
+          <span class="sm:hidden">Lagre & Del</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- CONTENT CONTAINERS FOR 4 TABS -->
+    <div class="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
+
+      <!-- ===================================================================== -->
+      <!-- TAB 1: OVERSIKT & KART                                                -->
+      <!-- ===================================================================== -->
+      <section id="tab-overview" class="tab-content space-y-6">
+        
+        <!-- Key Metrics Cards Grid -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+          <!-- Stat 1: Antall land -->
+          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+              <i data-lucide="globe" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <p class="text-xs font-medium text-slate-500">Antall land</p>
+              <h3 id="stat-countries-count" class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">6 land</h3>
+              <p id="stat-countries-sub" class="text-[11px] text-slate-400 truncate">NO, DK, DE, CZ, AT, IT, CH</p>
+            </div>
+          </div>
+
+          <!-- Stat 2: Totalt antall dager -->
+          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
+              <i data-lucide="calendar" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <p class="text-xs font-medium text-slate-500">Total reisetid</p>
+              <h3 id="stat-total-days" class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">22 dager</h3>
+              <p id="stat-total-days-sub" class="text-[11px] text-slate-400">1. juli – 22. juli</p>
+            </div>
+          </div>
+
+          <!-- Stat 3: Reisedager brukt -->
+          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+              <i data-lucide="ticket" class="w-5 h-5"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-xs font-medium text-slate-500">Reisedager på pass</p>
+              <h3 id="stat-pass-days" class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">4 / 7 dager</h3>
+              <div class="w-full bg-slate-100 rounded-full h-1.5 mt-1 overflow-hidden">
+                <div id="stat-pass-bar" class="bg-amber-500 h-1.5 rounded-full" style="width: 57%"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stat 4: Budsjett brukt -->
+          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+              <i data-lucide="pie-chart" class="w-5 h-5"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-xs font-medium text-slate-500">Budsjett brukt</p>
+              <h3 id="stat-budget-spent" class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">13 670 kr</h3>
+              <p id="stat-budget-sub" class="text-[11px] text-slate-400 truncate">av 22 000 kr (62%)</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Grid: Timeline + Map Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          
+          <!-- LEFT: Timeline of stops (5 cols on lg) -->
+          <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 sm:p-6 space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <i data-lucide="milestone" class="w-4 h-4 text-brand-600"></i>
+                  Rute & Stoppesteder
+                </h2>
+                <p class="text-xs text-slate-500">Bruk pilene for å endre rekkefølge på turen</p>
+              </div>
+              <button onclick="openAddStopModal()" class="text-xs font-semibold text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 px-3 py-1.5 rounded-lg transition flex items-center gap-1">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i> Legg til
+              </button>
+            </div>
+
+            <!-- Scrollable Timeline items container -->
+            <div id="timeline-container" class="space-y-4 max-h-[620px] overflow-y-auto pr-1">
+              <!-- Dynamically populated by renderTimeline() in app.js -->
+            </div>
+          </div>
+
+          <!-- RIGHT: Interactive Leaflet Map (7 cols on lg) -->
+          <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden flex flex-col">
+            <div class="p-4 sm:px-6 sm:py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <h2 class="text-sm sm:text-base font-bold text-slate-900">Interaktivt Togkart for Europa</h2>
+              </div>
+              <div class="flex items-center gap-2">
+                <button onclick="resetMapView()" class="px-2.5 py-1 text-xs font-medium text-slate-600 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg shadow-2xs flex items-center gap-1">
+                  <i data-lucide="locate-fixed" class="w-3.5 h-3.5"></i>
+                  <span>Tilpass rute</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Map Container -->
+            <div class="relative w-full h-[380px] sm:h-[460px] lg:h-[600px] bg-slate-100">
+              <div id="rail-map" class="w-full h-full z-10"></div>
+              
+              <!-- Map Legend Overlay -->
+              <div class="absolute bottom-3 left-3 z-[400] bg-white/95 backdrop-blur-md px-3 py-2 rounded-xl border border-slate-200 shadow-md text-[11px] text-slate-600 space-y-1">
+                <div class="flex items-center gap-2">
+                  <span class="w-3 h-3 rounded-full bg-brand-600 inline-block border border-white"></span>
+                  <span>Stoppested med overnatting</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="w-4 h-0.5 bg-brand-600 border-t-2 border-dashed border-brand-500 inline-block"></span>
+                  <span>Planlagt togrute</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- TAB 2: TOG & REISEDAGER                                               -->
+      <!-- ===================================================================== -->
+      <section id="tab-trains" class="tab-content hidden space-y-6">
+        
+        <!-- Header & Filter Bar -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <i data-lucide="train" class="w-5 h-5 text-brand-600"></i>
+              Togreiser & Plassreservasjoner
+            </h2>
+            <p class="text-xs text-slate-500">Hold oversikt over avgangstider, togoperatører og obligatoriske setereservasjoner</p>
+          </div>
+
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <select id="train-filter" onchange="renderTrains()" class="bg-slate-50 border border-slate-200 text-xs sm:text-sm font-medium rounded-xl px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
+              <option value="all">Alle togreiser</option>
+              <option value="needs_reservation">Krever reservasjon</option>
+              <option value="confirmed">Bekreftet reservasjon</option>
+              <option value="travel_days">Bruker reisedag</option>
+            </select>
+            <button onclick="openAddTrainModal()" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs sm:text-sm shadow-sm transition whitespace-nowrap">
+              <i data-lucide="plus" class="w-4 h-4"></i>
+              <span>Ny reise</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Train Journey List Container -->
+        <div id="trains-list-container" class="space-y-4">
+          <!-- Dynamically populated by renderTrains() in app.js -->
+        </div>
+
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- TAB 3: BUDSJETT                                                       -->
+      <!-- ===================================================================== -->
+      <section id="tab-budget" class="tab-content hidden space-y-6">
+        
+        <!-- Budget Overview Summary Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+            <div class="flex items-center justify-between">
+              <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Totalbudsjett</p>
+              <button onclick="openTripSettingsModal()" class="text-xs text-brand-600 hover:underline">Endre</button>
+            </div>
+            <h3 id="budget-total-val" class="text-2xl font-extrabold text-slate-900 mt-1">22 000 kr</h3>
+            <p class="text-xs text-slate-500 mt-1">Satt totalramme for turen</p>
+          </div>
+          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Brukt hittil</p>
+            <h3 id="budget-spent-val" class="text-2xl font-extrabold text-emerald-600 mt-1">13 670 kr</h3>
+            <p id="budget-spent-pct" class="text-xs text-slate-500 mt-1">62% av budsjettet</p>
+          </div>
+          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Gjenstår</p>
+            <h3 id="budget-remaining-val" class="text-2xl font-extrabold text-slate-900 mt-1">8 330 kr</h3>
+            <p class="text-xs text-slate-500 mt-1">Ledig til mat & opplevelser</p>
+          </div>
+          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Snitt per dag</p>
+            <h3 id="budget-daily-avg" class="text-2xl font-extrabold text-rail-accent mt-1">378 kr / dag</h3>
+            <p id="budget-daily-days-sub" class="text-xs text-slate-500 mt-1">For de planlagte dagene</p>
+          </div>
+        </div>
+
+        <!-- Budget Visual Category Breakdown & Action Button -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 space-y-6">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <h2 class="text-base font-bold text-slate-900">Utgiftsfordeling på kategorier</h2>
+              <p class="text-xs text-slate-500">Se hvor mye penger som går til transport, opphold, mat og fornøyelser</p>
+            </div>
+            <button onclick="openAddExpenseModal()" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs sm:text-sm shadow-sm transition">
+              <i data-lucide="plus-circle" class="w-4 h-4"></i>
+              <span>Legg til utgift</span>
+            </button>
+          </div>
+
+          <!-- Category Progress Bars -->
+          <div id="budget-categories-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Dynamically populated by renderBudget() in app.js -->
+          </div>
+        </div>
+
+        <!-- Expenses Transaction Table -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+          <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="font-bold text-slate-900 text-sm sm:text-base">Registrerte utgifter</h3>
+            <span id="expenses-count-badge" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">9 poster</span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs sm:text-sm">
+              <thead class="bg-slate-50/75 border-b border-slate-100 text-slate-500 font-semibold uppercase text-[11px] tracking-wider">
+                <tr>
+                  <th class="py-3 px-4 sm:px-6">Beskrivelse</th>
+                  <th class="py-3 px-4">Kategori</th>
+                  <th class="py-3 px-4">Dato</th>
+                  <th class="py-3 px-4 text-right">Beløp</th>
+                  <th class="py-3 px-4 text-right">Handling</th>
+                </tr>
+              </thead>
+              <tbody id="expenses-table-body" class="divide-y divide-slate-100 text-slate-700 font-medium">
+                <!-- Dynamically populated by renderBudget() in app.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- TAB 4: PAKKELISTE                                                     -->
+      <!-- ===================================================================== -->
+      <section id="tab-packing" class="tab-content hidden space-y-6">
+        
+        <!-- Header Banner with Progress -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 sm:p-6 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <i data-lucide="backpack" class="w-5 h-5 text-brand-600"></i>
+                Interrail Sjekkliste & Pakkeliste
+              </h2>
+              <p class="text-xs text-slate-500">Tilpasset togreiser gjennom Europa med pass, komfort og pakke-kuber</p>
+            </div>
+            
+            <div class="flex items-center gap-2">
+              <button onclick="openAddPackingItemModal()" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs sm:text-sm shadow-sm transition">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>Ny gjenstand</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Packing Progress Status -->
+          <div class="bg-slate-50 p-4 rounded-xl border border-slate-200/60">
+            <div class="flex items-center justify-between text-xs sm:text-sm font-semibold mb-2">
+              <span class="text-slate-700 flex items-center gap-1.5">
+                <i data-lucide="sparkles" class="w-4 h-4 text-amber-500"></i>
+                Pakkerapport:
+              </span>
+              <span id="packing-percentage-label" class="text-brand-700 font-extrabold">65% fullført</span>
+            </div>
+            <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+              <div id="packing-progress-bar" class="bg-gradient-to-r from-brand-600 to-emerald-500 h-2.5 rounded-full transition-all duration-300" style="width: 65%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Grouped Checklist Grid -->
+        <div id="packing-groups-container" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <!-- Dynamically populated by renderPacking() in app.js -->
+        </div>
+
+      </section>
+
+    </div>
+
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- MOBILE BOTTOM NAVIGATION BAR                                              -->
+  <!-- ========================================================================= -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-2 py-1.5 z-40 flex items-center justify-around shadow-lg" aria-label="Mobilnavigasjon">
+    
+    <button onclick="switchTab('overview')" id="mobile-tab-overview" class="mobile-nav-btn flex flex-col items-center justify-center py-1 px-3 rounded-xl text-brand-600 font-bold transition">
+      <i data-lucide="map-pin" class="w-5 h-5"></i>
+      <span class="text-[10px] mt-0.5">Oversikt</span>
+    </button>
+
+    <button onclick="switchTab('trains')" id="mobile-tab-trains" class="mobile-nav-btn flex flex-col items-center justify-center py-1 px-3 rounded-xl text-slate-400 font-medium transition">
+      <i data-lucide="train" class="w-5 h-5"></i>
+      <span class="text-[10px] mt-0.5">Tog</span>
+    </button>
+
+    <button onclick="switchTab('budget')" id="mobile-tab-budget" class="mobile-nav-btn flex flex-col items-center justify-center py-1 px-3 rounded-xl text-slate-400 font-medium transition">
+      <i data-lucide="wallet" class="w-5 h-5"></i>
+      <span class="text-[10px] mt-0.5">Budsjett</span>
+    </button>
+
+    <button onclick="switchTab('packing')" id="mobile-tab-packing" class="mobile-nav-btn flex flex-col items-center justify-center py-1 px-3 rounded-xl text-slate-400 font-medium transition">
+      <i data-lucide="check-square" class="w-5 h-5"></i>
+      <span class="text-[10px] mt-0.5">Pakkeliste</span>
+    </button>
+  </nav>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: LEGG TIL / REDIGER STOPPESTED                                      -->
+  <!-- ========================================================================= -->
+  <div id="modal-add-stop" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-4 max-h-[90vh] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modal-stop-title">
+      
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center">
+            <i data-lucide="map-pin" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 id="modal-stop-title" class="font-bold text-slate-900 text-base">Legg til stoppested</h3>
+            <p class="text-xs text-slate-500">Kartet og reiseruten oppdateres umiddelbart</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-add-stop')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="form-add-stop" onsubmit="handleSaveStop(event)" class="space-y-4">
+        <input type="hidden" id="stop-edit-id" value="">
+
+        <!-- 1. LIVE GEOCODING SEARCH (OpenStreetMap Nominatim API) -->
+        <div class="relative">
+          <div class="flex items-center justify-between mb-1.5">
+            <label for="stop-search-input" class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+              <i data-lucide="search" class="w-3.5 h-3.5 text-brand-600"></i>
+              Søk by eller togstasjon i Europa (live geocoding):
+            </label>
+            <span id="search-spinner" class="hidden text-brand-600 text-[11px] font-semibold flex items-center gap-1">
+              <i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i> Søker...
+            </span>
+          </div>
+
+          <div class="relative">
+            <input 
+              type="text" 
+              id="stop-search-input" 
+              placeholder="F.eks. Salzburg, Lyon, Milano, Gent, Split..." 
+              class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3.5 py-2.5 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none"
+              autocomplete="off"
+            >
+          </div>
+
+          <div id="search-results-dropdown" class="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 max-h-48 overflow-y-auto hidden">
+            <!-- Populated via setupNominatimSearch() in app.js -->
+          </div>
+        </div>
+
+        <!-- 2. Quick Selector for Popular Cities -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">
+            Eller velg hurtig fra populære Interrail-byer:
+          </label>
+          <select id="stop-preset-select" onchange="handlePresetCitySelect(this.value)" class="w-full bg-slate-50 border border-slate-200 text-xs sm:text-sm rounded-xl px-3.5 py-2 text-slate-700 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+            <option value="">-- Velg populær by --</option>
+            <option value="Oslo|Norge|59.9139|10.7522">Oslo, Norge</option>
+            <option value="København|Danmark|55.6761|12.5683">København, Danmark</option>
+            <option value="Stockholm|Sverige|59.3293|18.0686">Stockholm, Sverige</option>
+            <option value="Hamburg|Tyskland|53.5511|9.9937">Hamburg, Tyskland</option>
+            <option value="Berlin|Tyskland|52.5200|13.4050">Berlin, Tyskland</option>
+            <option value="Amsterdam|Nederland|52.3676|4.9041">Amsterdam, Nederland</option>
+            <option value="Brussel|Belgia|50.8503|4.3517">Brussel, Belgia</option>
+            <option value="Paris|Frankrike|48.8566|2.3522">Paris, Frankrike</option>
+            <option value="Praha|Tsjekkia|50.0755|14.4378">Praha, Tsjekkia</option>
+            <option value="Wien|Østerrike|48.2082|16.3738">Wien, Østerrike</option>
+            <option value="Budapest|Ungarn|47.4979|19.0402">Budapest, Ungarn</option>
+            <option value="München|Tyskland|48.1351|11.5820">München, Tyskland</option>
+            <option value="Zürich|Sveits|47.3769|8.5417">Zürich, Sveits</option>
+            <option value="Ljubljana|Slovenia|46.0569|14.5058">Ljubljana, Slovenia</option>
+            <option value="Venezia|Italia|45.4408|12.3155">Venezia, Italia</option>
+            <option value="Firenze|Italia|43.7696|11.2558">Firenze, Italia</option>
+            <option value="Roma|Italia|41.9028|12.4964">Roma, Italia</option>
+            <option value="Nice|Frankrike|43.7102|7.2620">Nice, Frankrike</option>
+            <option value="Barcelona|Spania|41.3879|2.1699">Barcelona, Spania</option>
+          </select>
+        </div>
+
+        <!-- City & Country Inputs -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="stop-city" class="block text-xs font-semibold text-slate-700 mb-1">Bynavn *</label>
+            <input type="text" id="stop-city" required placeholder="f.eks. Salzburg" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3.5 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+          <div>
+            <label for="stop-country" class="block text-xs font-semibold text-slate-700 mb-1">Land *</label>
+            <input type="text" id="stop-country" required placeholder="f.eks. Østerrike" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3.5 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Dates -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="stop-arrival" class="block text-xs font-semibold text-slate-700 mb-1">Ankomst *</label>
+            <input type="date" id="stop-arrival" required value="2026-07-20" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+          <div>
+            <label for="stop-departure" class="block text-xs font-semibold text-slate-700 mb-1">Avreise *</label>
+            <input type="date" id="stop-departure" required value="2026-07-23" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Coordinates -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="stop-lat" class="block text-xs font-semibold text-slate-700 mb-1">Breddegrad (Lat)</label>
+            <input type="number" step="any" id="stop-lat" placeholder="47.8095" class="w-full bg-slate-50 border border-slate-200 text-xs sm:text-sm rounded-xl px-3.5 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+          <div>
+            <label for="stop-lng" class="block text-xs font-semibold text-slate-700 mb-1">Lengdegrad (Lng)</label>
+            <input type="number" step="any" id="stop-lng" placeholder="13.0550" class="w-full bg-slate-50 border border-slate-200 text-xs sm:text-sm rounded-xl px-3.5 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Accommodation Status & Note -->
+        <div>
+          <label for="stop-accom-status" class="block text-xs font-semibold text-slate-700 mb-1">Status på overnatting</label>
+          <select id="stop-accom-status" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+            <option value="Bestilt">Bestilt og bekreftet</option>
+            <option value="Ser etter hotell">Ser etter hotell / hostel</option>
+            <option value="Ikke bestilt">Ikke bestilt</option>
+            <option value="Hos venner/familie">Hos venner / familie</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="stop-accom-note" class="block text-xs font-semibold text-slate-700 mb-1">Hotell-/Hostelnavn eller notat</label>
+          <input type="text" id="stop-accom-note" placeholder="f.eks. Yoho International Youth Hostel" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3.5 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+        </div>
+
+        <!-- Submit and Cancel buttons -->
+        <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
+          <button type="button" onclick="closeModal('modal-add-stop')" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-semibold text-sm transition">
+            Avbryt
+          </button>
+          <button type="submit" class="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm shadow-sm transition">
+            <span id="modal-stop-btn-text">Lagre stoppested</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: REISEINNSTILLINGER (TRIP SETTINGS)                                  -->
+  <!-- ========================================================================= -->
+  <div id="modal-trip-settings" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-4 max-h-[90vh] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modal-settings-title">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center">
+            <i data-lucide="settings" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 id="modal-settings-title" class="font-bold text-slate-900 text-base">Reiseinnstillinger</h3>
+            <p class="text-xs text-slate-500">Endre tittel, datoer, pass-type og budsjett</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-trip-settings')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="form-trip-settings" onsubmit="handleSaveTripSettings(event)" class="space-y-4">
+        <div>
+          <label for="settings-title" class="block text-xs font-semibold text-slate-700 mb-1">Navn på reisen *</label>
+          <input type="text" id="settings-title" required class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3.5 py-2.5 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="settings-start-date" class="block text-xs font-semibold text-slate-700 mb-1">Startdato *</label>
+            <input type="date" id="settings-start-date" required class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+          <div>
+            <label for="settings-end-date" class="block text-xs font-semibold text-slate-700 mb-1">Sluttdato *</label>
+            <input type="date" id="settings-end-date" required class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label for="settings-pass-days" class="block text-xs font-semibold text-slate-700 mb-1">Reisedager inkludert i Interrail-passet *</label>
+          <div class="flex items-center gap-2">
+            <input type="number" id="settings-pass-days" min="1" max="60" required class="w-24 bg-slate-50 border border-slate-200 text-sm rounded-xl px-3.5 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <button type="button" onclick="setPresetPassDays(4)" class="px-2.5 py-1 text-xs rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition">4 dgr</button>
+              <button type="button" onclick="setPresetPassDays(5)" class="px-2.5 py-1 text-xs rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition">5 dgr</button>
+              <button type="button" onclick="setPresetPassDays(7)" class="px-2.5 py-1 text-xs rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition">7 dgr</button>
+              <button type="button" onclick="setPresetPassDays(10)" class="px-2.5 py-1 text-xs rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition">10 dgr</button>
+              <button type="button" onclick="setPresetPassDays(15)" class="px-2.5 py-1 text-xs rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition">15 dgr</button>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label for="settings-total-budget" class="block text-xs font-semibold text-slate-700 mb-1">Totalbudsjett (NOK) *</label>
+          <input type="number" id="settings-total-budget" required step="500" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3.5 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+        </div>
+
+        <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
+          <button type="button" onclick="closeModal('modal-trip-settings')" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-semibold text-sm transition">
+            Avbryt
+          </button>
+          <button type="submit" class="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm shadow-sm transition">
+            Lagre innstillinger
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: LEGG TIL TOGREISE                                                  -->
+  <!-- ========================================================================= -->
+  <div id="modal-add-train" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-4 max-h-[90vh] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modal-train-title">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+            <i data-lucide="train" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 id="modal-train-title" class="font-bold text-slate-900 text-base">Legg til togreise</h3>
+            <p class="text-xs text-slate-500">Hold orden på avgang, tognummer og sete</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-add-train')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="form-add-train" onsubmit="handleSaveTrain(event)" class="space-y-4">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="train-from" class="block text-xs font-semibold text-slate-700 mb-1">Fra stasjon *</label>
+            <input type="text" id="train-from" required placeholder="f.eks. München Hbf" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+          <div>
+            <label for="train-to" class="block text-xs font-semibold text-slate-700 mb-1">Til stasjon *</label>
+            <input type="text" id="train-to" required placeholder="f.eks. Wien Hbf" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2.5">
+          <div>
+            <label for="train-date" class="block text-xs font-semibold text-slate-700 mb-1">Dato *</label>
+            <input type="date" id="train-date" required value="2026-07-14" class="w-full bg-slate-50 border border-slate-200 text-xs sm:text-sm rounded-xl px-2 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+          <div>
+            <label for="train-dep" class="block text-xs font-semibold text-slate-700 mb-1">Avgang *</label>
+            <input type="time" id="train-dep" required value="09:30" class="w-full bg-slate-50 border border-slate-200 text-xs sm:text-sm rounded-xl px-2 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+          <div>
+            <label for="train-arr" class="block text-xs font-semibold text-slate-700 mb-1">Ankomst *</label>
+            <input type="time" id="train-arr" required value="13:45" class="w-full bg-slate-50 border border-slate-200 text-xs sm:text-sm rounded-xl px-2 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="train-type" class="block text-xs font-semibold text-slate-700 mb-1">Togtype / Operatør</label>
+            <input type="text" id="train-type" placeholder="f.eks. ICE / Railjet / Eurocity" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+          <div>
+            <label for="train-number" class="block text-xs font-semibold text-slate-700 mb-1">Tognummer</label>
+            <input type="text" id="train-number" placeholder="f.eks. RJ 65" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="train-res-status" class="block text-xs font-semibold text-slate-700 mb-1">Plassreservasjon</label>
+            <select id="train-res-status" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <option value="confirmed">Bekreftet / Bestilt</option>
+              <option value="required">Må bestilles (påkrevet)</option>
+              <option value="not_needed">Ikke nødvendig</option>
+            </select>
+          </div>
+          <div>
+            <label for="train-res-price" class="block text-xs font-semibold text-slate-700 mb-1">Setepris (kr)</label>
+            <input type="number" id="train-res-price" value="45" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 pt-1">
+          <input type="checkbox" id="train-is-travel-day" checked class="w-4 h-4 rounded text-brand-600 focus:ring-brand-500 border-slate-300">
+          <label for="train-is-travel-day" class="text-xs font-semibold text-slate-700">Teller som reisedag på Interrail-passet</label>
+        </div>
+
+        <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
+          <button type="button" onclick="closeModal('modal-add-train')" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-semibold text-sm transition">
+            Avbryt
+          </button>
+          <button type="submit" class="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm shadow-sm transition">
+            Lagre togreise
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: LEGG TIL UTGIFT                                                    -->
+  <!-- ========================================================================= -->
+  <div id="modal-add-expense" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4" role="dialog" aria-modal="true" aria-labelledby="modal-expense-title">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+            <i data-lucide="wallet" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 id="modal-expense-title" class="font-bold text-slate-900 text-base">Legg til utgift</h3>
+            <p class="text-xs text-slate-500">Registrer kostnader for turen</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-add-expense')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="form-add-expense" onsubmit="handleSaveExpense(event)" class="space-y-4">
+        <div>
+          <label for="expense-title" class="block text-xs font-semibold text-slate-700 mb-1">Beskrivelse *</label>
+          <input type="text" id="expense-title" required placeholder="f.eks. Middag i Trastevere" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3.5 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="expense-category" class="block text-xs font-semibold text-slate-700 mb-1">Kategori *</label>
+            <select id="expense-category" required class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <option value="Overnatting">Overnatting</option>
+              <option value="Transport">Transport</option>
+              <option value="Mat">Mat & Drikke</option>
+              <option value="Aktiviteter">Aktiviteter</option>
+            </select>
+          </div>
+          <div>
+            <label for="expense-amount" class="block text-xs font-semibold text-slate-700 mb-1">Beløp (NOK) *</label>
+            <input type="number" id="expense-amount" required placeholder="f.eks. 450" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3.5 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label for="expense-date" class="block text-xs font-semibold text-slate-700 mb-1">Dato</label>
+          <input type="date" id="expense-date" value="2026-07-10" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3.5 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+        </div>
+
+        <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
+          <button type="button" onclick="closeModal('modal-add-expense')" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-semibold text-sm transition">
+            Avbryt
+          </button>
+          <button type="submit" class="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm shadow-sm transition">
+            Lagre utgift
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: LEGG TIL GJENSTAND I PAKKELISTE                                     -->
+  <!-- ========================================================================= -->
+  <div id="modal-add-packing" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4" role="dialog" aria-modal="true" aria-labelledby="modal-packing-title">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center">
+            <i data-lucide="check-square" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 id="modal-packing-title" class="font-bold text-slate-900 text-base">Ny gjenstand</h3>
+            <p class="text-xs text-slate-500">Legg til noe du ikke må glemme</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-add-packing')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="form-add-packing" onsubmit="handleSavePackingItem(event)" class="space-y-4">
+        <div>
+          <label for="packing-text" class="block text-xs font-semibold text-slate-700 mb-1">Gjenstand / Huskelapp *</label>
+          <input type="text" id="packing-text" required placeholder="f.eks. Hengelås med kode til hostel-locker" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3.5 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+        </div>
+
+        <div>
+          <label for="packing-category" class="block text-xs font-semibold text-slate-700 mb-1">Kategori *</label>
+          <select id="packing-category" required class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+            <option value="Dokumenter & Billetter">Dokumenter & Billetter</option>
+            <option value="Togkomfort & Sove">Togkomfort & Sove</option>
+            <option value="Elektronikk">Elektronikk</option>
+            <option value="Klær & Fottøy">Klær & Fottøy</option>
+            <option value="Toalettsaker & Apotek">Toalettsaker & Apotek</option>
+          </select>
+        </div>
+
+        <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
+          <button type="button" onclick="closeModal('modal-add-packing')" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-semibold text-sm transition">
+            Avbryt
+          </button>
+          <button type="submit" class="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm shadow-sm transition">
+            Legg til
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: MINE REISER & FORSLAG (TRIP MANAGER)                              -->
+  <!-- ========================================================================= -->
+  <div id="modal-trip-manager" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-100 space-y-5" role="dialog" aria-modal="true" aria-labelledby="modal-trips-title">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center font-bold">
+            <i data-lucide="folder-open" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 id="modal-trips-title" class="font-bold text-slate-900 text-lg">Mine Planlagte Reiser</h3>
+            <p class="text-xs text-slate-500">Bytt mellom forslag, opprett nye ruter eller dupliser</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-trip-manager')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Quick Action Buttons -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+        <button onclick="createNewTrip()" class="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs sm:text-sm shadow-sm transition">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          <span>Ny tom reise</span>
+        </button>
+        <button onclick="duplicateActiveTrip()" class="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs sm:text-sm border border-slate-200 transition">
+          <i data-lucide="copy" class="w-4 h-4 text-brand-600"></i>
+          <span>Dupliser denne reisen</span>
+        </button>
+      </div>
+
+      <!-- Trips List Container -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between px-1">
+          <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Dine reiseforslag</p>
+          <span id="modal-trips-count-text" class="text-xs text-slate-500 font-medium">2 forslag</span>
+        </div>
+        <div id="trip-manager-list" class="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+          <!-- Dynamically populated via renderTripManagerList() in app.js -->
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
+        <p class="text-[11px] text-slate-400 font-medium flex items-center gap-1">
+          <i data-lucide="cloud" class="w-3.5 h-3.5 text-brand-500"></i>
+          <span>Endringer lagres automatisk lokalt</span>
+        </p>
+        <button onclick="closeModal('modal-trip-manager')" class="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition">
+          Lukk
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: INNLOGGING & BRUKERKONTO (FIREBASE AUTH)                          -->
+  <!-- ========================================================================= -->
+  <div id="modal-auth" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-5" role="dialog" aria-modal="true" aria-labelledby="modal-auth-title">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center font-bold">
+            <i data-lucide="user-check" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 id="modal-auth-title" class="font-bold text-slate-900 text-lg">Logg inn på RailSync</h3>
+            <p class="text-xs text-slate-500">Lagre reiser på din konto og få tilgang overalt</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-auth')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Google Sign-In Button -->
+      <div>
+        <button onclick="handleGoogleSignIn()" class="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 font-bold text-xs sm:text-sm text-slate-700 shadow-2xs transition">
+          <svg class="w-4.5 h-4.5" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+          </svg>
+          <span>Fortsett med Google</span>
+        </button>
+      </div>
+
+      <div class="flex items-center gap-3 my-1">
+        <div class="flex-1 h-px bg-slate-200"></div>
+        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Eller e-post</span>
+        <div class="flex-1 h-px bg-slate-200"></div>
+      </div>
+
+      <!-- Email / Password Form -->
+      <form id="form-auth" onsubmit="handleEmailAuth(event)" class="space-y-3.5">
+        <div>
+          <label for="auth-email" class="block text-xs font-semibold text-slate-700 mb-1">E-postadresse *</label>
+          <input type="email" id="auth-email" required placeholder="deg@eksempel.no" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3.5 py-2.5 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+        </div>
+
+        <div>
+          <label for="auth-password" class="block text-xs font-semibold text-slate-700 mb-1">Passord *</label>
+          <input type="password" id="auth-password" required minlength="6" placeholder="Minst 6 tegn" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3.5 py-2.5 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+        </div>
+
+        <div class="flex items-center justify-between text-xs pt-1">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="auth-is-new-user" class="w-4 h-4 rounded text-brand-600 focus:ring-brand-500 border-slate-300">
+            <span class="font-semibold text-slate-700">Jeg vil opprette en ny konto</span>
+          </label>
+        </div>
+
+        <div class="pt-2">
+          <button type="submit" id="btn-auth-submit" class="w-full py-2.5 px-4 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm shadow-sm transition">
+            Logg inn
+          </button>
+        </div>
+      </form>
+
+      <!-- Modal Footer -->
+      <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+        <span class="text-slate-400">Trenger du ikke konto nå?</span>
+        <button onclick="closeModal('modal-auth')" class="text-brand-600 font-bold hover:underline">
+          Fortsett som gjest
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- TOAST NOTIFICATION (For Save & Share link copied)                         -->
+  <!-- ========================================================================= -->
+  <div id="toast" class="fixed bottom-24 md:bottom-8 right-6 z-50 transform translate-y-20 opacity-0 pointer-events-none transition-all duration-300 flex items-center gap-3 bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-slate-700 max-w-md">
+    <div id="toast-icon-container" class="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+      <i data-lucide="check" class="w-4 h-4"></i>
+    </div>
+    <div class="text-xs sm:text-sm font-medium pr-2">
+      <p id="toast-title" class="font-bold text-white leading-tight">Lenke kopiert!</p>
+      <p id="toast-message" class="text-slate-400 text-xs mt-0.5">Reisen er lagret og klar til å deles.</p>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODULAR JAVASCRIPT ENTRYPOINT                                             -->
+  <!-- ========================================================================= -->
+  <script type="module" src="./app.js"></script>
+
+</body>
+</html>
