@@ -239,6 +239,14 @@
         <span id="sidebar-packing-progress" class="ml-auto text-xs px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30">12/20</span>
       </button>
 
+      <p class="px-3 pt-3 pb-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">Sosialt & Fellesskap</p>
+
+      <button onclick="switchTab('social')" id="nav-btn-social" class="nav-item w-full flex items-center gap-3.5 px-3.5 py-3 rounded-xl font-medium text-sm transition-all duration-150 text-slate-300 hover:text-white hover:bg-slate-800/60">
+        <i data-lucide="users" class="w-4 h-4 text-slate-400"></i>
+        <span>Profil & Venner</span>
+        <span id="sidebar-social-badge" class="ml-auto text-xs px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30">3 venner</span>
+      </button>
+
       <!-- Manage Trips & User Profile Section in Sidebar -->
       <div class="pt-3 border-t border-slate-800 space-y-2">
         <button onclick="openTripManagerModal('mine')" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-brand-300 bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/20 transition">
@@ -249,10 +257,10 @@
           <span id="sidebar-trips-count-badge" class="px-2 py-0.5 rounded-full bg-brand-500/30 text-white font-bold text-[10px]">2</span>
         </button>
 
-        <button onclick="openUserProfileModal()" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-200 bg-slate-800/70 hover:bg-slate-800 border border-slate-700/70 transition">
+        <button onclick="switchTab('social')" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-200 bg-slate-800/70 hover:bg-slate-800 border border-slate-700/70 transition">
           <div class="flex items-center gap-2 min-w-0">
             <span id="sidebar-user-avatar" class="w-5 h-5 rounded-full bg-brand-600 text-white text-[10px] font-extrabold flex items-center justify-center shrink-0">R</span>
-            <span id="sidebar-user-label" class="truncate">Min Profil & Konto</span>
+            <span id="sidebar-user-label" class="truncate">Min Profil & Venner</span>
           </div>
           <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
         </button>
@@ -341,7 +349,7 @@
           <!-- USER AUTH HEADER BUTTON / PROFILE -->
           <div id="auth-header-container" class="shrink-0 flex items-center gap-1">
             <!-- Profile Button -->
-            <button id="user-profile-pill" onclick="openUserProfileModal()" class="flex items-center gap-1.5 p-1 sm:pl-1.5 sm:pr-2.5 sm:py-1 rounded-xl bg-slate-100 hover:bg-brand-50 border border-slate-200 hover:border-brand-300 text-slate-800 text-xs font-bold transition shrink-0" title="Min Profil & Reisepreferanser">
+            <button id="user-profile-pill" onclick="switchTab('social')" class="flex items-center gap-1.5 p-1 sm:pl-1.5 sm:pr-2.5 sm:py-1 rounded-xl bg-slate-100 hover:bg-brand-50 border border-slate-200 hover:border-brand-300 text-slate-800 text-xs font-bold transition shrink-0" title="Min Profil, Reisepass & Venner">
               <span id="header-user-avatar" class="w-6 h-6 rounded-lg sm:rounded-full bg-brand-600 text-white text-[11px] font-extrabold flex items-center justify-center shadow-2xs">R</span>
               <span id="user-display-name" class="hidden sm:inline truncate max-w-[110px]">Min profil</span>
             </button>
@@ -868,6 +876,357 @@
 
       </section>
 
+      <!-- ===================================================================== -->
+      <!-- TAB 5: PROFIL, REISEPASS, ØNSKELISTE & VENNER (SOSIAL HUB)            -->
+      <!-- ===================================================================== -->
+      <section id="tab-social" class="tab-content hidden space-y-5 sm:space-y-6 w-full max-w-full">
+        
+        <!-- 1. HERO PROFILE CARD -->
+        <div class="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
+          <!-- Top Gradient Cover Banner -->
+          <div class="bg-gradient-to-r from-slate-900 via-brand-900 to-teal-800 px-4 sm:px-7 py-5 sm:py-6 text-white relative">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div class="flex items-center gap-3.5 sm:gap-4 min-w-0">
+                <div id="social-hero-avatar" class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-brand-600 text-white font-extrabold text-xl sm:text-2xl flex items-center justify-center ring-4 ring-white/15 shadow-lg shrink-0">
+                  R
+                </div>
+                <div class="min-w-0 flex-1 space-y-1">
+                  <div class="flex items-center flex-wrap gap-2">
+                    <h2 id="social-hero-name" class="text-lg sm:text-2xl font-extrabold tracking-tight text-white truncate">Reisende</h2>
+                    <span id="social-hero-username" class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-white/15 text-brand-200 border border-white/15">@reisende</span>
+                    <span id="social-hero-status" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-200 border border-emerald-400/30">Lokal profil</span>
+                  </div>
+                  <p id="social-hero-bio" class="text-xs sm:text-sm text-slate-200 line-clamp-2">Klar for Interrail gjennom Europa!</p>
+                  <div class="flex items-center flex-wrap gap-2 pt-1 text-[11px] text-teal-100 font-semibold">
+                    <span class="inline-flex items-center gap-1 bg-white/10 px-2.5 py-0.5 rounded-lg">
+                      <i data-lucide="train" class="w-3 h-3 text-amber-400"></i>
+                      <span id="social-hero-station">Hjemstasjon: Oslo S</span>
+                    </span>
+                    <span class="inline-flex items-center gap-1 bg-white/10 px-2.5 py-0.5 rounded-lg">
+                      <i data-lucide="ticket" class="w-3 h-3 text-emerald-300"></i>
+                      <span id="social-hero-pass">Global Pass 7 dager</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Profile Action Buttons -->
+              <div class="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
+                <button onclick="openUserProfileModal()" class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs border border-white/20 transition">
+                  <i data-lucide="user-pen" class="w-3.5 h-3.5"></i>
+                  <span>Rediger profil</span>
+                </button>
+                <button onclick="handleSaveAndShareTrip()" class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-rail-accent hover:bg-rail-accentHover text-white font-bold text-xs shadow-sm transition">
+                  <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
+                  <span>Del aktiv reise</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4 Key Social & Travel Counters -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 bg-white">
+            <button onclick="switchSocialSubTab('passport')" class="p-3.5 sm:p-4 text-left hover:bg-slate-50 transition flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                <i data-lucide="globe" class="w-4.5 h-4.5"></i>
+              </div>
+              <div class="min-w-0">
+                <p id="social-stat-visited-countries" class="text-base sm:text-xl font-extrabold text-slate-900">5 land</p>
+                <p class="text-[11px] font-semibold text-slate-500 truncate">Besøkte land</p>
+              </div>
+            </button>
+
+            <button onclick="switchSocialSubTab('passport')" class="p-3.5 sm:p-4 text-left hover:bg-slate-50 transition flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center shrink-0">
+                <i data-lucide="map-pin-check" class="w-4.5 h-4.5"></i>
+              </div>
+              <div class="min-w-0">
+                <p id="social-stat-visited-places" class="text-base sm:text-xl font-extrabold text-slate-900">6 steder</p>
+                <p class="text-[11px] font-semibold text-slate-500 truncate">Steder jeg har vært</p>
+              </div>
+            </button>
+
+            <button onclick="switchSocialSubTab('passport')" class="p-3.5 sm:p-4 text-left hover:bg-slate-50 transition flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                <i data-lucide="sparkles" class="w-4.5 h-4.5"></i>
+              </div>
+              <div class="min-w-0">
+                <p id="social-stat-wishlist" class="text-base sm:text-xl font-extrabold text-slate-900">4 drømmemål</p>
+                <p class="text-[11px] font-semibold text-slate-500 truncate">Ønsker å reise til</p>
+              </div>
+            </button>
+
+            <button onclick="switchSocialSubTab('friends')" class="p-3.5 sm:p-4 text-left hover:bg-slate-50 transition flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                <i data-lucide="users" class="w-4.5 h-4.5"></i>
+              </div>
+              <div class="min-w-0">
+                <p id="social-stat-friends" class="text-base sm:text-xl font-extrabold text-slate-900">2 venner</p>
+                <p class="text-[11px] font-semibold text-slate-500 truncate">Reisevenner</p>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. SUB-NAVIGATION PILLS: REISEPASS & ØNSKELISTE | MINE VENNER | FINN REISENDE -->
+        <div class="grid grid-cols-3 gap-1.5 bg-slate-200/70 p-1.5 rounded-2xl">
+          <button type="button" id="social-subtab-btn-passport" onclick="switchSocialSubTab('passport')" class="py-2.5 px-2 sm:px-4 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 bg-white text-slate-900 shadow-xs min-w-0">
+            <i data-lucide="stamp" class="w-4 h-4 text-brand-600 shrink-0"></i>
+            <span class="truncate">Reisepass & Ønskeliste</span>
+          </button>
+
+          <button type="button" id="social-subtab-btn-friends" onclick="switchSocialSubTab('friends')" class="py-2.5 px-2 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900 min-w-0">
+            <i data-lucide="users" class="w-4 h-4 text-indigo-600 shrink-0"></i>
+            <span class="truncate">Mine Venner</span>
+            <span id="social-subtab-friends-badge" class="px-1.5 py-0.2 rounded-full bg-indigo-100 text-indigo-800 text-[10px] font-extrabold shrink-0">2</span>
+          </button>
+
+          <button type="button" id="social-subtab-btn-discover" onclick="switchSocialSubTab('discover')" class="py-2.5 px-2 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900 min-w-0">
+            <i data-lucide="search" class="w-4 h-4 text-rail-accent shrink-0"></i>
+            <span class="truncate">Søk Profiler</span>
+          </button>
+        </div>
+
+        <!-- =================================================================== -->
+        <!-- SUB-PANEL A: MITT REISEPASS (BESØKTE LAND/STEDER) & ØNSKELISTE      -->
+        <!-- =================================================================== -->
+        <div id="social-panel-passport" class="space-y-5 sm:space-y-6">
+          
+          <!-- Visited European Countries Progress & Flag Selector -->
+          <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-4 sm:p-6 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h3 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <i data-lucide="globe-2" class="w-5 h-5 text-emerald-600"></i>
+                  Land jeg har besøkt tidligere
+                </h3>
+                <p class="text-xs text-slate-500">Huk av land du har vært i – vises på profilen din slik at venner kan se hvor du har reist</p>
+              </div>
+              <button type="button" onclick="toggleCountryPickerGrid()" class="self-start sm:self-auto px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold text-xs transition flex items-center gap-1.5 shrink-0">
+                <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-emerald-600"></i>
+                <span id="btn-toggle-country-picker-text">Velg land fra Europa-liste</span>
+              </button>
+            </div>
+
+            <!-- Europe Explorer Meter -->
+            <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200/70 space-y-1.5">
+              <div class="flex items-center justify-between text-xs font-bold">
+                <span class="text-slate-700">Europa-måleren (33 Interrail-land)</span>
+                <span id="visited-countries-meter-label" class="text-emerald-700">5 av 33 land utforsket (15%)</span>
+              </div>
+              <div class="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                <div id="visited-countries-meter-bar" class="bg-gradient-to-r from-emerald-500 to-brand-500 h-2 rounded-full transition-all duration-300" style="width: 15%"></div>
+              </div>
+            </div>
+
+            <!-- Active Visited Country Flag Chips -->
+            <div id="visited-countries-chips" class="flex flex-wrap gap-2">
+              <!-- Populated by renderSocialHub() -->
+            </div>
+
+            <!-- Expandable Quick-Select European Country Grid -->
+            <div id="country-picker-grid-container" class="hidden pt-3 border-t border-slate-100 space-y-2">
+              <p class="text-xs font-bold text-slate-600">Trykk på et land for å legge til / fjerne fra besøkte land:</p>
+              <div id="country-picker-grid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                <!-- Populated by renderSocialHub() -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Two-Column Grid: 1) Steder & Byer jeg har vært | 2) Ønskeliste (Steder & Land jeg vil dra til) -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
+            
+            <!-- LEFT CARD: STEDER & BYER JEG HAR VÆRT TIDLIGERE -->
+            <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-4 sm:p-6 space-y-4 flex flex-col justify-between">
+              <div class="space-y-4">
+                <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                  <div>
+                    <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                      <i data-lucide="map-pin-check" class="w-5 h-5 text-brand-600"></i>
+                      Steder & Byer jeg har vært
+                    </h3>
+                    <p class="text-xs text-slate-500">Byer, stasjoner eller høydepunkter du har besøkt før</p>
+                  </div>
+                  <span id="visited-places-count-badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-brand-50 text-brand-700 border border-brand-200">0</span>
+                </div>
+
+                <!-- Add Visited Place Form -->
+                <form onsubmit="handleAddVisitedPlace(event)" class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-2.5">
+                  <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">+ Legg til nytt sted du har besøkt</p>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input type="text" id="visited-place-city" required placeholder="By eller sted (f.eks. Roma, Lofoten)" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    <input type="text" id="visited-place-country" required placeholder="Land (f.eks. Italia)" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                  </div>
+                  <div class="flex flex-col sm:flex-row gap-2">
+                    <input type="text" id="visited-place-note" placeholder="Årstall eller kort tips/minne (f.eks. 2025 – Beste pizza i Napoli!)" class="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    <button type="submit" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs transition shrink-0">
+                      + Legg til sted
+                    </button>
+                  </div>
+                </form>
+
+                <!-- Visited Places List -->
+                <div id="visited-places-list" class="space-y-2.5 max-h-96 overflow-y-auto pr-1">
+                  <!-- Populated by renderSocialHub() -->
+                </div>
+              </div>
+            </div>
+
+            <!-- RIGHT CARD: ØNSKELISTE / BUCKET LIST (LAND & STEDER JEG VIL REISE TIL) -->
+            <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-4 sm:p-6 space-y-4 flex flex-col justify-between">
+              <div class="space-y-4">
+                <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                  <div>
+                    <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                      <i data-lucide="sparkles" class="w-5 h-5 text-amber-500"></i>
+                      Ønskeliste: Steder jeg vil reise til
+                    </h3>
+                    <p class="text-xs text-slate-500">Drømmemål du vil oppleve – finn venner som vil til samme sted!</p>
+                  </div>
+                  <span id="wishlist-places-count-badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">0</span>
+                </div>
+
+                <!-- Add Wishlist Place Form -->
+                <form onsubmit="handleAddWishlistPlace(event)" class="bg-amber-50/50 p-3.5 rounded-2xl border border-amber-200/70 space-y-2.5">
+                  <p class="text-[11px] font-bold uppercase tracking-wider text-amber-800">+ Legg til drømmemål på ønskelisten</p>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input type="text" id="wishlist-place-city" required placeholder="Sted / by / togrute (f.eks. Zermatt, Bled)" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                    <input type="text" id="wishlist-place-country" required placeholder="Land (f.eks. Sveits, Slovenia)" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                  </div>
+                  <div class="flex flex-col sm:flex-row gap-2">
+                    <select id="wishlist-place-tag" class="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                      <option value="🔥 Øverst på ønskelista">🔥 Øverst på ønskelista</option>
+                      <option value="🚆 Drømmetogrute">🚆 Drømmetogrute</option>
+                      <option value="🏔️ Natur & Alper">🏔️ Natur & Alper</option>
+                      <option value="🏖️ Sol, Kyst & Bad">🏖️ Sol, Kyst & Bad</option>
+                      <option value="🍕 Mat & Storby">🍕 Mat & Storby</option>
+                    </select>
+                    <button type="submit" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs transition shrink-0">
+                      + Legg til ønske
+                    </button>
+                  </div>
+                </form>
+
+                <!-- Wishlist Items List -->
+                <div id="wishlist-places-list" class="space-y-2.5 max-h-96 overflow-y-auto pr-1">
+                  <!-- Populated by renderSocialHub() -->
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- =================================================================== -->
+        <!-- SUB-PANEL B: MINE VENNER, VENNEFORESPØRSLER & DELTE REISER          -->
+        <!-- =================================================================== -->
+        <div id="social-panel-friends" class="hidden space-y-5 sm:space-y-6">
+          
+          <!-- Top Banner: Share Trips via Friends -->
+          <div class="bg-gradient-to-r from-indigo-950 via-slate-900 to-brand-950 rounded-2xl p-4 sm:p-6 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="space-y-1">
+              <span class="inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-200 border border-indigo-400/30">
+                <i data-lucide="users" class="w-3 h-3"></i>
+                Sosial Reiseplanlegging
+              </span>
+              <h3 class="text-base sm:text-lg font-extrabold">Planlegg og del reiser direkte med vennene dine</h3>
+              <p class="text-xs text-slate-300 max-w-2xl">
+                Når du legger til noen som venn, kan du dele en reise med dem med ett klikk. Reisen dukker opp under deres «Delte reiser», mens hver enkelt beholder sitt eget private budsjett.
+              </p>
+            </div>
+            <button onclick="switchSocialSubTab('discover')" class="self-start sm:self-auto px-4 py-2.5 rounded-xl bg-rail-accent hover:bg-rail-accentHover text-white font-bold text-xs shadow-sm transition flex items-center gap-1.5 shrink-0">
+              <i data-lucide="user-plus" class="w-4 h-4"></i>
+              <span>Søk opp nye venner</span>
+            </button>
+          </div>
+
+          <!-- Incoming Friend Requests Container (Hidden when 0 requests) -->
+          <div id="social-friend-requests-section" class="hidden bg-amber-50/70 rounded-2xl border border-amber-200 p-4 sm:p-5 space-y-3">
+            <div class="flex items-center justify-between">
+              <h4 class="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                <i data-lucide="bell-ring" class="w-4 h-4 text-rail-accent"></i>
+                <span>Venneforespørsler</span>
+                <span id="social-friend-requests-count" class="px-2 py-0.5 rounded-full bg-rail-accent text-white text-[10px]">1</span>
+              </h4>
+              <span class="text-[11px] text-slate-500">Godta for å kunne dele reiser sammen</span>
+            </div>
+            <div id="social-friend-requests-list" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <!-- Populated by renderSocialHub() -->
+            </div>
+          </div>
+
+          <!-- My Connected Friends List -->
+          <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-4 sm:p-6 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
+              <div>
+                <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <i data-lucide="heart-handshake" class="w-5 h-5 text-brand-600"></i>
+                  Mine Reisevenner
+                </h3>
+                <p class="text-xs text-slate-500">Klikk på en venn for å se deres reisepass og ønskeliste, eller del den aktive reisen din direkte</p>
+              </div>
+              <button onclick="switchSocialSubTab('discover')" class="self-start sm:self-auto text-xs font-bold text-brand-600 hover:text-brand-800 flex items-center gap-1">
+                <i data-lucide="search" class="w-3.5 h-3.5"></i>
+                <span>+ Finn flere reisende</span>
+              </button>
+            </div>
+
+            <div id="social-friends-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Populated by renderSocialHub() -->
+            </div>
+          </div>
+        </div>
+
+        <!-- =================================================================== -->
+        <!-- SUB-PANEL C: FINN REISENDE (SØK OPP PROFILER & LEGG TIL VENN)       -->
+        <!-- =================================================================== -->
+        <div id="social-panel-discover" class="hidden space-y-5 sm:space-y-6">
+          
+          <!-- Search Bar & Filter Box -->
+          <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-4 sm:p-6 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h3 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <i data-lucide="user-search" class="w-5 h-5 text-brand-600"></i>
+                  Søk opp profiler og legg til venner
+                </h3>
+                <p class="text-xs text-slate-500">Søk på navn, @brukernavn, hjemstasjon eller land de ønsker å reise til</p>
+              </div>
+              <button onclick="refreshCloudDirectorySearch()" class="self-start sm:self-auto px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-brand-50 text-slate-700 hover:text-brand-700 border border-slate-200 text-xs font-bold transition flex items-center gap-1.5">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-brand-600"></i>
+                <span>Oppdater fra skyen</span>
+              </button>
+            </div>
+
+            <!-- Search Input -->
+            <div class="relative">
+              <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+              <input 
+                type="text" 
+                id="social-user-search-input" 
+                oninput="handleSearchTravelersInput(this.value)"
+                placeholder="Søk etter navn, @brukernavn, by eller drømmeland (f.eks. @sander, Italia, Sveits, Oslo)..." 
+                class="w-full bg-slate-50 focus:bg-white border border-slate-200 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              >
+            </div>
+
+            <!-- Quick Filter Pills -->
+            <div class="flex items-center gap-1.5 flex-wrap text-xs">
+              <span class="text-[11px] font-bold text-slate-400 uppercase mr-1">Filter:</span>
+              <button type="button" onclick="setSocialDiscoverFilter('all')" id="discover-filter-all" class="px-3 py-1 rounded-full font-bold bg-slate-900 text-white transition">Alle profiler</button>
+              <button type="button" onclick="setSocialDiscoverFilter('match')" id="discover-filter-match" class="px-3 py-1 rounded-full font-semibold bg-slate-100 hover:bg-amber-50 text-slate-700 transition">✨ Samme drømmemål som meg</button>
+              <button type="button" onclick="setSocialDiscoverFilter('cloud')" id="discover-filter-cloud" class="px-3 py-1 rounded-full font-semibold bg-slate-100 hover:bg-brand-50 text-slate-700 transition">☁️ Registrerte RailSync-brukere</button>
+            </div>
+          </div>
+
+          <!-- Search Results Grid -->
+          <div id="social-discover-results" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Populated by renderSocialHub() -->
+          </div>
+        </div>
+
+      </section>
+
     </div>
 
   </main>
@@ -897,9 +1256,10 @@
       <span class="text-[10px] mt-0.5 truncate">Pakkeliste</span>
     </button>
 
-    <button onclick="openTripManagerModal('mine')" id="mobile-tab-trips" class="flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-slate-500 font-semibold active:scale-95 transition min-w-0">
-      <i data-lucide="compass" class="w-5 h-5 text-brand-600 shrink-0"></i>
-      <span class="text-[10px] mt-0.5 truncate">Reiser</span>
+    <button onclick="switchTab('social')" id="mobile-tab-social" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-slate-400 font-medium active:scale-95 transition min-w-0 relative">
+      <i data-lucide="users" class="w-5 h-5 shrink-0"></i>
+      <span class="text-[10px] mt-0.5 truncate">Profil</span>
+      <span id="mobile-social-req-dot" class="hidden absolute top-1.5 right-3.5 w-2 h-2 rounded-full bg-rail-accent"></span>
     </button>
   </nav>
 
@@ -1601,19 +1961,40 @@
         </div>
       </div>
 
-      <!-- 3. Reisefølge (Medlemmer & Roller på turen) -->
+      <!-- 3. Del direkte med dine Reisevenner (Hovedmetode) -->
+      <div class="space-y-2.5 pt-2 border-t border-slate-100">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <h4 class="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1.5">
+              <i data-lucide="heart-handshake" class="w-4 h-4 text-indigo-600"></i>
+              Del reisen direkte med vennene dine
+            </h4>
+            <p class="text-[11px] text-slate-500">Velg fra vennelisten din for å invitere dem rett inn på reisen</p>
+          </div>
+          <button type="button" onclick="closeModal('modal-share-trip'); switchTab('social'); switchSocialSubTab('discover')" class="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-[11px] border border-indigo-200 transition shrink-0 flex items-center gap-1">
+            <i data-lucide="user-plus" class="w-3 h-3"></i>
+            <span>Finn venner</span>
+          </button>
+        </div>
+
+        <div id="share-modal-friends-picker" class="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+          <!-- Populated dynamically by renderShareAndCollabModal() -->
+        </div>
+      </div>
+
+      <!-- 4. Reisefølge (Medlemmer & Roller på turen) -->
       <div class="space-y-3 pt-2 border-t border-slate-100">
         <div class="flex items-center justify-between">
           <div>
             <h4 class="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1.5">
               <i data-lucide="users" class="w-4 h-4 text-brand-600"></i>
-              Reisefølge & Deltakere på turen
+              Reisefølge på denne turen
             </h4>
-            <p class="text-[11px] text-slate-500">Legg til vennene du reiser med for å dele utgifter og se hvem som planlegger</p>
+            <p class="text-[11px] text-slate-500">De som deltar på reisen (alle beholder sitt eget private budsjett)</p>
           </div>
         </div>
 
-        <div id="share-members-list" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+        <div id="share-members-list" class="space-y-2 max-h-44 overflow-y-auto pr-1">
           <!-- Populated dynamically by renderShareModalMembers() -->
         </div>
 
@@ -1623,7 +2004,7 @@
             type="text" 
             id="new-member-name" 
             required 
-            placeholder="+ Legg til medreisende (f.eks. Sander eller Nora)..." 
+            placeholder="+ Eller legg til navn manuelt (f.eks. Sander)..." 
             class="flex-1 bg-slate-50 focus:bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
           <select id="new-member-role" class="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
@@ -1781,6 +2162,17 @@
   </div>
 
   <!-- ========================================================================= -->
+  <!-- MODAL: SE ANNEN REISENDES PROFIL (OFFENTLIG PROFIL & REISEPASS)           -->
+  <!-- ========================================================================= -->
+  <div id="modal-traveler-profile" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-xl w-full overflow-hidden shadow-2xl border border-slate-100 max-h-[92vh] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="traveler-modal-name">
+      <div id="traveler-profile-modal-content">
+        <!-- Populated dynamically by openTravelerProfileModal(uid) in app.js -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
   <!-- MODAL: INNLOGGING & BRUKERKONTO (FIREBASE AUTH)                          -->
   <!-- ========================================================================= -->
   <div id="modal-auth" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
@@ -1894,7 +2286,7 @@
   <!-- ========================================================================= -->
   <!-- MODULAR JAVASCRIPT ENTRYPOINT                                             -->
   <!-- ========================================================================= -->
-  <script type="module" src="./app.js?v=20261110-6"></script>
+  <script type="module" src="./app.js?v=20261110-7"></script>
 
 </body>
 </html>
