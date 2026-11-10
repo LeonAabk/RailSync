@@ -239,14 +239,22 @@
         <span id="sidebar-packing-progress" class="ml-auto text-xs px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30">12/20</span>
       </button>
 
-      <!-- Manage Trips / Mine Reiser Section in Sidebar -->
-      <div class="pt-3 border-t border-slate-800">
-        <button onclick="openTripManagerModal()" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-brand-300 bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/20 transition">
+      <!-- Manage Trips & User Profile Section in Sidebar -->
+      <div class="pt-3 border-t border-slate-800 space-y-2">
+        <button onclick="openTripManagerModal('mine')" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-brand-300 bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/20 transition">
           <div class="flex items-center gap-2">
             <i data-lucide="folder-open" class="w-4 h-4 text-brand-400"></i>
-            <span>Mine lagrede reiser</span>
+            <span>Mine & Delte Reiser</span>
           </div>
           <span id="sidebar-trips-count-badge" class="px-2 py-0.5 rounded-full bg-brand-500/30 text-white font-bold text-[10px]">2</span>
+        </button>
+
+        <button onclick="openUserProfileModal()" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-200 bg-slate-800/70 hover:bg-slate-800 border border-slate-700/70 transition">
+          <div class="flex items-center gap-2 min-w-0">
+            <span id="sidebar-user-avatar" class="w-5 h-5 rounded-full bg-brand-600 text-white text-[10px] font-extrabold flex items-center justify-center shrink-0">R</span>
+            <span id="sidebar-user-label" class="truncate">Min Profil & Konto</span>
+          </div>
+          <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
         </button>
       </div>
     </nav>
@@ -296,18 +304,33 @@
           <div class="md:hidden w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center text-white shadow shrink-0">
             <i data-lucide="train" class="w-4 h-4"></i>
           </div>
-          <div onclick="openTripSettingsModal()" class="cursor-pointer group select-none min-w-0 flex-1" title="Klikk for å redigere reiseinnstillinger">
-            <div class="flex items-center gap-1.5 min-w-0">
-              <h1 id="header-trip-title" class="text-sm sm:text-lg font-bold text-slate-900 leading-tight truncate group-hover:text-brand-600 transition">Sommerens Europaturné 2026</h1>
-              <i data-lucide="pencil" class="w-3 h-3 text-slate-400 group-hover:text-brand-600 transition shrink-0"></i>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-1.5 min-w-0 flex-wrap">
+              <div onclick="openTripSettingsModal()" class="cursor-pointer group select-none flex items-center gap-1.5 min-w-0" title="Klikk for å redigere reiseinnstillinger">
+                <h1 id="header-trip-title" class="text-sm sm:text-lg font-bold text-slate-900 leading-tight truncate group-hover:text-brand-600 transition">Sommerens Europaturné 2026</h1>
+                <i data-lucide="pencil" class="w-3 h-3 text-slate-400 group-hover:text-brand-600 transition shrink-0"></i>
+              </div>
+              <span id="header-visibility-badge" onclick="handleSaveAndShareTrip()" class="cursor-pointer inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 hover:border-brand-300 transition shrink-0" title="Administrer deling og tilgang">
+                🔒 Privat
+              </span>
             </div>
-            <p id="header-trip-dates" class="text-[11px] sm:text-xs text-slate-500 font-medium truncate">1. jul – 22. jul 2026 • 22 dager på skinner</p>
+            <div class="flex items-center gap-2 flex-wrap mt-0.5">
+              <p id="header-trip-dates" class="text-[11px] sm:text-xs text-slate-500 font-medium truncate">1. jul – 22. jul 2026 • 22 dager på skinner</p>
+              <!-- Reisefølge Avatar Bubbles -->
+              <div id="header-collab-bar" class="hidden sm:flex items-center gap-1.5 pl-1 border-l border-slate-200">
+                <div id="header-members-avatars" class="flex items-center -space-x-1.5"></div>
+                <button onclick="handleSaveAndShareTrip()" class="text-[11px] font-semibold text-brand-700 hover:text-brand-800 bg-brand-50 hover:bg-brand-100 px-2 py-0.5 rounded-full border border-brand-200/70 transition flex items-center gap-1" title="Administrer reisefølge og deling">
+                  <i data-lucide="users" class="w-3 h-3 text-brand-600"></i>
+                  <span id="header-members-count-label">Reisefølge</span>
+                </button>
+              </div>
+            </div>
           </div>
 
           <!-- MINE REISER SWITCHER BUTTON (DESKTOP / TABLET) -->
-          <button onclick="openTripManagerModal()" class="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-brand-50 text-slate-800 font-bold text-xs border border-slate-200 hover:border-brand-300 transition shadow-2xs shrink-0">
+          <button onclick="openTripManagerModal('mine')" class="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-brand-50 text-slate-800 font-bold text-xs border border-slate-200 hover:border-brand-300 transition shadow-2xs shrink-0">
             <i data-lucide="folder-open" class="w-3.5 h-3.5 text-brand-600"></i>
-            <span>Mine reiser</span>
+            <span>Reiseoversikt</span>
             <span id="header-trip-count-badge" class="px-1.5 py-0.2 rounded-full bg-brand-600 text-white font-extrabold text-[10px]">2</span>
             <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
           </button>
@@ -316,19 +339,17 @@
         <!-- Right: Action buttons (Profile, Settings, Save & Share) -->
         <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <!-- USER AUTH HEADER BUTTON / PROFILE -->
-          <div id="auth-header-container" class="shrink-0">
-            <!-- Logged Out Button -->
-            <button id="btn-open-login" onclick="openAuthModal()" class="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs border border-slate-200 transition">
-              <i data-lucide="user" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-brand-600"></i>
-              <span class="hidden sm:inline">Logg inn</span>
+          <div id="auth-header-container" class="shrink-0 flex items-center gap-1.5">
+            <!-- Profile Button (Always accessible, shows custom avatar + name) -->
+            <button id="user-profile-pill" onclick="openUserProfileModal()" class="flex items-center gap-1.5 pl-1.5 pr-2.5 py-1 rounded-xl bg-slate-100 hover:bg-brand-50 border border-slate-200 hover:border-brand-300 text-slate-800 text-xs font-bold transition shrink-0" title="Min Profil & Reisepreferanser">
+              <span id="header-user-avatar" class="w-6 h-6 rounded-full bg-brand-600 text-white text-[11px] font-extrabold flex items-center justify-center shadow-2xs">R</span>
+              <span id="user-display-name" class="truncate max-w-[70px] sm:max-w-[115px]">Min profil</span>
             </button>
-            <!-- Logged In Profile Pill -->
-            <div id="user-profile-pill" class="hidden flex items-center gap-1 sm:gap-2 pl-2 sm:pl-3 pr-1 py-1 rounded-xl bg-brand-50 border border-brand-200 text-brand-900 text-xs font-bold shrink-0">
-              <span id="user-display-name" class="truncate max-w-[65px] sm:max-w-[120px]">Bruker</span>
-              <button onclick="handleLogout()" class="p-1 rounded-lg text-brand-600 hover:text-rose-600 transition" title="Logg ut">
-                <i data-lucide="log-out" class="w-3 h-3 sm:w-3.5 sm:h-3.5"></i>
-              </button>
-            </div>
+            <!-- Login Button (Shown when not signed in to cloud) -->
+            <button id="btn-open-login" onclick="openAuthModal()" class="flex items-center gap-1 px-2.5 py-1.5 sm:py-2 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-800 font-bold text-xs border border-brand-200 transition" title="Logg inn for skysynkronisering">
+              <i data-lucide="cloud" class="w-3.5 h-3.5 text-brand-600"></i>
+              <span class="hidden lg:inline">Logg inn</span>
+            </button>
           </div>
 
           <!-- Settings Button -->
@@ -338,26 +359,44 @@
 
           <!-- LAGRE & DEL REISE-KNAPP -->
           <button id="btn-save-share" onclick="handleSaveAndShareTrip()" class="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-rail-accent hover:bg-rail-accentHover active:bg-orange-700 text-white font-semibold text-xs shadow-sm transition shrink-0">
-            <i data-lucide="share-2" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
-            <span class="hidden sm:inline">Lagre & Del</span>
+            <i data-lucide="users" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+            <span class="hidden sm:inline">Del & Reisefølge</span>
             <span class="sm:hidden">Del</span>
           </button>
         </div>
       </div>
 
       <!-- Mobile Sub-bar: Mine reiser switcher + quick pass indicator -->
-      <div class="sm:hidden flex items-center justify-between pt-2 mt-2 border-t border-slate-100 text-xs">
-        <button onclick="openTripManagerModal()" class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 active:bg-slate-200 text-slate-800 font-bold text-xs border border-slate-200 transition shadow-2xs">
-          <i data-lucide="folder-open" class="w-3.5 h-3.5 text-brand-600"></i>
-          <span>Mine reiser</span>
-          <span id="header-trip-count-badge-mobile" class="px-1.5 py-0.2 rounded-full bg-brand-600 text-white font-extrabold text-[10px]">2</span>
-          <i data-lucide="chevron-down" class="w-3 h-3 text-slate-400"></i>
-        </button>
+      <div class="sm:hidden flex items-center justify-between pt-2 mt-2 border-t border-slate-100 text-xs gap-2">
+        <div class="flex items-center gap-1.5">
+          <button onclick="openTripManagerModal('mine')" class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 active:bg-slate-200 text-slate-800 font-bold text-xs border border-slate-200 transition shadow-2xs">
+            <i data-lucide="folder-open" class="w-3.5 h-3.5 text-brand-600"></i>
+            <span>Reiser</span>
+            <span id="header-trip-count-badge-mobile" class="px-1.5 py-0.2 rounded-full bg-brand-600 text-white font-extrabold text-[10px]">2</span>
+          </button>
+          <button onclick="openTripManagerModal('shared')" class="flex items-center gap-1 px-2 py-1 rounded-lg bg-brand-50 text-brand-800 font-bold text-xs border border-brand-200 transition">
+            <i data-lucide="users" class="w-3 h-3 text-brand-600"></i>
+            <span>Delte</span>
+          </button>
+        </div>
         <span id="mobile-subbar-pass" class="text-[11px] font-semibold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200/60">
           4 / 7 dager brukt
         </span>
       </div>
     </header>
+
+    <!-- READ-ONLY VIEW BANNER (Shown when viewing a shared trip with view-only permission) -->
+    <div id="readonly-trip-banner" class="hidden bg-amber-50 border-b border-amber-200 px-4 sm:px-6 py-2.5 text-xs text-amber-900">
+      <div class="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <i data-lucide="eye" class="w-4 h-4 text-amber-600 shrink-0"></i>
+          <span><strong>Lesevisning:</strong> Denne delte reisen er satt til «Kun visning» av eieren. For å gjøre egne endringer kan du lagre en kopi til dine egne reiser.</span>
+        </div>
+        <button onclick="duplicateActiveTrip()" class="px-3 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs transition shrink-0 self-start sm:self-auto">
+          + Lag min egen redigerbare kopi
+        </button>
+      </div>
+    </div>
 
     <!-- CONTENT CONTAINERS FOR 4 TABS -->
     <div class="p-3.5 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-5 sm:space-y-6 min-w-0 overflow-x-hidden">
@@ -711,6 +750,25 @@
           </div>
         </div>
 
+        <!-- Shared Trip Expense Split per Member -->
+        <div id="budget-members-split-card" class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 sm:p-6 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
+            <div>
+              <h3 class="font-bold text-slate-900 text-sm sm:text-base flex items-center gap-2">
+                <i data-lucide="users" class="w-4 h-4 text-brand-600"></i>
+                Utgiftsfordeling i reisefølget (Hvem har lagt ut?)
+              </h3>
+              <p class="text-xs text-slate-500">Oversikt over hvor mye hver deltaker på turen har betalt så langt</p>
+            </div>
+            <button onclick="handleSaveAndShareTrip()" class="text-xs font-semibold text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 px-3 py-1.5 rounded-lg transition self-start sm:self-auto">
+              Administrer reisefølge
+            </button>
+          </div>
+          <div id="budget-members-split-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <!-- Dynamically populated by renderBudget() -->
+          </div>
+        </div>
+
         <!-- Expenses Transaction Table -->
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
           <div class="p-5 border-b border-slate-100 flex items-center justify-between">
@@ -724,6 +782,7 @@
                 <tr>
                   <th class="py-3 px-4 sm:px-6">Beskrivelse</th>
                   <th class="py-3 px-4">Kategori</th>
+                  <th class="py-3 px-4">Betalt av</th>
                   <th class="py-3 px-4">Dato</th>
                   <th class="py-3 px-4 text-right">Beløp</th>
                   <th class="py-3 px-4 text-right">Handling</th>
@@ -1165,9 +1224,18 @@
           </div>
         </div>
 
-        <div>
-          <label for="expense-date" class="block text-xs font-semibold text-slate-700 mb-1">Dato</label>
-          <input type="date" id="expense-date" value="2026-07-10" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3.5 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="expense-paid-by" class="block text-xs font-semibold text-slate-700 mb-1">Betalt av (i reisefølget)</label>
+            <select id="expense-paid-by" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <option value="Meg">Meg</option>
+              <option value="Felles">Felleskasse</option>
+            </select>
+          </div>
+          <div>
+            <label for="expense-date" class="block text-xs font-semibold text-slate-700 mb-1">Dato</label>
+            <input type="date" id="expense-date" value="2026-07-10" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3.5 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
         </div>
 
         <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
@@ -1232,20 +1300,20 @@
   </div>
 
   <!-- ========================================================================= -->
-  <!-- MODAL: MINE REISER & FORSLAG (TRIP MANAGER)                              -->
+  <!-- MODAL: REISEOVERSIKT & KONTROLL (MINE REISER, DELTE REISER & BLI MED)     -->
   <!-- ========================================================================= -->
   <div id="modal-trip-manager" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-100 space-y-5" role="dialog" aria-modal="true" aria-labelledby="modal-trips-title">
+    <div class="bg-white rounded-3xl max-w-2xl w-full p-5 sm:p-6 shadow-2xl border border-slate-100 space-y-4 max-h-[92vh] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modal-trips-title">
       
       <!-- Modal Header -->
       <div class="flex items-center justify-between pb-3 border-b border-slate-100">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center font-bold">
-            <i data-lucide="folder-open" class="w-5 h-5"></i>
+            <i data-lucide="compass" class="w-5 h-5"></i>
           </div>
           <div>
-            <h3 id="modal-trips-title" class="font-bold text-slate-900 text-lg">Mine Planlagte Reiser</h3>
-            <p class="text-xs text-slate-500">Bytt mellom forslag, opprett nye ruter eller dupliser</p>
+            <h3 id="modal-trips-title" class="font-bold text-slate-900 text-lg">Reiseoversikt & Kontroll</h3>
+            <p class="text-xs text-slate-500">Full kontroll over dine egne reiser og delte reiser med reisefølget</p>
           </div>
         </div>
         <button onclick="closeModal('modal-trip-manager')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
@@ -1253,34 +1321,105 @@
         </button>
       </div>
 
-      <!-- Quick Action Buttons -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-        <button onclick="createNewTrip()" class="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs sm:text-sm shadow-sm transition">
-          <i data-lucide="plus" class="w-4 h-4"></i>
-          <span>Ny tom reise</span>
+      <!-- 3-Tab Switcher: Mine Reiser | Delte Reiser | Bli med via kode -->
+      <div class="grid grid-cols-3 gap-1.5 bg-slate-100 p-1 rounded-2xl">
+        <button type="button" id="trip-tab-btn-mine" onclick="switchTripManagerTab('mine')" class="py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-white text-slate-900 shadow-2xs">
+          <i data-lucide="folder" class="w-3.5 h-3.5 text-brand-600"></i>
+          <span>Mine reiser</span>
+          <span id="trip-tab-count-mine" class="px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-700 text-[10px]">1</span>
         </button>
-        <button onclick="duplicateActiveTrip()" class="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs sm:text-sm border border-slate-200 transition" title="Kopier hele den aktive reisen til et nytt forslag">
-          <i data-lucide="copy" class="w-4 h-4 text-brand-600"></i>
-          <span>Kopier aktiv reise</span>
+        <button type="button" id="trip-tab-btn-shared" onclick="switchTripManagerTab('shared')" class="py-2 px-3 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900">
+          <i data-lucide="users" class="w-3.5 h-3.5 text-brand-600"></i>
+          <span>Delte reiser</span>
+          <span id="trip-tab-count-shared" class="px-1.5 py-0.2 rounded-full bg-brand-100 text-brand-800 text-[10px]">0</span>
+        </button>
+        <button type="button" id="trip-tab-btn-join" onclick="switchTripManagerTab('join')" class="py-2 px-3 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900">
+          <i data-lucide="link" class="w-3.5 h-3.5 text-rail-accent"></i>
+          <span>Bli med (Kode)</span>
         </button>
       </div>
 
-      <!-- Trips List Container -->
-      <div class="space-y-2">
-        <div class="flex items-center justify-between px-1">
-          <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Dine reiseforslag</p>
-          <span id="modal-trips-count-text" class="text-xs text-slate-500 font-medium">2 forslag</span>
+      <!-- TAB PANEL 1 & 2: MINE REISER / DELTE REISER LIST -->
+      <div id="trip-manager-panel-list" class="space-y-4">
+        <!-- Quick Action Buttons -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <button onclick="createNewTrip()" class="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs shadow-sm transition">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Ny egen reise</span>
+          </button>
+          <button onclick="duplicateActiveTrip()" class="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs border border-slate-200 transition">
+            <i data-lucide="copy" class="w-3.5 h-3.5 text-brand-600"></i>
+            <span>Dupliser aktiv reise</span>
+          </button>
+          <button onclick="syncAllUserTripsWithCloud(false)" class="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold text-xs border border-emerald-200 transition">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-emerald-600"></i>
+            <span>Synk med skyen</span>
+          </button>
         </div>
-        <div id="trip-manager-list" class="space-y-2.5 max-h-80 overflow-y-auto pr-1">
-          <!-- Dynamically populated via renderTripManagerList() in app.js -->
+
+        <!-- Trips List Container -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between px-1">
+            <p id="trip-manager-section-heading" class="text-xs font-bold uppercase tracking-wider text-slate-400">Dine egne reiser</p>
+            <span id="modal-trips-count-text" class="text-xs text-slate-500 font-medium">2 reiser</span>
+          </div>
+          <div id="trip-manager-list" class="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+            <!-- Dynamically populated via renderTripManagerList() in app.js -->
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB PANEL 3: BLI MED PÅ DELT REISE VIA KODE ELLER LENKE -->
+      <div id="trip-manager-panel-join" class="hidden space-y-4 py-2">
+        <div class="bg-gradient-to-br from-slate-900 to-brand-900 rounded-2xl p-5 text-white space-y-3">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-brand-300">
+              <i data-lucide="users" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h4 class="font-bold text-sm sm:text-base">Koble deg på en delt reise</h4>
+              <p class="text-xs text-slate-300">Skriv inn reisekoden eller lim inn delingslenken du har fått av reisefølget</p>
+            </div>
+          </div>
+
+          <form onsubmit="handleJoinSharedTripByCode(event)" class="space-y-3 pt-1">
+            <div>
+              <label for="join-trip-code-input" class="block text-xs font-semibold text-slate-200 mb-1">Reise-ID, 6-tegns kode eller delingslenke *</label>
+              <div class="flex flex-col sm:flex-row gap-2">
+                <input 
+                  type="text" 
+                  id="join-trip-code-input" 
+                  required
+                  placeholder="f.eks. RS-4829 eller https://aabakstudio.com/RailSync/?trip=..." 
+                  class="flex-1 bg-white/95 text-slate-900 placeholder-slate-400 rounded-xl px-3.5 py-2.5 text-sm font-mono font-bold focus:outline-none focus:ring-2 focus:ring-brand-400"
+                >
+                <button type="submit" id="btn-join-trip-submit" class="px-5 py-2.5 rounded-xl bg-rail-accent hover:bg-rail-accentHover text-white font-bold text-xs sm:text-sm shadow-sm transition shrink-0 flex items-center justify-center gap-1.5">
+                  <i data-lucide="log-in" class="w-4 h-4"></i>
+                  <span>Koble til reise</span>
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <div class="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 text-xs text-slate-600 space-y-1.5">
+          <p class="font-bold text-slate-800 flex items-center gap-1.5">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-brand-600"></i>
+            Slik fungerer delte reiser i RailSync:
+          </p>
+          <ul class="list-disc list-inside space-y-1 text-slate-500">
+            <li>Når du kobler deg på en delt reise, legges du automatisk til i <strong>Reisefølget</strong> med ditt profilnavn og farge.</li>
+            <li>Alle stoppesteder, ekte togruter, utgifter og pakkeliste-avkrysninger synkroniseres <strong>i sanntid</strong> mellom alle deltakere.</li>
+            <li>Reisen blir liggende fast under fanen <strong>«Delte reiser»</strong> slik at du alltid har rask tilgang.</li>
+          </ul>
         </div>
       </div>
 
       <!-- Modal Footer -->
       <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
-        <p class="text-[11px] text-slate-400 font-medium flex items-center gap-1">
+        <p id="trip-manager-sync-status" class="text-[11px] text-slate-500 font-medium flex items-center gap-1.5">
           <i data-lucide="cloud" class="w-3.5 h-3.5 text-brand-500"></i>
-          <span>Endringer lagres automatisk lokalt</span>
+          <span>Lagres lokalt og i skyen for delte reiser</span>
         </p>
         <button onclick="closeModal('modal-trip-manager')" class="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition">
           Lukk
@@ -1290,20 +1429,20 @@
   </div>
 
   <!-- ========================================================================= -->
-  <!-- MODAL: DEL & KOPIER REISE (SHARE & COPY MODAL)                            -->
+  <!-- MODAL: DEL REISE, REISEFØLGE & TILGANGSKONTROLL                           -->
   <!-- ========================================================================= -->
   <div id="modal-share-trip" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-5" role="dialog" aria-modal="true" aria-labelledby="modal-share-title">
+    <div class="bg-white rounded-3xl max-w-xl w-full p-5 sm:p-6 shadow-2xl border border-slate-100 space-y-5 max-h-[92vh] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modal-share-title">
       
       <!-- Modal Header -->
       <div class="flex items-center justify-between pb-3 border-b border-slate-100">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-xl bg-orange-50 text-rail-accent flex items-center justify-center font-bold">
-            <i data-lucide="share-2" class="w-5 h-5"></i>
+            <i data-lucide="users" class="w-5 h-5"></i>
           </div>
           <div>
-            <h3 id="modal-share-title" class="font-bold text-slate-900 text-lg">Del eller kopier reise</h3>
-            <p class="text-xs text-slate-500">Del lenken med reisefølget eller lag en egen kopi</p>
+            <h3 id="modal-share-title" class="font-bold text-slate-900 text-lg">Del Reise & Administrer Reisefølge</h3>
+            <p class="text-xs text-slate-500">Sanntids samarbeid, tilgangskontroll og deltakere på turen</p>
           </div>
         </div>
         <button onclick="closeModal('modal-share-trip')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
@@ -1311,82 +1450,267 @@
         </button>
       </div>
 
-      <!-- Section 1: Copy Share URL -->
-      <div class="space-y-2">
-        <label for="share-url-input" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-          Delingslenke til reisen
-        </label>
-        <div class="flex items-center gap-2">
-          <input 
-            type="text" 
-            id="share-url-input" 
-            readonly 
-            onclick="this.select()"
-            class="flex-1 bg-slate-50 border border-slate-200 text-xs rounded-xl px-3 py-2.5 text-slate-700 font-mono focus:ring-2 focus:ring-brand-500 focus:outline-none"
-          >
-          <button 
-            type="button" 
-            id="btn-copy-url" 
-            onclick="copyShareTripUrl()" 
-            class="px-4 py-2.5 rounded-xl bg-rail-accent hover:bg-rail-accentHover active:scale-[0.98] text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 shrink-0"
-          >
-            <i data-lucide="copy" class="w-4 h-4"></i>
-            <span id="btn-copy-url-text">Kopier lenke</span>
-          </button>
+      <!-- 1. Synlighet & Tilgangskontroll (Privat vs Delt, Kan redigere vs Kun visning) -->
+      <div class="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 space-y-3">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+              <i data-lucide="shield-check" class="w-4 h-4 text-brand-600"></i>
+              Status & Tilgangskontroll
+            </span>
+            <p class="text-[11px] text-slate-500">Bestem hvem som har tilgang og hva gjester kan gjøre</p>
+          </div>
+          <span id="share-modal-live-pill" class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 self-start sm:self-auto">
+            🟢 Sanntids deling aktiv
+          </span>
         </div>
-        <p class="text-[11px] text-slate-500">
-          Enhver som åpner denne lenken får se hele reiseruten, stoppene, togene og pakkelisten din.
-        </p>
-      </div>
 
-      <!-- Native Share Button (Mobile) -->
-      <div id="native-share-container" class="hidden">
-        <button 
-          type="button" 
-          onclick="triggerNativeShare()" 
-          class="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs sm:text-sm border border-slate-200 transition"
-        >
-          <i data-lucide="send" class="w-4 h-4 text-brand-600"></i>
-          <span>Del via apper (Meldinger, WhatsApp, etc.)</span>
-        </button>
-      </div>
-
-      <div class="flex items-center gap-3 my-1">
-        <div class="flex-1 h-px bg-slate-200"></div>
-        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Eller lag en kopi</span>
-        <div class="flex-1 h-px bg-slate-200"></div>
-      </div>
-
-      <!-- Section 2: Duplicate / Copy trip to local proposals -->
-      <div class="bg-brand-50/60 rounded-2xl p-4 border border-brand-200/70 space-y-2">
-        <div class="flex items-start gap-2.5">
-          <div class="w-7 h-7 rounded-lg bg-brand-100 text-brand-700 flex items-center justify-center shrink-0 mt-0.5">
-            <i data-lucide="copy" class="w-4 h-4"></i>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+          <div>
+            <label for="share-visibility-select" class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Synlighet</label>
+            <select id="share-visibility-select" onchange="handleUpdateTripSharingSettings()" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <option value="shared">🌍 Delt med reisefølge (Sky-synk)</option>
+              <option value="private">🔒 Privat (Kun på min profil)</option>
+            </select>
           </div>
           <div>
-            <h4 class="text-xs sm:text-sm font-bold text-slate-900 leading-tight">Vil du lage et nytt forslag av denne turen?</h4>
-            <p class="text-[11px] text-slate-600 mt-0.5">
-              Oppretter en uavhengig kopi i dine lagrede reiser slik at du kan teste alternative ruter.
-            </p>
+            <label for="share-permission-select" class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Standard tilgang for lenke/kode</label>
+            <select id="share-permission-select" onchange="handleUpdateTripSharingSettings()" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <option value="edit">✏️ Kan redigere (Samarbeidsmodus)</option>
+              <option value="view">👁️ Kun lesevisning (Se reiserute)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Delingskode & Direktelenke -->
+      <div class="space-y-3">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-brand-50/70 border border-brand-200 rounded-2xl p-3.5">
+          <div>
+            <span class="text-[10px] font-extrabold uppercase tracking-wider text-brand-700">Hurtigkode for å bli med</span>
+            <div class="flex items-center gap-2 mt-0.5">
+              <span id="share-code-badge" class="font-mono text-base sm:text-lg font-extrabold text-slate-900 tracking-wider">RS-0000</span>
+              <span class="text-[11px] text-slate-500">(Eller bruk direktelenken under)</span>
+            </div>
+          </div>
+          <button type="button" onclick="copyShareCodeOnly()" class="px-3 py-1.5 rounded-xl bg-white hover:bg-brand-100 text-brand-700 border border-brand-200 font-bold text-xs transition shrink-0">
+            Kopier kode
+          </button>
+        </div>
+
+        <div class="space-y-1.5">
+          <label for="share-url-input" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+            Direktelenke til den delte reisen
+          </label>
+          <div class="flex items-center gap-2">
+            <input 
+              type="text" 
+              id="share-url-input" 
+              readonly 
+              onclick="this.select()"
+              class="flex-1 bg-slate-50 border border-slate-200 text-xs rounded-xl px-3 py-2.5 text-slate-700 font-mono focus:ring-2 focus:ring-brand-500 focus:outline-none"
+            >
+            <button 
+              type="button" 
+              id="btn-copy-url" 
+              onclick="copyShareTripUrl()" 
+              class="px-4 py-2.5 rounded-xl bg-rail-accent hover:bg-rail-accentHover active:scale-[0.98] text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 shrink-0"
+            >
+              <i data-lucide="copy" class="w-4 h-4"></i>
+              <span id="btn-copy-url-text">Kopier lenke</span>
+            </button>
           </div>
         </div>
 
-        <button 
-          type="button" 
-          onclick="duplicateActiveTripAndCloseModal()" 
-          class="w-full mt-2 py-2.5 px-4 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs sm:text-sm shadow-xs transition flex items-center justify-center gap-2"
-        >
-          <i data-lucide="copy" class="w-4 h-4"></i>
-          <span>Kopier reise til nytt forslag</span>
+        <!-- Native Share Button (Mobile) -->
+        <div id="native-share-container" class="hidden">
+          <button 
+            type="button" 
+            onclick="triggerNativeShare()" 
+            class="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs border border-slate-200 transition"
+          >
+            <i data-lucide="send" class="w-4 h-4 text-brand-600"></i>
+            <span>Send invitasjon via Meldinger, Snapchat, WhatsApp...</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 3. Reisefølge (Medlemmer & Roller på turen) -->
+      <div class="space-y-3 pt-2 border-t border-slate-100">
+        <div class="flex items-center justify-between">
+          <div>
+            <h4 class="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1.5">
+              <i data-lucide="users" class="w-4 h-4 text-brand-600"></i>
+              Reisefølge & Deltakere på turen
+            </h4>
+            <p class="text-[11px] text-slate-500">Legg til vennene du reiser med for å dele utgifter og se hvem som planlegger</p>
+          </div>
+        </div>
+
+        <div id="share-members-list" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+          <!-- Populated dynamically by renderShareModalMembers() -->
+        </div>
+
+        <!-- Add Member Form -->
+        <form onsubmit="handleAddTripMember(event)" class="flex flex-col sm:flex-row gap-2 pt-1">
+          <input 
+            type="text" 
+            id="new-member-name" 
+            required 
+            placeholder="+ Legg til medreisende (f.eks. Sander eller Nora)..." 
+            class="flex-1 bg-slate-50 focus:bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500"
+          >
+          <select id="new-member-role" class="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <option value="editor">Kan redigere</option>
+            <option value="viewer">Kun visning</option>
+          </select>
+          <button type="submit" class="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition shrink-0">
+            + Legg til
+          </button>
+        </form>
+      </div>
+
+      <!-- 4. Siste aktivitet + Lag uavhengig kopi -->
+      <div class="pt-2 border-t border-slate-100 space-y-3">
+        <div class="space-y-1.5">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+            <i data-lucide="activity" class="w-3.5 h-3.5 text-brand-600"></i>
+            Siste aktivitet på reisen
+          </span>
+          <div id="share-activity-log" class="bg-slate-50 rounded-xl p-3 border border-slate-200/70 text-[11px] text-slate-600 space-y-1 max-h-28 overflow-y-auto">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+          <button 
+            type="button" 
+            onclick="duplicateActiveTripAndCloseModal()" 
+            class="text-xs font-semibold text-brand-700 hover:text-brand-800 bg-brand-50 hover:bg-brand-100 px-3 py-2 rounded-xl border border-brand-200 transition flex items-center gap-1.5"
+          >
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            <span>Lag en privat kopi av denne turen</span>
+          </button>
+
+          <button onclick="closeModal('modal-share-trip')" class="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition">
+            Ferdig
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: MIN PROFIL & REISEPREFERANSER                                      -->
+  <!-- ========================================================================= -->
+  <div id="modal-user-profile" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-slate-100 space-y-5 max-h-[92vh] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modal-profile-title">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div class="flex items-center gap-3">
+          <div id="profile-modal-avatar-preview" class="w-12 h-12 rounded-2xl bg-brand-600 text-white flex items-center justify-center font-extrabold text-lg shadow-md">
+            R
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 id="modal-profile-title" class="font-bold text-slate-900 text-lg">Min Profil</h3>
+              <span id="profile-cloud-status-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">Lokal profil</span>
+            </div>
+            <p id="profile-modal-subtitle" class="text-xs text-slate-500">Tilpass profilen din, hjemstasjon og Interrail-preferanser</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-user-profile')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
 
-      <!-- Modal Footer -->
-      <div class="pt-2 border-t border-slate-100 flex items-center justify-end">
-        <button onclick="closeModal('modal-share-trip')" class="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition">
-          Ferdig
-        </button>
+      <!-- Personal Travel Stats Grid -->
+      <div class="grid grid-cols-4 gap-2 text-center bg-slate-50 p-3 rounded-2xl border border-slate-200/80">
+        <div>
+          <p id="profile-stat-trips" class="text-base sm:text-lg font-extrabold text-slate-900">1</p>
+          <p class="text-[10px] font-semibold text-slate-500">Egne reiser</p>
+        </div>
+        <div>
+          <p id="profile-stat-shared" class="text-base sm:text-lg font-extrabold text-brand-600">0</p>
+          <p class="text-[10px] font-semibold text-slate-500">Delte reiser</p>
+        </div>
+        <div>
+          <p id="profile-stat-countries" class="text-base sm:text-lg font-extrabold text-emerald-600">4</p>
+          <p class="text-[10px] font-semibold text-slate-500">Land</p>
+        </div>
+        <div>
+          <p id="profile-stat-trains" class="text-base sm:text-lg font-extrabold text-rail-accent">3</p>
+          <p class="text-[10px] font-semibold text-slate-500">Tog-etapper</p>
+        </div>
       </div>
+
+      <!-- Profile Form -->
+      <form id="form-user-profile" onsubmit="handleSaveUserProfile(event)" class="space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="profile-display-name" class="block text-xs font-semibold text-slate-700 mb-1">Visningsnavn *</label>
+            <input type="text" id="profile-display-name" required placeholder="f.eks. Leon Aabak" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3.5 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+          <div>
+            <label for="profile-username" class="block text-xs font-semibold text-slate-700 mb-1">Brukernavn / Kallenavn</label>
+            <input type="text" id="profile-username" placeholder="f.eks. @leon" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3.5 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="profile-home-station" class="block text-xs font-semibold text-slate-700 mb-1">Fast hjemstasjon (Standard ved søk)</label>
+            <input type="text" id="profile-home-station" placeholder="f.eks. Oslo S" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3.5 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+          <div>
+            <label for="profile-pass-type" class="block text-xs font-semibold text-slate-700 mb-1">Standard Interrail-pass</label>
+            <select id="profile-pass-type" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <option value="Global Pass 7 dager (Ungdom)">Global Pass 7 dager (Ungdom)</option>
+              <option value="Global Pass 5 dager (Ungdom)">Global Pass 5 dager (Ungdom)</option>
+              <option value="Global Pass 10 dager (Ungdom)">Global Pass 10 dager (Ungdom)</option>
+              <option value="Global Pass 15 dager (Ungdom)">Global Pass 15 dager (Ungdom)</option>
+              <option value="Global Pass 7 dager (Voksen)">Global Pass 7 dager (Voksen)</option>
+              <option value="Global Pass 10 dager (Voksen)">Global Pass 10 dager (Voksen)</option>
+              <option value="Enkeltbilletter / Point-to-Point">Enkeltbilletter (Uten pass)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Avatar Color & Badge Picker -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1.5">Profilfarge (vises på delte reiser og utgifter)</label>
+          <input type="hidden" id="profile-avatar-color" value="#0d9488">
+          <div class="flex items-center gap-2.5 flex-wrap">
+            <button type="button" onclick="selectProfileColor('#0d9488')" class="w-7 h-7 rounded-full bg-[#0d9488] ring-2 ring-offset-2 ring-slate-300 hover:scale-110 transition"></button>
+            <button type="button" onclick="selectProfileColor('#f97316')" class="w-7 h-7 rounded-full bg-[#f97316] hover:scale-110 transition"></button>
+            <button type="button" onclick="selectProfileColor('#2563eb')" class="w-7 h-7 rounded-full bg-[#2563eb] hover:scale-110 transition"></button>
+            <button type="button" onclick="selectProfileColor('#7c3aed')" class="w-7 h-7 rounded-full bg-[#7c3aed] hover:scale-110 transition"></button>
+            <button type="button" onclick="selectProfileColor('#e11d48')" class="w-7 h-7 rounded-full bg-[#e11d48] hover:scale-110 transition"></button>
+            <button type="button" onclick="selectProfileColor('#059669')" class="w-7 h-7 rounded-full bg-[#059669] hover:scale-110 transition"></button>
+            <button type="button" onclick="selectProfileColor('#0f172a')" class="w-7 h-7 rounded-full bg-[#0f172a] hover:scale-110 transition"></button>
+          </div>
+        </div>
+
+        <div>
+          <label for="profile-bio" class="block text-xs font-semibold text-slate-700 mb-1">Reise-notat / Favorittdestinasjon</label>
+          <input type="text" id="profile-bio" placeholder="f.eks. Klar for sommerens Interrail gjennom Sentral-Europa og Italia!" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3.5 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+        </div>
+
+        <div class="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+          <div id="profile-auth-actions">
+            <!-- Populated dynamically by renderUserProfileModal() -->
+          </div>
+          <div class="flex items-center gap-2 ml-auto">
+            <button type="button" onclick="closeModal('modal-user-profile')" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-semibold text-xs sm:text-sm transition">
+              Lukk
+            </button>
+            <button type="submit" class="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs sm:text-sm shadow-sm transition">
+              Lagre profil
+            </button>
+          </div>
+        </div>
+      </form>
     </div>
   </div>
 

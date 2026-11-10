@@ -9,7 +9,12 @@ import {
   collection, 
   addDoc, 
   doc, 
-  getDoc 
+  getDoc,
+  setDoc,
+  onSnapshot,
+  query,
+  where,
+  getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import {
   getAuth,
@@ -45,6 +50,91 @@ let db = null;
 let auth = null;
 export let currentUser = null;
 
+// Rich User Profile (persisted in localStorage + Firestore users/{uid})
+export let userProfile = {
+  uid: "local_user",
+  displayName: "Reisende",
+  username: "@reisende",
+  avatarColor: "#0d9488",
+  homeStation: "Oslo S",
+  defaultPassType: "Global Pass 7 dager (Ungdom)",
+  bio: "Klar for Interrail gjennom Europa!"
+};
+
+function getInitials(name) {
+  if (!name) return "R";
+  const parts = String(name).trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  return String(name).trim().substring(0, 2).toUpperCase();
+}
+
+export function loadLocalUserProfile() {
+  try {
+    const raw = localStorage.getItem("railsync_user_profile_v1");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      userProfile = { ...userProfile, ...parsed };
+    } else {
+      // Generate persistent local guest uid so ownership works even before cloud login
+      userProfile.uid = "local_" + Math.random().toString(36).substring(2, 10);
+      localStorage.setItem("railsync_user_profile_v1", JSON.stringify(userProfile));
+    }
+  } catch (e) {
+    console.warn("Kunne ikke lese lokal brukerprofil:", e);
+  }
+  updateAuthUI(currentUser);
+}
+
+export async function syncUserProfileWithCloud(user) {
+  if (!user) {
+    updateAuthUI(null);
+    return;
+  }
+
+  const fallbackName = user.displayName || (user.email ? user.email.split("@")[0] : "Reisende");
+  const fallbackHandle = "@" + fallbackName.toLowerCase().replace(/[^a-z0-9_]/g, "");
+
+  userProfile.uid = user.uid;
+  if (userProfile.displayName === "Reisende" && fallbackName) {
+    userProfile.displayName = fallbackName;
+  }
+  if (userProfile.username === "@reisende" && fallbackHandle) {
+    userProfile.username = fallbackHandle;
+  }
+
+  if (isFirebaseConfigured() && db) {
+    try {
+      const userDocRef = doc(db, "users", user.uid);
+      const snap = await getDoc(userDocRef);
+      if (snap.exists()) {
+        const cloudProf = snap.data();
+        userProfile = {
+          ...userProfile,
+          ...cloudProf,
+          uid: user.uid
+        };
+      } else {
+        await setDoc(userDocRef, {
+          ...userProfile,
+          uid: user.uid,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+      }
+    } catch (e) {
+      console.warn("Kunne ikke synkronisere brukerprofil med Firestore:", e);
+    }
+  }
+
+  try {
+    localStorage.setItem("railsync_user_profile_v1", JSON.stringify(userProfile));
+  } catch (e) {}
+
+  updateAuthUI(user);
+  await syncAllUserTripsWithCloud(true);
+}
+
 if (isFirebaseConfigured()) {
   try {
     const app = initializeApp(firebaseConfig);
@@ -53,9 +143,9 @@ if (isFirebaseConfigured()) {
     console.log("Firebase Firestore og Auth initialisert vellykket.");
 
     // Listen to authentication state changes
-    onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, async (user) => {
       currentUser = user;
-      updateAuthUI(user);
+      await syncUserProfileWithCloud(user);
     });
   } catch (err) {
     console.warn("Kunne ikke koble til Firebase:", err);
@@ -69,18 +159,35 @@ if (isFirebaseConfigured()) {
 // =============================================================================
 export function updateAuthUI(user) {
   const loginBtn = document.getElementById("btn-open-login");
-  const profilePill = document.getElementById("user-profile-pill");
   const displayNameEl = document.getElementById("user-display-name");
+  const headerAvatarEl = document.getElementById("header-user-avatar");
+  const sidebarAvatarEl = document.getElementById("sidebar-user-avatar");
+  const sidebarLabelEl = document.getElementById("sidebar-user-label");
+
+  const activeName = user
+    ? (userProfile.displayName || user.displayName || (user.email ? user.email.split("@")[0] : "Bruker"))
+    : (userProfile.displayName || "Min profil");
+
+  const initials = getInitials(activeName);
+  const bgColor = userProfile.avatarColor || "#0d9488";
+
+  if (displayNameEl) displayNameEl.textContent = activeName;
+  if (headerAvatarEl) {
+    headerAvatarEl.textContent = initials;
+    headerAvatarEl.style.backgroundColor = bgColor;
+  }
+  if (sidebarAvatarEl) {
+    sidebarAvatarEl.textContent = initials;
+    sidebarAvatarEl.style.backgroundColor = bgColor;
+  }
+  if (sidebarLabelEl) {
+    sidebarLabelEl.textContent = user ? `${activeName} (Sky)` : `${activeName} (Profil)`;
+  }
 
   if (user) {
     if (loginBtn) loginBtn.classList.add("hidden");
-    if (profilePill) profilePill.classList.remove("hidden");
-    if (displayNameEl) {
-      displayNameEl.textContent = user.displayName || (user.email ? user.email.split("@")[0] : "Bruker");
-    }
   } else {
     if (loginBtn) loginBtn.classList.remove("hidden");
-    if (profilePill) profilePill.classList.add("hidden");
   }
 }
 
@@ -337,48 +444,140 @@ const defaultTripState = {
   ]
 };
 
+function generateShareCode(tripIdStr) {
+  const clean = String(tripIdStr || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+  const suffix = clean.length >= 4
+    ? clean.slice(-4)
+    : Math.floor(1000 + Math.random() * 9000).toString();
+  return `RS-${suffix}`;
+}
+
+export function ensureTripCollaborationFields(tripObj) {
+  if (!tripObj) return tripObj;
+  if (!tripObj.id) tripObj.id = "trip_" + Date.now();
+  if (!tripObj.shareCode) tripObj.shareCode = generateShareCode(tripObj.id);
+  if (!tripObj.visibility) tripObj.visibility = "private";
+  if (!tripObj.sharePermission) tripObj.sharePermission = "edit";
+
+  const activeUid = currentUser ? currentUser.uid : (userProfile.uid || "local_user");
+  const activeName = userProfile.displayName || (currentUser && currentUser.displayName) || "Meg";
+  const activeColor = userProfile.avatarColor || "#0d9488";
+
+  if (!tripObj.owner || !tripObj.owner.uid) {
+    tripObj.owner = {
+      uid: activeUid,
+      name: activeName,
+      avatarColor: activeColor
+    };
+  }
+
+  if (!Array.isArray(tripObj.members) || tripObj.members.length === 0) {
+    tripObj.members = [
+      {
+        id: tripObj.owner.uid || activeUid,
+        name: tripObj.owner.name || activeName,
+        role: "owner",
+        avatarColor: tripObj.owner.avatarColor || activeColor,
+        joinedAt: tripObj.createdAt || new Date().toISOString()
+      }
+    ];
+  }
+
+  if (!Array.isArray(tripObj.activityLog)) {
+    tripObj.activityLog = [
+      {
+        text: "Reiseplanen ble opprettet",
+        by: tripObj.owner.name || activeName,
+        time: tripObj.createdAt || new Date().toISOString()
+      }
+    ];
+  }
+
+  return tripObj;
+}
+
 // Starter Proposal: Single clean sample proposal
-const starterProposal = {
+const starterProposal = ensureTripCollaborationFields({
   id: "eksempel-1",
   title: "Eksempelreise: Europaturné 2026",
   createdAt: new Date().toISOString(),
+  visibility: "private",
+  sharePermission: "edit",
   trip: JSON.parse(JSON.stringify(defaultTripState.trip)),
   stops: JSON.parse(JSON.stringify(defaultTripState.stops)),
   trains: JSON.parse(JSON.stringify(defaultTripState.trains)),
   expenses: JSON.parse(JSON.stringify(defaultTripState.expenses)),
   packingList: JSON.parse(JSON.stringify(defaultTripState.packingList))
-};
+});
 
 export let allTrips = [starterProposal];
 export let activeTripId = "eksempel-1";
+export let currentTripManagerTab = "mine";
+let activeTripUnsubscribe = null;
+let isApplyingRemoteSnapshot = false;
 
 // Deep clone active state container
 export const appState = JSON.parse(JSON.stringify(defaultTripState));
 
-export function syncActiveTripToState() {
+export function getActiveTripObject() {
   let active = allTrips.find(t => t.id === activeTripId);
   if (!active && allTrips.length > 0) {
     active = allTrips[0];
     activeTripId = active.id;
   }
-  if (!active) return;
-
-  appState.trip = JSON.parse(JSON.stringify(active.trip));
-  appState.stops = JSON.parse(JSON.stringify(active.stops));
-  appState.trains = JSON.parse(JSON.stringify(active.trains));
-  appState.expenses = JSON.parse(JSON.stringify(active.expenses));
-  appState.packingList = JSON.parse(JSON.stringify(active.packingList));
+  return active ? ensureTripCollaborationFields(active) : null;
 }
 
-export function syncStateToActiveTrip() {
+export function isTripOwnedByCurrentUser(tripObj) {
+  if (!tripObj || !tripObj.owner) return true;
+  const myUid = currentUser ? currentUser.uid : userProfile.uid;
+  return (
+    tripObj.owner.uid === myUid ||
+    tripObj.owner.uid === userProfile.uid ||
+    tripObj.owner.uid === "local_user"
+  );
+}
+
+export function canEditActiveTrip() {
+  const active = getActiveTripObject();
+  if (!active) return true;
+  if (active.visibility !== "shared") return true;
+  if (isTripOwnedByCurrentUser(active)) return true;
+
+  const myUid = currentUser ? currentUser.uid : userProfile.uid;
+  const myMember = (active.members || []).find(
+    m => m.id === myUid || m.name.toLowerCase() === (userProfile.displayName || "").toLowerCase()
+  );
+  if (myMember) {
+    return myMember.role === "owner" || myMember.role === "editor";
+  }
+  return active.sharePermission !== "view";
+}
+
+export function syncActiveTripToState() {
+  const active = getActiveTripObject();
+  if (!active) return;
+
+  appState.trip = JSON.parse(JSON.stringify(active.trip || defaultTripState.trip));
+  appState.stops = JSON.parse(JSON.stringify(active.stops || []));
+  appState.trains = JSON.parse(JSON.stringify(active.trains || []));
+  appState.expenses = JSON.parse(JSON.stringify(active.expenses || []));
+  appState.packingList = JSON.parse(JSON.stringify(active.packingList || []));
+
+  subscribeToActiveSharedTrip();
+}
+
+export function syncStateToActiveTrip(activityText = "") {
   let active = allTrips.find(t => t.id === activeTripId);
   if (!active) {
-    active = {
+    active = ensureTripCollaborationFields({
       id: activeTripId || ("trip_" + Date.now()),
       title: appState.trip.title || "Min Reise",
       trip: {}, stops: [], trains: [], expenses: [], packingList: []
-    };
+    });
     allTrips.push(active);
+  } else {
+    ensureTripCollaborationFields(active);
   }
 
   active.title = appState.trip.title || "Min Reise";
@@ -387,8 +586,147 @@ export function syncStateToActiveTrip() {
   active.trains = JSON.parse(JSON.stringify(appState.trains));
   active.expenses = JSON.parse(JSON.stringify(appState.expenses));
   active.packingList = JSON.parse(JSON.stringify(appState.packingList));
+  active.updatedAt = new Date().toISOString();
+  active.lastUpdatedBy = userProfile.displayName || "Reisende";
+
+  if (activityText) {
+    if (!Array.isArray(active.activityLog)) active.activityLog = [];
+    active.activityLog.unshift({
+      text: activityText,
+      by: userProfile.displayName || "Reisende",
+      time: new Date().toISOString()
+    });
+    active.activityLog = active.activityLog.slice(0, 12);
+  }
 
   saveAllTripsToLocalStorage();
+
+  // If this trip is shared or the user is logged into cloud, push update to Firestore in background
+  if (!isApplyingRemoteSnapshot && isFirebaseConfigured() && db && (active.visibility === "shared" || currentUser)) {
+    pushTripToFirestore(active);
+  }
+}
+
+async function pushTripToFirestore(tripObj) {
+  if (!isFirebaseConfigured() || !db || !tripObj || !tripObj.id) return;
+  try {
+    const docRef = doc(db, "trips", tripObj.id);
+    await setDoc(docRef, {
+      ...JSON.parse(JSON.stringify(tripObj)),
+      savedAt: new Date().toISOString()
+    }, { merge: true });
+  } catch (err) {
+    console.warn("Kunne ikke synkronisere reise til Firestore:", err);
+  }
+}
+
+export function subscribeToActiveSharedTrip() {
+  if (activeTripUnsubscribe) {
+    activeTripUnsubscribe();
+    activeTripUnsubscribe = null;
+  }
+
+  const active = allTrips.find(t => t.id === activeTripId);
+  if (!active || active.visibility !== "shared" || !isFirebaseConfigured() || !db) {
+    return;
+  }
+
+  try {
+    const docRef = doc(db, "trips", active.id);
+    activeTripUnsubscribe = onSnapshot(docRef, (snap) => {
+      if (!snap.exists()) return;
+      const cloudData = snap.data();
+      if (!cloudData || !cloudData.trip) return;
+
+      // Avoid overwriting if local state has identical or newer timestamp
+      const currentActive = allTrips.find(t => t.id === active.id);
+      if (currentActive && currentActive.updatedAt && cloudData.updatedAt && currentActive.updatedAt >= cloudData.updatedAt) {
+        return;
+      }
+
+      isApplyingRemoteSnapshot = true;
+      try {
+        const merged = ensureTripCollaborationFields({
+          ...currentActive,
+          ...cloudData,
+          id: active.id,
+          title: cloudData.trip.title || cloudData.title || "Delt Reise"
+        });
+
+        const idx = allTrips.findIndex(t => t.id === active.id);
+        if (idx !== -1) {
+          allTrips[idx] = merged;
+        }
+        if (activeTripId === active.id) {
+          appState.trip = JSON.parse(JSON.stringify(merged.trip));
+          appState.stops = JSON.parse(JSON.stringify(merged.stops || []));
+          appState.trains = JSON.parse(JSON.stringify(merged.trains || []));
+          appState.expenses = JSON.parse(JSON.stringify(merged.expenses || []));
+          appState.packingList = JSON.parse(JSON.stringify(merged.packingList || []));
+          saveAllTripsToLocalStorage();
+          renderAll();
+          updateMapLayers();
+        }
+      } finally {
+        isApplyingRemoteSnapshot = false;
+      }
+    });
+  } catch (e) {
+    console.warn("Sanntidslytting feilet:", e);
+  }
+}
+
+export async function syncAllUserTripsWithCloud(silent = false) {
+  if (!isFirebaseConfigured() || !db) {
+    if (!silent) showToast("Lokal modus", "Reisene dine er lagret trygt i nettleseren.", "check");
+    return;
+  }
+
+  try {
+    // 1. Push any local shared trips or user-owned trips if logged in
+    for (const t of allTrips) {
+      ensureTripCollaborationFields(t);
+      if (t.visibility === "shared" || currentUser) {
+        await pushTripToFirestore(t);
+      }
+    }
+
+    // 2. If logged in, fetch trips owned by this user from Firestore
+    if (currentUser) {
+      const q = query(collection(db, "trips"), where("owner.uid", "==", currentUser.uid));
+      const snap = await getDocs(q);
+      snap.forEach(docSnap => {
+        const data = docSnap.data();
+        if (data && data.trip) {
+          const cloudTrip = ensureTripCollaborationFields({
+            ...data,
+            id: docSnap.id,
+            title: data.trip.title || data.title || "Min Reise"
+          });
+          const existingIdx = allTrips.findIndex(local => local.id === docSnap.id);
+          if (existingIdx === -1) {
+            allTrips.push(cloudTrip);
+          } else if (cloudTrip.updatedAt && (!allTrips[existingIdx].updatedAt || cloudTrip.updatedAt > allTrips[existingIdx].updatedAt)) {
+            allTrips[existingIdx] = cloudTrip;
+          }
+        }
+      });
+    }
+
+    saveAllTripsToLocalStorage();
+    syncActiveTripToState();
+    renderAll();
+    updateMapLayers();
+
+    if (!silent) {
+      showToast("Synkronisert med skyen!", `Alle dine ${allTrips.length} reiser er oppdatert.`, "cloud");
+    }
+  } catch (err) {
+    console.warn("Sky-synkronisering feilet:", err);
+    if (!silent) {
+      showToast("Synkroniseringsfeil", "Kunne ikke nå skyen akkurat nå. Endringer er lagret lokalt.", "alert-triangle");
+    }
+  }
 }
 
 export function saveAllTripsToLocalStorage() {
@@ -408,101 +746,167 @@ export function saveAllTripsToLocalStorage() {
 // 3. PERSISTENCE & CLOUD SYNC (Firestore + LocalStorage)
 // =============================================================================
 export async function loadAppState() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const tripId = urlParams.get("trip");
+  loadLocalUserProfile();
 
-  if (tripId) {
-    // 1. Fetch shared trip from Firestore if configured
-    if (isFirebaseConfigured() && db) {
-      try {
-        const docRef = doc(db, "trips", tripId);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const cloudData = docSnap.data();
-          if (cloudData.trip && cloudData.stops) {
-            const loadedTrip = {
-              id: tripId,
-              title: cloudData.trip.title || "Delt Reise",
-              trip: cloudData.trip,
-              stops: cloudData.stops || [],
-              trains: cloudData.trains || [],
-              expenses: cloudData.expenses || [],
-              packingList: cloudData.packingList || []
-            };
-
-            const existingIdx = allTrips.findIndex(t => t.id === tripId);
-            if (existingIdx !== -1) {
-              allTrips[existingIdx] = loadedTrip;
-            } else {
-              allTrips.unshift(loadedTrip);
-            }
-            activeTripId = tripId;
-            syncActiveTripToState();
-            saveAllTripsToLocalStorage();
-            showToast("Reise lastet", `Hentet "${appState.trip.title}" fra skyen!`);
-            return;
-          }
-        }
-      } catch (err) {
-        console.warn("Feil ved lasting fra Firestore:", err);
-      }
-    }
-
-    // 2. Fallback: Check local trip cache
-    try {
-      const localTrip = localStorage.getItem(`railsync_trip_${tripId}`);
-      if (localTrip) {
-        const parsed = JSON.parse(localTrip);
-        const loadedTrip = {
-          id: tripId,
-          title: parsed.trip ? parsed.trip.title : "Delt Reise",
-          trip: parsed.trip || {},
-          stops: parsed.stops || [],
-          trains: parsed.trains || [],
-          expenses: parsed.expenses || [],
-          packingList: parsed.packingList || []
-        };
-        const existingIdx = allTrips.findIndex(t => t.id === tripId);
-        if (existingIdx !== -1) {
-          allTrips[existingIdx] = loadedTrip;
-        } else {
-          allTrips.unshift(loadedTrip);
-        }
-        activeTripId = tripId;
-        syncActiveTripToState();
-        saveAllTripsToLocalStorage();
-        showToast("Reise lastet", `Hentet "${appState.trip.title}" fra lokalt minne.`);
-        return;
-      }
-    } catch (e) {
-      console.warn("Kunne ikke lese lokal trip cache:", e);
-    }
-  }
-
-  // 3. Load from railsync_all_trips_v3
+  // First load saved trips from localStorage so we don't lose existing trips when opening a shared link
   try {
     const savedTrips = localStorage.getItem("railsync_all_trips_v3");
     if (savedTrips) {
       const parsed = JSON.parse(savedTrips);
       if (parsed && Array.isArray(parsed.allTrips) && parsed.allTrips.length > 0) {
-        allTrips = parsed.allTrips;
+        allTrips = parsed.allTrips.map(t => ensureTripCollaborationFields(t));
         activeTripId = parsed.activeTripId || allTrips[0].id;
-        syncActiveTripToState();
-        return;
       }
     }
   } catch (err) {
     console.warn("Kunne ikke lese railsync_all_trips_v3:", err);
   }
 
-  // 4. Default starter proposal
-  allTrips = [starterProposal];
-  activeTripId = "eksempel-1";
+  const urlParams = new URLSearchParams(window.location.search);
+  const tripId = urlParams.get("trip");
+
+  if (tripId) {
+    const joined = await fetchAndJoinSharedTrip(tripId, true);
+    if (joined) return;
+  }
+
+  if (!allTrips || allTrips.length === 0) {
+    allTrips = [starterProposal];
+    activeTripId = "eksempel-1";
+  }
   syncActiveTripToState();
 }
 
-export function persistState() {
-  syncStateToActiveTrip();
+export async function fetchAndJoinSharedTrip(tripIdOrCode, fromUrlParam = false) {
+  if (!tripIdOrCode) return false;
+  let cleanInput = String(tripIdOrCode).trim();
+
+  // Extract ?trip=... if user pasted a full URL
+  if (cleanInput.includes("trip=")) {
+    try {
+      const u = new URL(cleanInput);
+      cleanInput = u.searchParams.get("trip") || cleanInput;
+    } catch (e) {
+      const match = cleanInput.match(/[?&]trip=([^&#]+)/);
+      if (match) cleanInput = match[1];
+    }
+  }
+
+  const upperCode = cleanInput.toUpperCase();
+
+  // 1. Check Firestore (by doc ID or by shareCode)
+  if (isFirebaseConfigured() && db) {
+    try {
+      let foundId = null;
+      let cloudData = null;
+
+      // Try direct document ID first
+      const docRef = doc(db, "trips", cleanInput);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        foundId = docSnap.id;
+        cloudData = docSnap.data();
+      } else {
+        // Query by 6-char shareCode (e.g. RS-4829)
+        const q = query(collection(db, "trips"), where("shareCode", "==", upperCode));
+        const qSnap = await getDocs(q);
+        if (!qSnap.empty) {
+          foundId = qSnap.docs[0].id;
+          cloudData = qSnap.docs[0].data();
+        }
+      }
+
+      if (foundId && cloudData && cloudData.trip) {
+        const loadedTrip = ensureTripCollaborationFields({
+          ...cloudData,
+          id: foundId,
+          visibility: "shared",
+          title: cloudData.trip.title || cloudData.title || "Delt Reise"
+        });
+
+        // Automatically add current user to members if not already in the list
+        const myUid = currentUser ? currentUser.uid : userProfile.uid;
+        const myName = userProfile.displayName || "Gjest";
+        const alreadyMember = (loadedTrip.members || []).some(
+          m => m.id === myUid || m.name.toLowerCase() === myName.toLowerCase()
+        );
+        if (!alreadyMember && myName !== "Reisende") {
+          loadedTrip.members.push({
+            id: myUid,
+            name: myName,
+            role: loadedTrip.sharePermission === "view" ? "viewer" : "editor",
+            avatarColor: userProfile.avatarColor || "#2563eb",
+            joinedAt: new Date().toISOString()
+          });
+          loadedTrip.activityLog.unshift({
+            text: `${myName} ble med i reisefølget`,
+            by: myName,
+            time: new Date().toISOString()
+          });
+          await pushTripToFirestore(loadedTrip);
+        }
+
+        const existingIdx = allTrips.findIndex(t => t.id === foundId);
+        if (existingIdx !== -1) {
+          allTrips[existingIdx] = loadedTrip;
+        } else {
+          allTrips.unshift(loadedTrip);
+        }
+
+        activeTripId = foundId;
+        syncActiveTripToState();
+        saveAllTripsToLocalStorage();
+        renderAll();
+        updateMapLayers();
+        showToast("Delt reise lastet!", `Du er nå koblet til "${appState.trip.title}" i sanntid.`, "users");
+        return true;
+      }
+    } catch (err) {
+      console.warn("Feil ved henting av delt reise fra Firestore:", err);
+    }
+  }
+
+  // 2. Check local trip cache / existing trips by ID or shareCode
+  const localMatch = allTrips.find(t => t.id === cleanInput || (t.shareCode && t.shareCode.toUpperCase() === upperCode));
+  if (localMatch) {
+    activeTripId = localMatch.id;
+    syncActiveTripToState();
+    saveAllTripsToLocalStorage();
+    renderAll();
+    updateMapLayers();
+    showToast("Reise åpnet", `Byttet til "${appState.trip.title}".`, "check");
+    return true;
+  }
+
+  try {
+    const localTrip = localStorage.getItem(`railsync_trip_${cleanInput}`);
+    if (localTrip) {
+      const parsed = JSON.parse(localTrip);
+      const loadedTrip = ensureTripCollaborationFields({
+        ...parsed,
+        id: cleanInput,
+        visibility: "shared",
+        title: parsed.trip ? parsed.trip.title : "Delt Reise"
+      });
+      allTrips.unshift(loadedTrip);
+      activeTripId = cleanInput;
+      syncActiveTripToState();
+      saveAllTripsToLocalStorage();
+      renderAll();
+      updateMapLayers();
+      showToast("Reise lastet", `Hentet "${appState.trip.title}".`);
+      return true;
+    }
+  } catch (e) {}
+
+  if (!fromUrlParam) {
+    showToast("Fant ikke reisen", `Ingen delt reise funnet med kode eller ID "${cleanInput}".`, "alert-circle");
+  }
+  return false;
+}
+
+export function persistState(activityText = "") {
+  syncStateToActiveTrip(activityText);
 }
 
 /**
@@ -511,7 +915,6 @@ export function persistState() {
 export async function copyToClipboardFallback(textToCopy) {
   if (!textToCopy) return false;
 
-  // 1. Modern Navigator Clipboard API
   if (navigator.clipboard && typeof navigator.clipboard.writeText === "function" && window.isSecureContext) {
     try {
       await navigator.clipboard.writeText(textToCopy);
@@ -521,7 +924,6 @@ export async function copyToClipboardFallback(textToCopy) {
     }
   }
 
-  // 2. Fallback via temporary <textarea> and execCommand
   try {
     const textarea = document.createElement("textarea");
     textarea.value = textToCopy;
@@ -547,81 +949,68 @@ export async function copyToClipboardFallback(textToCopy) {
 
 /**
  * Handle Save & Share Trip:
- * Saves the entire appState to Firestore 'trips' collection or local cache,
- * updates URL with ?trip=ID, opens the Del & Kopier modal, and auto-copies the link.
+ * Updates the SAME trip ID in Firestore (`setDoc` instead of creating duplicate `addDoc` copies),
+ * promotes visibility to 'shared' on first share, starts real-time sync, and opens the Collaboration Modal.
  */
 export async function handleSaveAndShareTrip() {
   const btn = document.getElementById("btn-save-share");
   const originalHtml = btn ? btn.innerHTML : "";
 
   if (btn) {
-    btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span class="hidden sm:inline">Lagrer...</span>`;
+    btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span class="hidden sm:inline">Synkroniserer...</span>`;
     btn.disabled = true;
     if (window.lucide) lucide.createIcons();
   }
 
-  let tripId = null;
-
   try {
-    if (isFirebaseConfigured() && db) {
-      try {
-        const docRef = await addDoc(collection(db, "trips"), {
-          ...appState,
-          savedAt: new Date().toISOString()
-        });
-        tripId = docRef.id;
-      } catch (fsError) {
-        console.warn("Firestore lagring feilet (sjekk Security Rules):", fsError);
-        tripId = "trip_" + Math.random().toString(36).substring(2, 9);
-        localStorage.setItem(`railsync_trip_${tripId}`, JSON.stringify(appState));
-        persistState();
-      }
-    } else {
-      // Local demo mode
-      tripId = "trip_" + Math.random().toString(36).substring(2, 9);
-      localStorage.setItem(`railsync_trip_${tripId}`, JSON.stringify(appState));
-      persistState();
+    let active = getActiveTripObject();
+    if (!active) return;
+
+    // If the user is sharing the default 'eksempel-1' ID, assign a unique persistent cloud ID once so users don't collide on 'eksempel-1'
+    if (active.id === "eksempel-1") {
+      active.id = "trip_" + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
+      active.shareCode = generateShareCode(active.id);
+      activeTripId = active.id;
     }
 
-    // Update URL query parameter without page reload
-    const shareUrl = `${window.location.origin}${window.location.pathname}?trip=${tripId}`;
+    // Promote to shared on first share
+    if (active.visibility !== "shared") {
+      active.visibility = "shared";
+      active.activityLog.unshift({
+        text: "Delt reise og sanntidssamarbeid ble aktivert",
+        by: userProfile.displayName || "Eier",
+        time: new Date().toISOString()
+      });
+    }
+
+    syncStateToActiveTrip();
+
+    if (isFirebaseConfigured() && db) {
+      await pushTripToFirestore(active);
+      subscribeToActiveSharedTrip();
+    } else {
+      localStorage.setItem(`railsync_trip_${active.id}`, JSON.stringify(active));
+    }
+
+    const shareUrl = `${window.location.origin}${window.location.pathname}?trip=${active.id}`;
     window.history.replaceState({ path: shareUrl }, "", shareUrl);
 
-    // Populate modal input
-    const shareInput = document.getElementById("share-url-input");
-    if (shareInput) {
-      shareInput.value = shareUrl;
-    }
-
-    // Toggle native share button if supported by browser/device
-    const nativeShareContainer = document.getElementById("native-share-container");
-    if (nativeShareContainer) {
-      if (typeof navigator.share === "function") {
-        nativeShareContainer.classList.remove("hidden");
-      } else {
-        nativeShareContainer.classList.add("hidden");
-      }
-    }
-
-    // Open share modal
+    renderShareAndCollabModal();
+    renderAll();
     openModal("modal-share-trip");
 
-    // Attempt automated clipboard copy
     const copied = await copyToClipboardFallback(shareUrl);
     const copyBtnText = document.getElementById("btn-copy-url-text");
     if (copied) {
       if (copyBtnText) copyBtnText.textContent = "Kopiert!";
-      showToast("Lenke kopiert!", "Delingslenken er kopiert til utklippstavlen.", "check");
+      showToast("Delingslenke kopiert!", `Kode ${active.shareCode} og lenke er klar til å deles med reisefølget.`, "users");
       setTimeout(() => {
         if (copyBtnText) copyBtnText.textContent = "Kopier lenke";
       }, 3000);
-    } else {
-      showToast("Reise lagret!", "Delingsdialogen er åpnet.", "share-2");
     }
-
   } catch (error) {
-    console.error("Feil ved lagring av reise:", error);
-    showToast("Feil ved lagring", "Kunne ikke lagre reisen. Prøv igjen.", "alert-circle");
+    console.error("Feil ved deling av reise:", error);
+    showToast("Feil ved lagring", "Kunne ikke åpne delingsinnstillinger.", "alert-circle");
   } finally {
     if (btn) {
       btn.innerHTML = originalHtml;
@@ -1340,20 +1729,77 @@ export function renderBudget() {
     }).join("");
   }
 
+  // Render Shared Trip Expense Split per Member
+  const activeTripObj = getActiveTripObject();
+  const membersList = (activeTripObj && Array.isArray(activeTripObj.members) && activeTripObj.members.length > 0)
+    ? activeTripObj.members
+    : [{ id: "me", name: userProfile.displayName || "Meg", role: "owner", avatarColor: userProfile.avatarColor || "#0d9488" }];
+
+  const splitContainer = document.getElementById("budget-members-split-container");
+  if (splitContainer) {
+    const perPersonShare = membersList.length > 0 ? Math.round(totalSpent / membersList.length) : totalSpent;
+    splitContainer.innerHTML = membersList.map((m, idx) => {
+      const paidByThisMember = appState.expenses
+        .filter(e => {
+          const payer = (e.paidBy || "").toLowerCase();
+          if (!payer || payer === "meg") return idx === 0;
+          return payer === m.name.toLowerCase();
+        })
+        .reduce((sum, e) => sum + Number(e.amount || 0), 0);
+
+      const diff = paidByThisMember - perPersonShare;
+      let diffLabel = `<span class="text-[11px] text-slate-400 font-medium">Snitt: ${formatNumber(perPersonShare)} kr/pers</span>`;
+      if (membersList.length > 1) {
+        if (diff > 20) {
+          diffLabel = `<span class="text-[11px] font-bold text-emerald-700">+${formatNumber(diff)} kr til gode</span>`;
+        } else if (diff < -20) {
+          diffLabel = `<span class="text-[11px] font-bold text-amber-700">${formatNumber(diff)} kr (skylder felles)</span>`;
+        } else {
+          diffLabel = `<span class="text-[11px] font-semibold text-slate-500">I balanse</span>`;
+        }
+      }
+
+      return `
+        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 flex items-center justify-between gap-3">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <span class="w-8 h-8 rounded-full text-white text-xs font-extrabold flex items-center justify-center shrink-0 shadow-2xs" style="background-color: ${escapeHtml(m.avatarColor || '#0d9488')}">
+              ${escapeHtml(getInitials(m.name))}
+            </span>
+            <div class="min-w-0">
+              <p class="text-xs sm:text-sm font-bold text-slate-900 truncate">${escapeHtml(m.name)}</p>
+              ${diffLabel}
+            </div>
+          </div>
+          <div class="text-right shrink-0">
+            <p class="text-sm font-extrabold text-slate-900">${formatNumber(paidByThisMember)} kr</p>
+            <p class="text-[10px] text-slate-400 font-semibold uppercase">Lagt ut</p>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
   const tbody = document.getElementById("expenses-table-body");
   const countBadge = document.getElementById("expenses-count-badge");
   if (countBadge) countBadge.textContent = `${appState.expenses.length} poster`;
 
   if (tbody) {
     if (appState.expenses.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-slate-400">Ingen utgifter registrert.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-400">Ingen utgifter registrert.</td></tr>`;
     } else {
-      tbody.innerHTML = appState.expenses.map(exp => `
+      tbody.innerHTML = appState.expenses.map(exp => {
+        const payerName = exp.paidBy || (membersList[0] ? membersList[0].name : "Meg");
+        return `
         <tr class="hover:bg-slate-50/80 transition">
           <td class="py-3 px-4 sm:px-6 font-semibold text-slate-900">${escapeHtml(exp.title)}</td>
           <td class="py-3 px-4">
             <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">
               ${escapeHtml(exp.category)}
+            </span>
+          </td>
+          <td class="py-3 px-4">
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-brand-50 text-brand-800 border border-brand-200/60">
+              ${escapeHtml(payerName)}
             </span>
           </td>
           <td class="py-3 px-4 text-slate-500 text-xs">${formatDate(exp.date)}</td>
@@ -1364,7 +1810,8 @@ export function renderBudget() {
             </button>
           </td>
         </tr>
-      `).join("");
+      `;
+      }).join("");
     }
   }
 
@@ -1465,26 +1912,111 @@ export function renderPacking() {
   if (window.lucide) lucide.createIcons();
 }
 
+export function renderHeaderCollaborationBar() {
+  const active = getActiveTripObject();
+  if (!active) return;
+
+  const visBadge = document.getElementById("header-visibility-badge");
+  const avatarsContainer = document.getElementById("header-members-avatars");
+  const countLabel = document.getElementById("header-members-count-label");
+  const readonlyBanner = document.getElementById("readonly-trip-banner");
+
+  const isEditable = canEditActiveTrip();
+  if (readonlyBanner) {
+    if (!isEditable) {
+      readonlyBanner.classList.remove("hidden");
+    } else {
+      readonlyBanner.classList.add("hidden");
+    }
+  }
+
+  if (visBadge) {
+    if (!isEditable) {
+      visBadge.className = "cursor-pointer inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 transition shrink-0";
+      visBadge.innerHTML = `👁️ Kun visning`;
+    } else if (active.visibility === "shared") {
+      visBadge.className = "cursor-pointer inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 transition shrink-0";
+      visBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span> Delt reise (${escapeHtml(active.shareCode || 'Live')})`;
+    } else {
+      visBadge.className = "cursor-pointer inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 hover:border-brand-300 transition shrink-0";
+      visBadge.innerHTML = `🔒 Privat reise`;
+    }
+  }
+
+  const members = Array.isArray(active.members) ? active.members : [];
+  if (avatarsContainer) {
+    avatarsContainer.innerHTML = members.slice(0, 5).map(m => `
+      <span 
+        title="${escapeHtml(m.name)} (${m.role === 'owner' ? 'Eier' : (m.role === 'viewer' ? 'Kun visning' : 'Kan redigere')})"
+        class="w-6 h-6 rounded-full text-white text-[10px] font-extrabold flex items-center justify-center ring-2 ring-white shadow-2xs"
+        style="background-color: ${escapeHtml(m.avatarColor || '#0d9488')}"
+      >
+        ${escapeHtml(getInitials(m.name))}
+      </span>
+    `).join("");
+  }
+
+  if (countLabel) {
+    countLabel.textContent = members.length > 1 ? `${members.length} på turen` : `Reisefølge`;
+  }
+}
+
 export function renderAll() {
+  renderHeaderCollaborationBar();
   renderOverview();
   renderTrains();
   renderBudget();
   renderPacking();
   renderTripManagerList();
+  updateAuthUI(currentUser);
   if (window.lucide) lucide.createIcons();
 }
 
 // =============================================================================
-// 6.5 MULTI-TRIP MANAGER FUNCTIONS
+// 6.5 MULTI-TRIP MANAGER, SHARED TRIPS & USER PROFILE FUNCTIONS
 // =============================================================================
-export function openTripManagerModal() {
-  renderTripManagerList();
+export function openTripManagerModal(initialTab = "mine") {
+  switchTripManagerTab(initialTab);
   openModal('modal-trip-manager');
+}
+
+export function switchTripManagerTab(tabName) {
+  currentTripManagerTab = tabName || "mine";
+
+  const tabs = ["mine", "shared", "join"];
+  tabs.forEach(t => {
+    const btn = document.getElementById(`trip-tab-btn-${t}`);
+    if (!btn) return;
+    if (t === currentTripManagerTab) {
+      btn.className = "py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-white text-slate-900 shadow-2xs";
+    } else {
+      btn.className = "py-2 px-3 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900";
+    }
+  });
+
+  const listPanel = document.getElementById("trip-manager-panel-list");
+  const joinPanel = document.getElementById("trip-manager-panel-join");
+
+  if (currentTripManagerTab === "join") {
+    if (listPanel) listPanel.classList.add("hidden");
+    if (joinPanel) joinPanel.classList.remove("hidden");
+  } else {
+    if (listPanel) listPanel.classList.remove("hidden");
+    if (joinPanel) joinPanel.classList.add("hidden");
+    renderTripManagerList();
+  }
+
+  if (window.lucide) lucide.createIcons();
 }
 
 export function renderTripManagerList() {
   const container = document.getElementById("trip-manager-list");
   if (!container) return;
+
+  allTrips.forEach(t => ensureTripCollaborationFields(t));
+
+  const mineTrips = allTrips.filter(t => isTripOwnedByCurrentUser(t));
+  const sharedTrips = allTrips.filter(t => t.visibility === "shared" || (Array.isArray(t.members) && t.members.length > 1) || !isTripOwnedByCurrentUser(t));
 
   const countBadge = document.getElementById("sidebar-trips-count-badge");
   if (countBadge) countBadge.textContent = allTrips.length;
@@ -1495,14 +2027,58 @@ export function renderTripManagerList() {
   const mobileHeaderBadge = document.getElementById("header-trip-count-badge-mobile");
   if (mobileHeaderBadge) mobileHeaderBadge.textContent = allTrips.length;
 
-  const modalCountText = document.getElementById("modal-trips-count-text");
-  if (modalCountText) modalCountText.textContent = `${allTrips.length} forslag`;
+  const tabCountMine = document.getElementById("trip-tab-count-mine");
+  if (tabCountMine) tabCountMine.textContent = mineTrips.length;
 
-  container.innerHTML = allTrips.map((tripItem) => {
+  const tabCountShared = document.getElementById("trip-tab-count-shared");
+  if (tabCountShared) tabCountShared.textContent = sharedTrips.length;
+
+  const displayList = currentTripManagerTab === "shared" ? sharedTrips : mineTrips;
+
+  const headingEl = document.getElementById("trip-manager-section-heading");
+  if (headingEl) {
+    headingEl.textContent = currentTripManagerTab === "shared"
+      ? "Delte reiser med reisefølge"
+      : "Dine egne reiser (Privat & Eier)";
+  }
+
+  const modalCountText = document.getElementById("modal-trips-count-text");
+  if (modalCountText) modalCountText.textContent = `${displayList.length} reise${displayList.length === 1 ? '' : 'r'}`;
+
+  if (displayList.length === 0) {
+    container.innerHTML = `
+      <div class="bg-slate-50 rounded-2xl border border-slate-200/80 p-6 text-center space-y-2">
+        <p class="text-sm font-bold text-slate-800">
+          ${currentTripManagerTab === "shared" ? "Ingen delte reiser ennå" : "Ingen egne reiser funnet"}
+        </p>
+        <p class="text-xs text-slate-500 max-w-md mx-auto">
+          ${currentTripManagerTab === "shared"
+            ? "Klikk «Del & Reisefølge» på en av dine egne reiser for å invitere venner, eller gå til fanen «Bli med (Kode)» for å koble deg på en venns reise."
+            : "Trykk «Ny egen reise» ovenfor for å starte planleggingen."}
+        </p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = displayList.map((tripItem) => {
     const isActive = tripItem.id === activeTripId;
     const stopsCount = tripItem.stops ? tripItem.stops.length : 0;
     const daysCount = tripItem.trip ? (tripItem.trip.totalPassDays || 7) : 7;
     const budgetVal = tripItem.trip ? (tripItem.trip.totalBudget || 22000) : 22000;
+    const isShared = tripItem.visibility === "shared";
+    const members = Array.isArray(tripItem.members) ? tripItem.members : [];
+    const ownerName = tripItem.owner ? tripItem.owner.name : "Meg";
+
+    const visPill = isShared
+      ? `<span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">🌍 Delt (${escapeHtml(tripItem.shareCode || '')})</span>`
+      : `<span class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">🔒 Privat</span>`;
+
+    const memberAvatars = members.slice(0, 4).map(m => `
+      <span title="${escapeHtml(m.name)}" class="w-5 h-5 rounded-full text-white text-[9px] font-extrabold inline-flex items-center justify-center ring-1 ring-white" style="background-color: ${escapeHtml(m.avatarColor || '#0d9488')}">
+        ${escapeHtml(getInitials(m.name))}
+      </span>
+    `).join("");
 
     return `
       <div class="p-4 rounded-2xl border transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
@@ -1510,9 +2086,10 @@ export function renderTripManagerList() {
           ? 'bg-brand-50/60 border-brand-300 ring-2 ring-brand-500/20 shadow-xs' 
           : 'bg-white border-slate-200/80 hover:border-slate-300 hover:bg-slate-50/60'
       }">
-        <div class="space-y-1 min-w-0 flex-1">
+        <div class="space-y-1.5 min-w-0 flex-1">
           <div class="flex items-center gap-2 flex-wrap">
             <h4 class="font-bold text-slate-900 text-sm sm:text-base leading-tight">${escapeHtml(tripItem.title)}</h4>
+            ${visPill}
             ${isActive ? `
               <span class="inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-brand-600 text-white shadow-2xs">
                 <i data-lucide="check" class="w-3 h-3"></i>
@@ -1521,26 +2098,34 @@ export function renderTripManagerList() {
             ` : ''}
           </div>
           <p class="text-xs text-slate-500 font-medium">
-            📍 ${stopsCount} stoppesteder • 🎫 ${daysCount} reisedager på pass • 💰 ${formatNumber(budgetVal)} kr
+            📍 ${stopsCount} stopp • 🎫 ${daysCount} dager • 💰 ${formatNumber(budgetVal)} kr • 👤 Eier: ${escapeHtml(ownerName)}
           </p>
+          <div class="flex items-center gap-2 pt-0.5">
+            <div class="flex items-center -space-x-1">${memberAvatars}</div>
+            <span class="text-[11px] text-slate-400">${members.length} deltaker${members.length === 1 ? '' : 'e'}${tripItem.lastUpdatedBy ? ` • Sist endret av ${escapeHtml(tripItem.lastUpdatedBy)}` : ''}</span>
+          </div>
         </div>
 
         <!-- Action buttons -->
         <div class="flex items-center gap-1.5 sm:gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 flex-wrap sm:flex-nowrap">
           ${!isActive ? `
             <button onclick="switchActiveTrip('${tripItem.id}')" class="px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs transition shadow-xs">
-              Velg
+              Åpne
             </button>
-          ` : ''}
-          <button onclick="duplicateTrip('${tripItem.id}')" class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:text-brand-700 bg-slate-100 hover:bg-brand-50 border border-slate-200 transition" title="Kopier denne reisen">
+          ` : `
+            <button onclick="closeModal('modal-trip-manager'); handleSaveAndShareTrip()" class="px-2.5 py-1.5 rounded-xl bg-orange-50 hover:bg-orange-100 text-rail-accent border border-orange-200 font-bold text-xs transition">
+              Del / Tilgang
+            </button>
+          `}
+          <button onclick="duplicateTrip('${tripItem.id}')" class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:text-brand-700 bg-slate-100 hover:bg-brand-50 border border-slate-200 transition" title="Lag en privat kopi av denne reisen">
             <i data-lucide="copy" class="w-3.5 h-3.5 text-brand-600"></i>
-            <span>Kopier</span>
+            <span>Kopi</span>
           </button>
           <button onclick="renameTripInManager('${tripItem.id}')" class="p-1.5 sm:p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition" title="Endre navn">
             <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
           </button>
           ${allTrips.length > 1 ? `
-            <button onclick="deleteTrip('${tripItem.id}')" class="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition" title="Slett forslag">
+            <button onclick="deleteTrip('${tripItem.id}')" class="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition" title="Slett eller forlat reise">
               <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
             </button>
           ` : ''}
@@ -1552,12 +2137,348 @@ export function renderTripManagerList() {
   if (window.lucide) lucide.createIcons();
 }
 
+export async function handleJoinSharedTripByCode(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  const input = document.getElementById("join-trip-code-input");
+  const btn = document.getElementById("btn-join-trip-submit");
+  if (!input || !input.value.trim()) return;
+
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Kobler til...";
+  }
+
+  try {
+    const ok = await fetchAndJoinSharedTrip(input.value.trim(), false);
+    if (ok) {
+      input.value = "";
+      closeModal("modal-trip-manager");
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<i data-lucide="log-in" class="w-4 h-4"></i><span>Koble til reise</span>`;
+      if (window.lucide) lucide.createIcons();
+    }
+  }
+}
+
+export function renderShareAndCollabModal() {
+  const active = getActiveTripObject();
+  if (!active) return;
+
+  const visSelect = document.getElementById("share-visibility-select");
+  const permSelect = document.getElementById("share-permission-select");
+  const livePill = document.getElementById("share-modal-live-pill");
+  const codeBadge = document.getElementById("share-code-badge");
+  const shareInput = document.getElementById("share-url-input");
+  const membersContainer = document.getElementById("share-members-list");
+  const activityContainer = document.getElementById("share-activity-log");
+
+  if (visSelect) visSelect.value = active.visibility || "shared";
+  if (permSelect) permSelect.value = active.sharePermission || "edit";
+  if (codeBadge) codeBadge.textContent = active.shareCode || generateShareCode(active.id);
+
+  if (livePill) {
+    if (active.visibility === "shared") {
+      livePill.className = "px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 self-start sm:self-auto";
+      livePill.textContent = "🟢 Sanntids deling aktiv";
+    } else {
+      livePill.className = "px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-200 text-slate-700 self-start sm:self-auto";
+      livePill.textContent = "🔒 Kun privat (Lokal)";
+    }
+  }
+
+  const shareUrl = `${window.location.origin}${window.location.pathname}?trip=${active.id}`;
+  if (shareInput) shareInput.value = shareUrl;
+
+  const nativeShareContainer = document.getElementById("native-share-container");
+  if (nativeShareContainer) {
+    if (typeof navigator.share === "function") {
+      nativeShareContainer.classList.remove("hidden");
+    } else {
+      nativeShareContainer.classList.add("hidden");
+    }
+  }
+
+  if (membersContainer) {
+    const members = Array.isArray(active.members) ? active.members : [];
+    membersContainer.innerHTML = members.map((m, idx) => {
+      const isOwner = m.role === "owner" || idx === 0;
+      return `
+        <div class="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <span class="w-7 h-7 rounded-full text-white text-xs font-extrabold flex items-center justify-center shrink-0" style="background-color: ${escapeHtml(m.avatarColor || '#0d9488')}">
+              ${escapeHtml(getInitials(m.name))}
+            </span>
+            <div class="min-w-0">
+              <p class="text-xs sm:text-sm font-bold text-slate-900 truncate">${escapeHtml(m.name)}</p>
+              <p class="text-[10px] text-slate-500 font-semibold">${isOwner ? '👑 Eier av reisen' : (m.role === 'viewer' ? '👁️ Kun visning' : '✏️ Kan redigere')}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            ${!isOwner ? `
+              <button type="button" onclick="toggleTripMemberRole(${idx})" class="text-[11px] font-semibold px-2 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-brand-50 transition">
+                ${m.role === 'viewer' ? 'Gi redigering' : 'Sett kun visning'}
+              </button>
+              <button type="button" onclick="removeTripMember(${idx})" class="p-1 text-slate-400 hover:text-rose-600 rounded transition" title="Fjern fra reisefølge">
+                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+              </button>
+            ` : `
+              <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-brand-50 text-brand-700 border border-brand-200">Deg / Eier</span>
+            `}
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  if (activityContainer) {
+    const logs = Array.isArray(active.activityLog) ? active.activityLog : [];
+    if (logs.length === 0) {
+      activityContainer.innerHTML = `<p class="text-slate-400 italic">Ingen loggførte hendelser ennå.</p>`;
+    } else {
+      activityContainer.innerHTML = logs.slice(0, 8).map(item => `
+        <div class="flex items-center justify-between gap-2 py-0.5">
+          <span class="truncate">• <strong>${escapeHtml(item.by || 'Reisende')}:</strong> ${escapeHtml(item.text)}</span>
+        </div>
+      `).join("");
+    }
+  }
+
+  if (window.lucide) lucide.createIcons();
+}
+
+export async function handleUpdateTripSharingSettings() {
+  const active = getActiveTripObject();
+  if (!active) return;
+
+  const visSelect = document.getElementById("share-visibility-select");
+  const permSelect = document.getElementById("share-permission-select");
+
+  if (visSelect) active.visibility = visSelect.value;
+  if (permSelect) active.sharePermission = permSelect.value;
+
+  persistState(`Endret delingsinnstillinger (${active.visibility === 'shared' ? 'Delt' : 'Privat'}, ${active.sharePermission === 'edit' ? 'Kan redigere' : 'Kun visning'})`);
+  if (active.visibility === "shared") {
+    await pushTripToFirestore(active);
+    subscribeToActiveSharedTrip();
+  }
+  renderShareAndCollabModal();
+  renderAll();
+  showToast("Tilgang oppdatert", `Reisen er nå satt til ${active.visibility === 'shared' ? 'Delt' : 'Privat'}.`, "shield-check");
+}
+
+export async function copyShareCodeOnly() {
+  const active = getActiveTripObject();
+  if (!active) return;
+  const code = active.shareCode || generateShareCode(active.id);
+  await copyToClipboardFallback(code);
+  showToast("Reisekode kopiert!", `Koden ${code} kan limes inn under «Bli med (Kode)».`, "check");
+}
+
+export function handleAddTripMember(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  const active = getActiveTripObject();
+  if (!active) return;
+
+  const nameInput = document.getElementById("new-member-name");
+  const roleSelect = document.getElementById("new-member-role");
+  if (!nameInput || !nameInput.value.trim()) return;
+
+  const name = nameInput.value.trim();
+  const role = roleSelect ? roleSelect.value : "editor";
+  const palette = ["#f97316", "#2563eb", "#7c3aed", "#e11d48", "#059669", "#0d9488"];
+  const color = palette[(active.members ? active.members.length : 1) % palette.length];
+
+  if (!Array.isArray(active.members)) active.members = [];
+  active.members.push({
+    id: "mem_" + Date.now(),
+    name,
+    role,
+    avatarColor: color,
+    joinedAt: new Date().toISOString()
+  });
+
+  nameInput.value = "";
+  persistState(`La til ${name} i reisefølget`);
+  renderShareAndCollabModal();
+  renderAll();
+  showToast("Lagt til i reisefølget!", `${name} er nå med på reisen.`, "users");
+}
+
+export function toggleTripMemberRole(idx) {
+  const active = getActiveTripObject();
+  if (!active || !Array.isArray(active.members) || !active.members[idx]) return;
+  const member = active.members[idx];
+  member.role = member.role === "viewer" ? "editor" : "viewer";
+  persistState(`Endret tilgang for ${member.name}`);
+  renderShareAndCollabModal();
+  renderAll();
+}
+
+export function removeTripMember(idx) {
+  const active = getActiveTripObject();
+  if (!active || !Array.isArray(active.members) || !active.members[idx]) return;
+  const removed = active.members.splice(idx, 1)[0];
+  persistState(`Fjernet ${removed.name} fra reisefølget`);
+  renderShareAndCollabModal();
+  renderAll();
+}
+
+// =============================================================================
+// USER PROFILE MODAL HANDLERS
+// =============================================================================
+export function openUserProfileModal() {
+  renderUserProfileModal();
+  openModal("modal-user-profile");
+}
+
+export function selectProfileColor(color) {
+  const colorInput = document.getElementById("profile-avatar-color");
+  const preview = document.getElementById("profile-modal-avatar-preview");
+  if (colorInput) colorInput.value = color;
+  if (preview) preview.style.backgroundColor = color;
+}
+
+export function renderUserProfileModal() {
+  const nameInput = document.getElementById("profile-display-name");
+  const userInput = document.getElementById("profile-username");
+  const stationInput = document.getElementById("profile-home-station");
+  const passSelect = document.getElementById("profile-pass-type");
+  const colorInput = document.getElementById("profile-avatar-color");
+  const bioInput = document.getElementById("profile-bio");
+  const preview = document.getElementById("profile-modal-avatar-preview");
+  const statusBadge = document.getElementById("profile-cloud-status-badge");
+  const authActions = document.getElementById("profile-auth-actions");
+
+  if (nameInput) nameInput.value = userProfile.displayName || "Reisende";
+  if (userInput) userInput.value = userProfile.username || "@reisende";
+  if (stationInput) stationInput.value = userProfile.homeStation || "Oslo S";
+  if (passSelect && userProfile.defaultPassType) passSelect.value = userProfile.defaultPassType;
+  if (colorInput) colorInput.value = userProfile.avatarColor || "#0d9488";
+  if (bioInput) bioInput.value = userProfile.bio || "";
+
+  if (preview) {
+    preview.textContent = getInitials(userProfile.displayName || "Reisende");
+    preview.style.backgroundColor = userProfile.avatarColor || "#0d9488";
+  }
+
+  if (statusBadge) {
+    if (currentUser) {
+      statusBadge.className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800";
+      statusBadge.textContent = "☁️ Sky-konto aktiv";
+    } else {
+      statusBadge.className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600";
+      statusBadge.textContent = "Lokal profil";
+    }
+  }
+
+  // Compute personal statistics across all trips
+  const mineCount = allTrips.filter(t => isTripOwnedByCurrentUser(t)).length;
+  const sharedCount = allTrips.filter(t => t.visibility === "shared" || (Array.isArray(t.members) && t.members.length > 1)).length;
+  const allCountries = new Set();
+  let totalTrainLegs = 0;
+  allTrips.forEach(t => {
+    (t.stops || []).forEach(s => { if (s.country) allCountries.add(s.country.trim()); });
+    totalTrainLegs += (t.trains || []).length;
+  });
+
+  const statTrips = document.getElementById("profile-stat-trips");
+  const statShared = document.getElementById("profile-stat-shared");
+  const statCountries = document.getElementById("profile-stat-countries");
+  const statTrains = document.getElementById("profile-stat-trains");
+
+  if (statTrips) statTrips.textContent = mineCount;
+  if (statShared) statShared.textContent = sharedCount;
+  if (statCountries) statCountries.textContent = allCountries.size;
+  if (statTrains) statTrains.textContent = totalTrainLegs;
+
+  if (authActions) {
+    if (currentUser) {
+      authActions.innerHTML = `
+        <button type="button" onclick="closeModal('modal-user-profile'); handleLogout()" class="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs border border-rose-200 transition flex items-center gap-1.5">
+          <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+          <span>Logg ut av skykonto</span>
+        </button>
+      `;
+    } else {
+      authActions.innerHTML = `
+        <button type="button" onclick="closeModal('modal-user-profile'); openAuthModal()" class="px-3 py-2 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-800 font-bold text-xs border border-brand-200 transition flex items-center gap-1.5">
+          <i data-lucide="cloud" class="w-3.5 h-3.5 text-brand-600"></i>
+          <span>Koble til Google / Skykonto</span>
+        </button>
+      `;
+    }
+  }
+
+  if (window.lucide) lucide.createIcons();
+}
+
+export async function handleSaveUserProfile(e) {
+  if (e && e.preventDefault) e.preventDefault();
+
+  const nameInput = document.getElementById("profile-display-name");
+  const userInput = document.getElementById("profile-username");
+  const stationInput = document.getElementById("profile-home-station");
+  const passSelect = document.getElementById("profile-pass-type");
+  const colorInput = document.getElementById("profile-avatar-color");
+  const bioInput = document.getElementById("profile-bio");
+
+  const newName = (nameInput && nameInput.value.trim()) || "Reisende";
+  let newHandle = (userInput && userInput.value.trim()) || ("@" + newName.toLowerCase().replace(/[^a-z0-9_]/g, ""));
+  if (!newHandle.startsWith("@")) newHandle = "@" + newHandle;
+
+  userProfile.displayName = newName;
+  userProfile.username = newHandle;
+  userProfile.homeStation = (stationInput && stationInput.value.trim()) || "Oslo S";
+  userProfile.defaultPassType = passSelect ? passSelect.value : userProfile.defaultPassType;
+  userProfile.avatarColor = (colorInput && colorInput.value) || "#0d9488";
+  userProfile.bio = (bioInput && bioInput.value.trim()) || "";
+
+  // Update owner/member entry on user's owned trips so their new name & avatar color show everywhere
+  allTrips.forEach(t => {
+    ensureTripCollaborationFields(t);
+    if (isTripOwnedByCurrentUser(t)) {
+      t.owner.name = userProfile.displayName;
+      t.owner.avatarColor = userProfile.avatarColor;
+      if (t.members && t.members[0]) {
+        t.members[0].name = userProfile.displayName;
+        t.members[0].avatarColor = userProfile.avatarColor;
+      }
+    }
+  });
+
+  try {
+    localStorage.setItem("railsync_user_profile_v1", JSON.stringify(userProfile));
+  } catch (err) {}
+
+  if (currentUser && isFirebaseConfigured() && db) {
+    try {
+      await updateProfile(currentUser, { displayName: userProfile.displayName });
+      await setDoc(doc(db, "users", currentUser.uid), {
+        ...userProfile,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+    } catch (err) {
+      console.warn("Kunne ikke oppdatere profil i Firestore:", err);
+    }
+  }
+
+  saveAllTripsToLocalStorage();
+  updateAuthUI(currentUser);
+  renderAll();
+  closeModal("modal-user-profile");
+  showToast("Profil lagret!", `Oppdatert profil for ${userProfile.displayName}.`, "user-check");
+}
+
 export function switchActiveTrip(tripId) {
   if (tripId === activeTripId) return;
   syncStateToActiveTrip();
   activeTripId = tripId;
   syncActiveTripToState();
   persistState();
+  subscribeToActiveSharedTrip();
   renderAll();
   updateMapLayers();
   renderTripManagerList();
@@ -1597,6 +2518,29 @@ export function duplicateTrip(tripId) {
   const newTrip = JSON.parse(JSON.stringify(source));
   newTrip.id = newId;
   newTrip.title = newTitle;
+  newTrip.visibility = "private";
+  newTrip.sharePermission = "edit";
+  newTrip.shareCode = generateShareCode(newId);
+  newTrip.owner = {
+    uid: currentUser ? currentUser.uid : userProfile.uid,
+    name: userProfile.displayName || "Reisende",
+    avatarColor: userProfile.avatarColor || "#0d9488"
+  };
+  newTrip.members = [
+    {
+      id: newTrip.owner.uid,
+      name: newTrip.owner.name,
+      role: "owner",
+      avatarColor: newTrip.owner.avatarColor
+    }
+  ];
+  newTrip.activityLog = [
+    {
+      text: `Opprettet privat kopi fra «${source.title}»`,
+      user: newTrip.owner.name,
+      time: new Date().toLocaleTimeString("no-NO", { hour: "2-digit", minute: "2-digit" })
+    }
+  ];
   if (!newTrip.trip) newTrip.trip = {};
   newTrip.trip.title = newTitle;
 
@@ -1610,6 +2554,7 @@ export function duplicateTrip(tripId) {
   activeTripId = newId;
   syncActiveTripToState();
   persistState();
+  subscribeToActiveSharedTrip();
   renderAll();
   updateMapLayers();
   renderTripManagerList();
@@ -1619,7 +2564,7 @@ export function duplicateTrip(tripId) {
   closeModal('modal-share-trip');
   closeModal('modal-trip-settings');
 
-  showToast("Reise kopiert!", `Opprettet "${newTitle}". Du er nå inne på kopien.`, "check");
+  showToast("Reise kopiert!", `Opprettet "${newTitle}" under Mine reiser.`, "check");
 }
 
 export function createNewTrip() {
@@ -1627,28 +2572,34 @@ export function createNewTrip() {
   const newId = "trip_" + Date.now();
   const proposalNumber = allTrips.length + 1;
   const newTitle = `Forslag ${proposalNumber} for Europaturné 2026`;
+  const passDays = Number(userProfile.defaultPassDays) || 7;
+  const homeStation = userProfile.homeStation || "Oslo S";
+  const homeCity = homeStation.replace(/\s+(S|H|Hbf|stasjon|Centralstation)$/i, "").trim() || "Oslo";
 
-  const newTrip = {
+  const newTrip = ensureTripCollaborationFields({
     id: newId,
     title: newTitle,
+    visibility: "private",
+    sharePermission: "edit",
+    shareCode: generateShareCode(newId),
     createdAt: new Date().toISOString(),
     trip: {
       title: newTitle,
       startDate: "2026-07-01",
       endDate: "2026-07-15",
-      totalPassDays: 7,
+      totalPassDays: passDays,
       totalBudget: 20000,
       currency: "NOK",
     },
     stops: [
       {
         id: "stop-new-1",
-        city: "Oslo",
+        city: homeCity,
         country: "Norge",
         arrival: "2026-07-01",
         departure: "2026-07-02",
         accommodationStatus: "Hjemme / Start",
-        accommodationNote: "Startreise fra Oslo S",
+        accommodationNote: `Startreise fra ${homeStation}`,
         lat: 59.9139,
         lng: 10.7522,
         order: 1
@@ -1669,7 +2620,7 @@ export function createNewTrip() {
     trains: [
       {
         id: "tr-new-1",
-        fromCity: "Oslo S",
+        fromCity: homeStation,
         toCity: "København H",
         date: "2026-07-02",
         departureTime: "07:30",
@@ -1683,15 +2634,23 @@ export function createNewTrip() {
       }
     ],
     expenses: [
-      { id: "exp-new-1", title: "Interrail Global Pass 7 dager", category: "Transport", amount: 3900, date: "2026-06-01" }
+      {
+        id: "exp-new-1",
+        title: `Interrail Global Pass ${passDays} dager`,
+        category: "Transport",
+        amount: 3900,
+        date: "2026-06-01",
+        paidBy: userProfile.displayName || "Meg"
+      }
     ],
     packingList: JSON.parse(JSON.stringify(defaultTripState.packingList))
-  };
+  });
 
   allTrips.push(newTrip);
   activeTripId = newId;
   syncActiveTripToState();
   persistState();
+  subscribeToActiveSharedTrip();
   renderAll();
   updateMapLayers();
   renderTripManagerList();
@@ -1921,7 +2880,7 @@ export function handleSaveStop(e) {
     appState.stops.push(newStop);
   }
 
-  persistState();
+  persistState(editId ? `Oppdaterte stoppested: ${city}` : `La til stoppested: ${city}`);
   updateMapLayers();
   renderAll();
   closeModal('modal-add-stop');
@@ -1929,9 +2888,10 @@ export function handleSaveStop(e) {
 }
 
 export function deleteStop(id) {
+  const stop = appState.stops.find(s => s.id === id);
   appState.stops = appState.stops.filter(s => s.id !== id);
   appState.stops.forEach((s, idx) => { s.order = idx + 1; });
-  persistState();
+  persistState(stop ? `Fjernet stoppested: ${stop.city}` : null);
   updateMapLayers();
   renderAll();
 }
@@ -1958,7 +2918,7 @@ export function handleSaveTripSettings(e) {
   appState.trip.totalPassDays = parseInt(document.getElementById("settings-pass-days").value, 10) || 7;
   appState.trip.totalBudget = parseFloat(document.getElementById("settings-total-budget").value) || 20000;
 
-  persistState();
+  persistState(`Oppdaterte reiseinnstillinger for «${appState.trip.title}»`);
   renderAll();
   closeModal('modal-trip-settings');
 }
@@ -1992,7 +2952,7 @@ export function handleSaveTrain(e) {
   };
 
   appState.trains.push(newTrain);
-  persistState();
+  persistState(`La til togreise: ${fromCity} → ${toCity}`);
   renderAll();
   closeModal('modal-add-train');
   document.getElementById("form-add-train").reset();
@@ -2013,8 +2973,9 @@ export function toggleTrainReservation(trainId) {
 }
 
 export function deleteTrain(id) {
+  const train = appState.trains.find(t => t.id === id);
   appState.trains = appState.trains.filter(t => t.id !== id);
-  persistState();
+  persistState(train ? `Fjernet togreise: ${train.fromCity} → ${train.toCity}` : null);
   renderAll();
   updateMapLayers();
 }
@@ -2025,17 +2986,20 @@ export function handleSaveExpense(e) {
   const category = document.getElementById("expense-category").value;
   const amount = parseFloat(document.getElementById("expense-amount").value) || 0;
   const date = document.getElementById("expense-date").value;
+  const paidByEl = document.getElementById("expense-paid-by");
+  const paidBy = paidByEl && paidByEl.value ? paidByEl.value : (userProfile.displayName || "Meg");
 
   const newExp = {
     id: "exp-" + Date.now(),
     title,
     category,
     amount,
-    date
+    date,
+    paidBy
   };
 
   appState.expenses.push(newExp);
-  persistState();
+  persistState(`La til utgift: ${title} (${formatNumber(amount)} kr, betalt av ${paidBy})`);
   renderAll();
   closeModal('modal-add-expense');
   document.getElementById("form-add-expense").reset();
@@ -2118,7 +3082,26 @@ export function closeModal(id) {
 }
 
 export function openAddTrainModal() { openModal('modal-add-train'); }
-export function openAddExpenseModal() { openModal('modal-add-expense'); }
+
+export function openAddExpenseModal() {
+  const paidBySelect = document.getElementById("expense-paid-by");
+  if (paidBySelect) {
+    const active = getActiveTripObject();
+    const members = active && Array.isArray(active.members) ? active.members : [];
+    const options = [];
+    members.forEach(m => {
+      if (m.name && !options.includes(m.name)) options.push(m.name);
+    });
+    if (userProfile.displayName && !options.includes(userProfile.displayName)) {
+      options.unshift(userProfile.displayName);
+    }
+    if (!options.includes("Felles")) options.push("Felles");
+
+    paidBySelect.innerHTML = options.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join("");
+  }
+  openModal('modal-add-expense');
+}
+
 export function openAddPackingItemModal() { openModal('modal-add-packing'); }
 
 window.addEventListener("keydown", (e) => {
@@ -2956,11 +3939,12 @@ export function importLiveJourneyToTrip(idx) {
       title: `Plassreservasjon ${j.trainNumber} (${j.fromCity} → ${j.toCity})`,
       category: "Transport",
       amount: j.reservationPrice,
-      date: j.date
+      date: j.date,
+      paidBy: userProfile.displayName || "Meg"
     });
   }
 
-  persistState();
+  persistState(`Importerte togreise: ${j.fromCity} → ${j.toCity} (${j.departureTime}–${j.arrivalTime})`);
   renderAll();
   updateMapLayers();
 
@@ -3105,6 +4089,10 @@ function setupLiveTrainSearch() {
     dateInput.value = getFallbackNearTermDate(appState.trip ? appState.trip.startDate : "");
   }
 
+  if (fromInput && !fromInput.value && userProfile && userProfile.homeStation) {
+    fromInput.value = userProfile.homeStation;
+  }
+
   if (fromInput) {
     fromInput.addEventListener("input", (e) => {
       clearTimeout(liveFromDebounce);
@@ -3182,6 +4170,17 @@ window.handlePresetCitySelect = handlePresetCitySelect;
 window.selectSearchResult = selectSearchResult;
 window.handleSaveAndShareTrip = handleSaveAndShareTrip;
 window.openTripManagerModal = openTripManagerModal;
+window.switchTripManagerTab = switchTripManagerTab;
+window.syncAllUserTripsWithCloud = syncAllUserTripsWithCloud;
+window.handleJoinSharedTripByCode = handleJoinSharedTripByCode;
+window.handleUpdateTripSharingSettings = handleUpdateTripSharingSettings;
+window.copyShareCodeOnly = copyShareCodeOnly;
+window.handleAddTripMember = handleAddTripMember;
+window.toggleTripMemberRole = toggleTripMemberRole;
+window.removeTripMember = removeTripMember;
+window.openUserProfileModal = openUserProfileModal;
+window.selectProfileColor = selectProfileColor;
+window.handleSaveUserProfile = handleSaveUserProfile;
 window.switchActiveTrip = switchActiveTrip;
 window.duplicateActiveTrip = duplicateActiveTrip;
 window.duplicateTrip = duplicateTrip;
