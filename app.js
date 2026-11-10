@@ -1473,13 +1473,18 @@ export function switchTab(tabId) {
   }
 
   document.querySelectorAll(".mobile-nav-btn").forEach(btn => {
-    btn.classList.remove("text-brand-600", "font-bold");
+    btn.classList.remove("text-brand-600", "font-bold", "bg-brand-50/70");
     btn.classList.add("text-slate-400", "font-medium");
   });
   const activeMobileBtn = document.getElementById(`mobile-tab-${tabId}`);
   if (activeMobileBtn) {
-    activeMobileBtn.classList.add("text-brand-600", "font-bold");
+    activeMobileBtn.classList.add("text-brand-600", "font-bold", "bg-brand-50/70");
     activeMobileBtn.classList.remove("text-slate-400", "font-medium");
+  }
+
+  // On mobile, scroll smoothly to the top when switching main tabs
+  if (window.innerWidth < 768) {
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   if (tabId === "overview" && map) {
@@ -1556,7 +1561,7 @@ export function renderOverview() {
   if (sidebarPassRemaining) sidebarPassRemaining.textContent = `${Math.max(0, totalPassDays - usedPassDays)} dager`;
 
   const mobilePassEl = document.getElementById("mobile-subbar-pass");
-  if (mobilePassEl) mobilePassEl.textContent = `${usedPassDays} / ${totalPassDays} dager brukt`;
+  if (mobilePassEl) mobilePassEl.textContent = `${usedPassDays}/${totalPassDays} dgr`;
 
   // Budget
   const totalSpent = appState.expenses.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
@@ -1595,32 +1600,41 @@ export function renderOverview() {
     }
 
     return `
-      <div class="relative pl-7 pb-4 group">
+      <div class="relative pl-7 pb-3 group">
         ${!isEnd ? '<div class="absolute left-3 top-3.5 bottom-0 w-0.5 bg-slate-200 group-hover:bg-brand-300 transition-colors"></div>' : ''}
         
-        <div class="absolute left-0 top-1 w-6 h-6 rounded-full ${isStart ? 'bg-slate-900' : (isEnd ? 'bg-rail-accent' : 'bg-brand-600')} text-white flex items-center justify-center text-xs font-bold shadow-xs">
+        <div class="absolute left-0 top-1.5 w-6 h-6 rounded-full ${isStart ? 'bg-slate-900' : (isEnd ? 'bg-rail-accent' : 'bg-brand-600')} text-white flex items-center justify-center text-xs font-bold shadow-xs">
           ${idx + 1}
         </div>
 
-        <div class="bg-slate-50 hover:bg-slate-100/90 rounded-xl p-3 border border-slate-200/70 transition-all flex flex-col gap-2 shadow-2xs w-full min-w-0 overflow-hidden">
+        <div class="bg-slate-50 hover:bg-slate-100/90 rounded-2xl p-3 sm:p-3.5 border border-slate-200/80 transition-all flex flex-col gap-2 shadow-2xs w-full min-w-0">
+          <!-- Row 1: City, Country & Dates + Status Badge (Full width, never squished by 5 buttons) -->
           <div class="flex items-start justify-between gap-2 min-w-0">
             <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-1.5 min-w-0 flex-wrap">
-                <h3 class="font-bold text-slate-900 text-sm hover:text-brand-600 cursor-pointer truncate max-w-[130px] sm:max-w-none" onclick="centerMapOnStop(${stop.lat}, ${stop.lng})">
+              <div class="flex items-baseline gap-1.5 flex-wrap">
+                <h3 class="font-extrabold text-slate-900 text-sm sm:text-base hover:text-brand-600 cursor-pointer leading-snug" onclick="centerMapOnStop(${stop.lat}, ${stop.lng})">
                   ${escapeHtml(stop.city)}
                 </h3>
-                <span class="text-xs text-slate-500 font-medium truncate max-w-[100px] sm:max-w-none">${escapeHtml(stop.country)}</span>
+                <span class="text-xs text-slate-500 font-medium">${escapeHtml(stop.country)}</span>
               </div>
-              <p class="text-[11px] text-slate-400">
+              <p class="text-[11px] text-slate-500 font-medium mt-0.5">
                 ${formatDate(stop.arrival)} – ${formatDate(stop.departure)}
               </p>
+              ${stop.accommodationNote ? `<p class="text-[11px] text-slate-400 truncate mt-0.5" title="${escapeHtml(stop.accommodationNote)}">${escapeHtml(stop.accommodationNote)}</p>` : ''}
             </div>
             
-            <div class="flex items-center gap-1 shrink-0">
+            <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${badgeStyle}">
+              ${escapeHtml(stop.accommodationStatus)}
+            </span>
+          </div>
+
+          <!-- Row 2: Clean Action Toolbar & Next Leg Train Search -->
+          <div class="flex items-center justify-between flex-wrap gap-1.5 pt-2 border-t border-slate-200/50">
+            <div class="flex items-center gap-1">
               <button 
                 title="Flytt opp i reiseruten" 
                 onclick="moveStopOrder('${stop.id}', -1)" 
-                class="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-800 bg-white border border-slate-200/80 shadow-2xs transition ${isStart ? 'opacity-20 cursor-not-allowed' : ''}"
+                class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-800 bg-white border border-slate-200/80 shadow-2xs transition ${isStart ? 'opacity-25 cursor-not-allowed' : ''}"
                 ${isStart ? 'disabled' : ''}
               >
                 <i data-lucide="chevron-up" class="w-3.5 h-3.5"></i>
@@ -1629,41 +1643,35 @@ export function renderOverview() {
               <button 
                 title="Flytt ned i reiseruten" 
                 onclick="moveStopOrder('${stop.id}', 1)" 
-                class="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-800 bg-white border border-slate-200/80 shadow-2xs transition ${isEnd ? 'opacity-20 cursor-not-allowed' : ''}"
+                class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-800 bg-white border border-slate-200/80 shadow-2xs transition ${isEnd ? 'opacity-25 cursor-not-allowed' : ''}"
                 ${isEnd ? 'disabled' : ''}
               >
                 <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
               </button>
 
-              <button title="Rediger stoppested" onclick="openEditStopModal('${stop.id}')" class="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-brand-600 bg-white border border-slate-200/80 shadow-2xs transition">
-                <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+              <button title="Rediger stoppested" onclick="openEditStopModal('${stop.id}')" class="px-2 h-7 flex items-center gap-1 rounded-lg text-[11px] font-semibold text-slate-600 hover:text-brand-600 bg-white border border-slate-200/80 shadow-2xs transition">
+                <i data-lucide="pencil" class="w-3 h-3"></i>
+                <span>Endre</span>
               </button>
 
-              <button title="Sentrér i kartet" onclick="centerMapOnStop(${stop.lat}, ${stop.lng})" class="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-brand-600 bg-white border border-slate-200/80 shadow-2xs transition">
-                <i data-lucide="crosshair" class="w-3.5 h-3.5"></i>
+              <button title="Vis på kartet" onclick="centerMapOnStop(${stop.lat}, ${stop.lng})" class="px-2 h-7 flex items-center gap-1 rounded-lg text-[11px] font-semibold text-slate-600 hover:text-brand-600 bg-white border border-slate-200/80 shadow-2xs transition">
+                <i data-lucide="map-pin" class="w-3 h-3 text-brand-600"></i>
+                <span>Kart</span>
               </button>
 
-              <button title="Fjern stoppested" onclick="deleteStop('${stop.id}')" class="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-600 bg-white border border-slate-200/80 shadow-2xs transition">
+              <button title="Fjern stoppested" onclick="deleteStop('${stop.id}')" class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-600 bg-white border border-slate-200/80 shadow-2xs transition">
                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
               </button>
             </div>
-          </div>
 
-          <div class="flex items-center justify-between flex-wrap gap-2 text-xs pt-1 border-t border-slate-200/40">
-            <div class="flex items-center flex-wrap gap-2">
-              <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full border ${badgeStyle}">
-                ${escapeHtml(stop.accommodationStatus)}
-              </span>
-              ${stop.accommodationNote ? `<span class="text-[11px] text-slate-500 truncate max-w-[180px]" title="${escapeHtml(stop.accommodationNote)}">${escapeHtml(stop.accommodationNote)}</span>` : ''}
-            </div>
             ${!isEnd ? `
               <button 
                 onclick="quickSearchBetweenStops(${idx}, ${idx + 1})" 
-                class="text-[11px] font-semibold text-brand-700 hover:text-brand-800 bg-brand-50 hover:bg-brand-100 border border-brand-200/70 px-2 py-0.5 rounded-lg transition flex items-center gap-1"
+                class="text-[11px] font-bold text-brand-700 hover:text-brand-800 bg-brand-50 hover:bg-brand-100 border border-brand-200/80 px-2.5 py-1 rounded-lg transition flex items-center gap-1"
                 title="Søk reelle togtider fra ${escapeHtml(stop.city)} til ${escapeHtml(appState.stops[idx + 1].city)}"
               >
-                <i data-lucide="train" class="w-3 h-3 text-brand-600"></i>
-                <span>Finn tog → ${escapeHtml(appState.stops[idx + 1].city)}</span>
+                <i data-lucide="train" class="w-3 h-3 text-brand-600 shrink-0"></i>
+                <span class="truncate max-w-[130px] sm:max-w-none">Tog → ${escapeHtml(appState.stops[idx + 1].city)}</span>
               </button>
             ` : ''}
           </div>
@@ -1710,29 +1718,29 @@ export function renderTrains() {
     let resBadge = '';
     if (train.reservationStatus === "confirmed") {
       resBadge = `
-        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-          <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
-          Plassreservasjon bekreftet
+        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <i data-lucide="check-circle-2" class="w-3.5 h-3.5 shrink-0"></i>
+          <span>Reservasjon bekreftet</span>
         </span>
       `;
     } else if (train.reservationStatus === "required") {
       resBadge = `
-        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
-          <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
-          Må reserveres (obligatorisk)
+        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+          <i data-lucide="alert-triangle" class="w-3.5 h-3.5 shrink-0"></i>
+          <span>Må reserveres</span>
         </span>
       `;
     } else {
       resBadge = `
-        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
-          Plassreservasjon valgfri
+        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-medium bg-slate-100 text-slate-600">
+          Reservasjon valgfri
         </span>
       `;
     }
 
     const travelDayBadge = train.isTravelDay 
-      ? `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-brand-50 text-brand-700 border border-brand-200">Reisedag på pass</span>`
-      : `<span class="px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-500">Lokal / nattog</span>`;
+      ? `<span class="px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-bold bg-brand-50 text-brand-700 border border-brand-200">Reisedag</span>`
+      : `<span class="px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-medium bg-slate-100 text-slate-500">Lokal</span>`;
 
     const hasTrack = Array.isArray(train.routeGeometry) && train.routeGeometry.length > 1;
     const transfersCount = typeof train.transfers === 'number' ? train.transfers : 0;
@@ -1742,7 +1750,7 @@ export function renderTrains() {
 
     const legsHtml = Array.isArray(train.legsSummary) && train.legsSummary.length > 1
       ? `
-        <div class="pt-2 flex items-center flex-wrap gap-1.5 text-[11px] text-slate-600">
+        <div class="pt-2 flex items-center flex-wrap gap-1 text-[11px] text-slate-600">
           <span class="text-slate-400 font-semibold">Etapper:</span>
           ${train.legsSummary.map((leg, i) => `
             <span class="px-2 py-0.5 rounded-md bg-slate-50 border border-slate-200/80 font-medium text-slate-700">
@@ -1755,79 +1763,79 @@ export function renderTrains() {
       : '';
 
     return `
-      <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 hover:border-slate-300 transition space-y-3">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
-          <div class="flex items-center gap-2 flex-wrap">
-            <span class="font-extrabold text-sm sm:text-base text-slate-900">${escapeHtml(train.trainType)}</span>
-            <span class="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-medium">${escapeHtml(train.trainNumber)}</span>
+      <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-4 sm:p-5 hover:border-slate-300 transition space-y-3">
+        <div class="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-100 flex-wrap">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="font-extrabold text-xs sm:text-base text-slate-900">${escapeHtml(train.trainType)}</span>
+            <span class="text-[11px] sm:text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold">${escapeHtml(train.trainNumber)}</span>
             ${travelDayBadge}
             ${hasTrack ? `
-              <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                <i data-lucide="map" class="w-3 h-3"></i> Ekte jernbanespor
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1">
+                <i data-lucide="map" class="w-3 h-3"></i> Spor
               </span>
             ` : ''}
           </div>
-          <div class="text-xs text-slate-500 font-medium flex items-center gap-1">
+          <div class="text-xs text-slate-500 font-semibold flex items-center gap-1 shrink-0">
             <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400"></i>
             ${formatDate(train.date)}
           </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
-          <div class="sm:col-span-4">
-            <p class="text-xl font-extrabold text-slate-900 tracking-tight">${escapeHtml(train.departureTime)}</p>
-            <p class="text-sm font-semibold text-slate-700">${escapeHtml(train.fromCity)}</p>
-            <p class="text-xs text-slate-400">${train.platform ? `Spor ${escapeHtml(train.platform)}` : 'Avgangsstasjon'}</p>
+        <!-- Horizontal 3-column ticket layout on both mobile and desktop -->
+        <div class="grid grid-cols-[1fr_auto_1fr] gap-2 sm:gap-4 items-center py-1">
+          <div class="min-w-0">
+            <p class="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight leading-tight">${escapeHtml(train.departureTime)}</p>
+            <p class="text-xs sm:text-sm font-bold text-slate-800 truncate">${escapeHtml(train.fromCity)}</p>
+            <p class="text-[10px] sm:text-xs text-slate-400 truncate">${train.platform ? `Spor ${escapeHtml(train.platform)}` : 'Avgang'}</p>
           </div>
 
-          <div class="sm:col-span-4 flex flex-col items-center justify-center text-center">
-            <span class="text-xs font-bold text-slate-500 mb-1 flex items-center gap-1">
-              <i data-lucide="clock" class="w-3.5 h-3.5 text-slate-400"></i>
+          <div class="flex flex-col items-center justify-center text-center px-1 sm:px-3 min-w-[76px] sm:min-w-[120px]">
+            <span class="text-[10px] sm:text-xs font-bold text-slate-500 mb-1 flex items-center gap-1">
+              <i data-lucide="clock" class="w-3 h-3 text-slate-400"></i>
               ${escapeHtml(train.duration)}
             </span>
-            <div class="w-full flex items-center justify-center gap-2">
+            <div class="w-full flex items-center justify-center gap-1.5">
               <div class="h-0.5 flex-1 bg-slate-200"></div>
-              <div class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">
-                <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+              <div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 shrink-0">
+                <i data-lucide="arrow-right" class="w-3 h-3 sm:w-3.5 sm:h-3.5"></i>
               </div>
               <div class="h-0.5 flex-1 bg-slate-200"></div>
             </div>
-            <span class="text-[11px] ${transfersCount === 0 ? 'text-brand-600' : 'text-amber-700'} font-semibold mt-1">${transferLabel}</span>
+            <span class="text-[10px] sm:text-[11px] ${transfersCount === 0 ? 'text-brand-600' : 'text-amber-700'} font-semibold mt-1">${transferLabel}</span>
           </div>
 
-          <div class="sm:col-span-4 sm:text-right">
-            <p class="text-xl font-extrabold text-slate-900 tracking-tight">${escapeHtml(train.arrivalTime)}</p>
-            <p class="text-sm font-semibold text-slate-700">${escapeHtml(train.toCity)}</p>
-            <p class="text-xs text-slate-400">${train.arrivalPlatform ? `Spor ${escapeHtml(train.arrivalPlatform)}` : 'Ankomststasjon'}</p>
+          <div class="text-right min-w-0">
+            <p class="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight leading-tight">${escapeHtml(train.arrivalTime)}</p>
+            <p class="text-xs sm:text-sm font-bold text-slate-800 truncate">${escapeHtml(train.toCity)}</p>
+            <p class="text-[10px] sm:text-xs text-slate-400 truncate">${train.arrivalPlatform ? `Spor ${escapeHtml(train.arrivalPlatform)}` : 'Ankomst'}</p>
           </div>
         </div>
 
         ${legsHtml}
 
-        <div class="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+        <div class="pt-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
           <div class="flex items-center gap-2 flex-wrap">
             ${resBadge}
-            ${train.reservationPrice > 0 ? `<span class="text-xs text-slate-500 font-medium">Pris: ~${train.reservationPrice} kr</span>` : ''}
-            ${train.reservationNote ? `<span class="text-[11px] text-slate-400 italic">${escapeHtml(train.reservationNote)}</span>` : ''}
+            ${train.reservationPrice > 0 ? `<span class="text-xs text-slate-500 font-semibold">~${train.reservationPrice} kr</span>` : ''}
           </div>
 
-          <div class="flex items-center gap-2 flex-wrap">
+          <div class="flex items-center gap-1.5 flex-wrap ml-auto">
             ${hasTrack ? `
               <button onclick="focusTrainTrackOnMap('${train.id}')" class="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-brand-50 hover:text-brand-700 transition flex items-center gap-1">
                 <i data-lucide="map-pin" class="w-3.5 h-3.5"></i> Vis i kart
               </button>
             ` : `
               <button onclick="fetchRealTrackForSingleTrain('${train.id}')" class="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-brand-50 text-brand-700 hover:bg-brand-100 transition flex items-center gap-1">
-                <i data-lucide="zap" class="w-3.5 h-3.5"></i> Hent jernbanespor
+                <i data-lucide="zap" class="w-3.5 h-3.5"></i> Hent spor
               </button>
             `}
             ${train.reservationStatus === 'required' ? `
-              <button onclick="toggleTrainReservation('${train.id}')" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition">
-                Merk som bestilt
+              <button onclick="toggleTrainReservation('${train.id}')" class="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition">
+                Merk bestilt
               </button>
             ` : `
               <button onclick="toggleTrainReservation('${train.id}')" class="text-xs font-medium text-slate-400 hover:text-slate-600 px-2 py-1">
-                Endre status
+                Status
               </button>
             `}
             <button onclick="deleteTrain('${train.id}')" class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-slate-50 transition" title="Slett togreise">
@@ -2064,6 +2072,7 @@ export function renderHeaderCollaborationBar() {
   if (!active) return;
 
   const visBadge = document.getElementById("header-visibility-badge");
+  const mobileVisBadge = document.getElementById("header-visibility-badge-mobile");
   const avatarsContainer = document.getElementById("header-members-avatars");
   const mobileAvatarsContainer = document.getElementById("mobile-members-avatars");
   const countLabel = document.getElementById("header-members-count-label");
@@ -2080,14 +2089,27 @@ export function renderHeaderCollaborationBar() {
 
   if (visBadge) {
     if (!isEditable) {
-      visBadge.className = "cursor-pointer inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 transition shrink-0";
+      visBadge.className = "hidden sm:inline-flex cursor-pointer items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 transition shrink-0";
       visBadge.innerHTML = `👁️ Kun visning`;
     } else if (active.visibility === "shared") {
-      visBadge.className = "cursor-pointer inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 transition shrink-0";
+      visBadge.className = "hidden sm:inline-flex cursor-pointer items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 transition shrink-0";
       visBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span> Delt reise (${escapeHtml(active.shareCode || 'Live')})`;
     } else {
-      visBadge.className = "cursor-pointer inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 hover:border-brand-300 transition shrink-0";
+      visBadge.className = "hidden sm:inline-flex cursor-pointer items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 hover:border-brand-300 transition shrink-0";
       visBadge.innerHTML = `🔒 Privat reise`;
+    }
+  }
+
+  if (mobileVisBadge) {
+    if (!isEditable) {
+      mobileVisBadge.className = "cursor-pointer inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 shrink-0";
+      mobileVisBadge.innerHTML = `👁️ Kun visning`;
+    } else if (active.visibility === "shared") {
+      mobileVisBadge.className = "cursor-pointer inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0";
+      mobileVisBadge.innerHTML = `🌍 Delt (${escapeHtml(active.shareCode || 'Live')})`;
+    } else {
+      mobileVisBadge.className = "cursor-pointer inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 shrink-0";
+      mobileVisBadge.innerHTML = `🔒 Privat`;
     }
   }
 
@@ -2137,9 +2159,9 @@ export function switchTripManagerTab(tabName) {
     const btn = document.getElementById(`trip-tab-btn-${t}`);
     if (!btn) return;
     if (t === currentTripManagerTab) {
-      btn.className = "py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-white text-slate-900 shadow-2xs";
+      btn.className = "py-2 px-1.5 sm:px-3 rounded-xl text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1 bg-white text-slate-900 shadow-2xs min-w-0";
     } else {
-      btn.className = "py-2 px-3 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900";
+      btn.className = "py-2 px-1.5 sm:px-3 rounded-xl text-[11px] sm:text-xs font-semibold transition flex items-center justify-center gap-1 text-slate-600 hover:text-slate-900 min-w-0";
     }
   });
 
@@ -4102,62 +4124,73 @@ function renderLiveSearchResults(usedFallbackDate, requestedDate, effectiveSearc
           : `<span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-700">${j.transfers} bytte${j.transfers > 1 ? 'r' : ''}</span>`;
 
         return `
-          <div class="bg-slate-50/70 hover:bg-white rounded-xl border border-slate-200/90 hover:border-brand-300 p-4 transition space-y-3 shadow-2xs">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-200/60">
-              <div class="flex items-center gap-2 flex-wrap">
-                <span class="px-2.5 py-0.5 rounded-lg bg-slate-900 text-white text-xs font-extrabold">${escapeHtml(j.trainNumber)}</span>
+          <div class="bg-slate-50/70 hover:bg-white rounded-2xl border border-slate-200/90 hover:border-brand-300 p-3.5 sm:p-4 transition space-y-2.5 shadow-2xs">
+            <div class="flex items-center justify-between gap-2 pb-2 border-b border-slate-200/60 flex-wrap">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="px-2 py-0.5 rounded-lg bg-slate-900 text-white text-xs font-extrabold">${escapeHtml(j.trainNumber)}</span>
                 <span class="text-xs font-semibold text-slate-600">${escapeHtml(j.trainType)}</span>
                 ${transferBadge}
-                <span class="text-xs font-bold text-slate-500 flex items-center gap-1">
-                  <i data-lucide="clock" class="w-3.5 h-3.5 text-brand-600"></i> ${escapeHtml(j.duration)}
-                </span>
               </div>
               <div>${resPill}</div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
-              <div class="sm:col-span-4">
-                <p class="text-lg font-extrabold text-slate-900">${escapeHtml(j.departureTime)}</p>
-                <p class="text-xs font-bold text-slate-700">${escapeHtml(j.fromCity)}</p>
-                ${j.platform ? `<p class="text-[11px] text-brand-600 font-semibold">Spor ${escapeHtml(j.platform)}</p>` : ''}
+            <!-- Horizontal 3-column ticket layout on both mobile and desktop -->
+            <div class="grid grid-cols-[1fr_auto_1fr] gap-2 sm:gap-4 items-center py-0.5">
+              <div class="min-w-0">
+                <p class="text-base sm:text-lg font-extrabold text-slate-900 leading-tight">${escapeHtml(j.departureTime)}</p>
+                <p class="text-xs font-bold text-slate-700 truncate">${escapeHtml(j.fromCity)}</p>
+                ${j.platform ? `<p class="text-[10px] sm:text-[11px] text-brand-600 font-semibold">Spor ${escapeHtml(j.platform)}</p>` : ''}
               </div>
 
-              <div class="sm:col-span-4">
-                <div class="flex flex-wrap items-center gap-1 text-[11px] text-slate-600">
-                  ${j.legsSummary.map((leg, i) => `
-                    <span class="px-2 py-0.5 rounded bg-white border border-slate-200 font-medium">
-                      <strong>${escapeHtml(leg.line)}</strong> (${escapeHtml(leg.dep)}–${escapeHtml(leg.arr)})
-                    </span>
-                    ${i < j.legsSummary.length - 1 ? '<span class="text-slate-400">→</span>' : ''}
-                  `).join("")}
+              <div class="flex flex-col items-center justify-center text-center px-1 sm:px-3 min-w-[72px] sm:min-w-[110px]">
+                <span class="text-[10px] sm:text-xs font-bold text-slate-500 mb-1 flex items-center gap-1">
+                  <i data-lucide="clock" class="w-3 h-3 text-brand-600"></i> ${escapeHtml(j.duration)}
+                </span>
+                <div class="w-full flex items-center justify-center gap-1.5">
+                  <div class="h-0.5 flex-1 bg-slate-200"></div>
+                  <div class="w-5 h-5 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 shrink-0">
+                    <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                  </div>
+                  <div class="h-0.5 flex-1 bg-slate-200"></div>
                 </div>
               </div>
 
-              <div class="sm:col-span-4 sm:text-right">
-                <p class="text-lg font-extrabold text-slate-900">${escapeHtml(j.arrivalTime)}</p>
-                <p class="text-xs font-bold text-slate-700">${escapeHtml(j.toCity)}</p>
-                ${j.arrivalPlatform ? `<p class="text-[11px] text-brand-600 font-semibold">Spor ${escapeHtml(j.arrivalPlatform)}</p>` : ''}
+              <div class="text-right min-w-0">
+                <p class="text-base sm:text-lg font-extrabold text-slate-900 leading-tight">${escapeHtml(j.arrivalTime)}</p>
+                <p class="text-xs font-bold text-slate-700 truncate">${escapeHtml(j.toCity)}</p>
+                ${j.arrivalPlatform ? `<p class="text-[10px] sm:text-[11px] text-brand-600 font-semibold">Spor ${escapeHtml(j.arrivalPlatform)}</p>` : ''}
               </div>
             </div>
 
-            <div class="pt-2 border-t border-slate-200/60 flex flex-wrap items-center justify-between gap-2">
+            ${j.legsSummary && j.legsSummary.length > 1 ? `
+              <div class="flex flex-wrap items-center gap-1 text-[11px] text-slate-600 pt-1">
+                ${j.legsSummary.map((leg, i) => `
+                  <span class="px-2 py-0.5 rounded bg-white border border-slate-200 font-medium">
+                    <strong>${escapeHtml(leg.line)}</strong> (${escapeHtml(leg.dep)}–${escapeHtml(leg.arr)})
+                  </span>
+                  ${i < j.legsSummary.length - 1 ? '<span class="text-slate-400">→</span>' : ''}
+                `).join("")}
+              </div>
+            ` : ''}
+
+            <div class="pt-2 border-t border-slate-200/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <p class="text-[11px] text-slate-500 italic">${escapeHtml(j.reservationNote)}</p>
-              <div class="flex items-center gap-2">
+              <div class="grid grid-cols-2 sm:flex items-center gap-2 shrink-0">
                 <button 
                   type="button" 
                   onclick="previewLiveRouteOnMap(${idx})" 
-                  class="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-semibold transition flex items-center gap-1.5"
+                  class="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-semibold transition flex items-center justify-center gap-1.5"
                 >
-                  <i data-lucide="map" class="w-3.5 h-3.5 text-brand-600"></i>
-                  <span>Se spor på kart</span>
+                  <i data-lucide="map" class="w-3.5 h-3.5 text-brand-600 shrink-0"></i>
+                  <span>Se på kart</span>
                 </button>
                 <button 
                   type="button" 
                   onclick="importLiveJourneyToTrip(${idx})" 
-                  class="px-3.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold shadow-2xs transition flex items-center gap-1.5"
+                  class="px-3.5 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold shadow-2xs transition flex items-center justify-center gap-1.5"
                 >
-                  <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
-                  <span>Legg til i reiseplan</span>
+                  <i data-lucide="plus-circle" class="w-3.5 h-3.5 shrink-0"></i>
+                  <span>Legg til</span>
                 </button>
               </div>
             </div>
@@ -4198,16 +4231,16 @@ export function importLiveJourneyToTrip(idx) {
 
   appState.trains.push(newTrain);
 
-  // Automatically log mandatory seat reservation cost in budget if > 0
+  // Automatically log mandatory seat reservation cost in personal budget if > 0
   if (j.reservationStatus === "required" && j.reservationPrice > 0) {
     appState.expenses.push({
       id: "exp-res-" + Date.now(),
       title: `Plassreservasjon ${j.trainNumber} (${j.fromCity} → ${j.toCity})`,
       category: "Transport",
       amount: j.reservationPrice,
-      date: j.date,
-      paidBy: userProfile.displayName || "Meg"
+      date: j.date
     });
+    savePersonalBudgetStateOnly();
   }
 
   persistState(`Importerte togreise: ${j.fromCity} → ${j.toCity} (${j.departureTime}–${j.arrivalTime})`);

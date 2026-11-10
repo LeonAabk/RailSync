@@ -296,28 +296,28 @@
   <main class="flex-1 flex flex-col min-w-0 w-full max-w-full pb-28 md:pb-0 md:h-full md:overflow-y-auto overflow-x-hidden">
 
     <!-- Top Mobile / Global Header -->
-    <header class="bg-white border-b border-slate-200 px-3.5 sm:px-6 py-2.5 sm:py-3.5 sticky top-0 z-20 shadow-xs w-full max-w-full">
+    <header class="bg-white/95 backdrop-blur-md border-b border-slate-200 px-3 sm:px-6 py-2 sm:py-3.5 sticky top-0 z-30 shadow-2xs w-full max-w-full">
       <div class="flex items-center justify-between gap-2 w-full min-w-0">
         <!-- Left: Logo & Trip Title -->
         <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           <!-- Mobile Logo Icon -->
-          <div class="md:hidden w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center text-white shadow shrink-0">
+          <div class="md:hidden w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center text-white shadow-xs shrink-0">
             <i data-lucide="train" class="w-4 h-4"></i>
           </div>
           <div class="min-w-0 flex-1">
-            <div class="flex items-center gap-1.5 min-w-0 flex-wrap">
-              <div onclick="openTripSettingsModal()" class="cursor-pointer group select-none flex items-center gap-1.5 min-w-0" title="Klikk for å redigere reiseinnstillinger">
-                <h1 id="header-trip-title" class="text-sm sm:text-lg font-bold text-slate-900 leading-tight truncate group-hover:text-brand-600 transition">Sommerens Europaturné 2026</h1>
+            <div class="flex items-center gap-1.5 min-w-0">
+              <div onclick="openTripSettingsModal()" class="cursor-pointer group select-none flex items-center gap-1 min-w-0" title="Klikk for å redigere reiseinnstillinger">
+                <h1 id="header-trip-title" class="text-sm sm:text-lg font-extrabold text-slate-900 leading-tight truncate group-hover:text-brand-600 transition">Sommerens Europaturné 2026</h1>
                 <i data-lucide="pencil" class="w-3 h-3 text-slate-400 group-hover:text-brand-600 transition shrink-0"></i>
               </div>
-              <span id="header-visibility-badge" onclick="handleSaveAndShareTrip()" class="cursor-pointer inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 hover:border-brand-300 transition shrink-0" title="Administrer deling og tilgang">
+              <span id="header-visibility-badge" onclick="handleSaveAndShareTrip()" class="hidden sm:inline-flex cursor-pointer items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 hover:border-brand-300 transition shrink-0" title="Administrer deling og tilgang">
                 🔒 Privat
               </span>
             </div>
-            <div class="flex items-center gap-2 flex-wrap mt-0.5">
+            <div class="flex items-center gap-2 min-w-0 mt-0.5">
               <p id="header-trip-dates" class="text-[11px] sm:text-xs text-slate-500 font-medium truncate">1. jul – 22. jul 2026 • 22 dager på skinner</p>
-              <!-- Reisefølge Avatar Bubbles -->
-              <div id="header-collab-bar" class="hidden sm:flex items-center gap-1.5 pl-1 border-l border-slate-200">
+              <!-- Reisefølge Avatar Bubbles (Desktop/Tablet) -->
+              <div id="header-collab-bar" class="hidden sm:flex items-center gap-1.5 pl-1 border-l border-slate-200 shrink-0">
                 <div id="header-members-avatars" class="flex items-center -space-x-1.5"></div>
                 <button onclick="handleSaveAndShareTrip()" class="text-[11px] font-semibold text-brand-700 hover:text-brand-800 bg-brand-50 hover:bg-brand-100 px-2 py-0.5 rounded-full border border-brand-200/70 transition flex items-center gap-1" title="Administrer reisefølge og deling">
                   <i data-lucide="users" class="w-3 h-3 text-brand-600"></i>
@@ -339,26 +339,26 @@
         <!-- Right: Action buttons (Profile, Settings, Save & Share) -->
         <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <!-- USER AUTH HEADER BUTTON / PROFILE -->
-          <div id="auth-header-container" class="shrink-0 flex items-center gap-1.5">
-            <!-- Profile Button (Always accessible, shows custom avatar + name) -->
-            <button id="user-profile-pill" onclick="openUserProfileModal()" class="flex items-center gap-1.5 pl-1.5 pr-2.5 py-1 rounded-xl bg-slate-100 hover:bg-brand-50 border border-slate-200 hover:border-brand-300 text-slate-800 text-xs font-bold transition shrink-0" title="Min Profil & Reisepreferanser">
-              <span id="header-user-avatar" class="w-6 h-6 rounded-full bg-brand-600 text-white text-[11px] font-extrabold flex items-center justify-center shadow-2xs">R</span>
-              <span id="user-display-name" class="truncate max-w-[70px] sm:max-w-[115px]">Min profil</span>
+          <div id="auth-header-container" class="shrink-0 flex items-center gap-1">
+            <!-- Profile Button -->
+            <button id="user-profile-pill" onclick="openUserProfileModal()" class="flex items-center gap-1.5 p-1 sm:pl-1.5 sm:pr-2.5 sm:py-1 rounded-xl bg-slate-100 hover:bg-brand-50 border border-slate-200 hover:border-brand-300 text-slate-800 text-xs font-bold transition shrink-0" title="Min Profil & Reisepreferanser">
+              <span id="header-user-avatar" class="w-6 h-6 rounded-lg sm:rounded-full bg-brand-600 text-white text-[11px] font-extrabold flex items-center justify-center shadow-2xs">R</span>
+              <span id="user-display-name" class="hidden sm:inline truncate max-w-[110px]">Min profil</span>
             </button>
             <!-- Login Button (Shown when not signed in to cloud) -->
-            <button id="btn-open-login" onclick="openAuthModal()" class="flex items-center gap-1 px-2.5 py-1.5 sm:py-2 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-800 font-bold text-xs border border-brand-200 transition" title="Logg inn for skysynkronisering">
+            <button id="btn-open-login" onclick="openAuthModal()" class="flex items-center gap-1 px-2 py-1.5 sm:px-2.5 sm:py-2 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-800 font-bold text-xs border border-brand-200 transition" title="Logg inn for skysynkronisering">
               <i data-lucide="cloud" class="w-3.5 h-3.5 text-brand-600"></i>
               <span class="hidden lg:inline">Logg inn</span>
             </button>
           </div>
 
-          <!-- Settings Button -->
-          <button onclick="openTripSettingsModal()" class="p-1.5 sm:p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 border border-slate-200 transition shrink-0" title="Reiseinnstillinger">
+          <!-- Settings Button (Desktop/Tablet - on mobile it sits in sub-bar) -->
+          <button onclick="openTripSettingsModal()" class="hidden sm:flex p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 border border-slate-200 transition shrink-0" title="Reiseinnstillinger">
             <i data-lucide="settings" class="w-4 h-4"></i>
           </button>
 
           <!-- LAGRE & DEL REISE-KNAPP -->
-          <button id="btn-save-share" onclick="handleSaveAndShareTrip()" class="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-rail-accent hover:bg-rail-accentHover active:bg-orange-700 text-white font-semibold text-xs shadow-sm transition shrink-0">
+          <button id="btn-save-share" onclick="handleSaveAndShareTrip()" class="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-rail-accent hover:bg-rail-accentHover active:bg-orange-700 text-white font-bold text-xs shadow-xs transition shrink-0">
             <i data-lucide="users" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
             <span class="hidden sm:inline">Del & Reisefølge</span>
             <span class="sm:hidden">Del</span>
@@ -366,23 +366,27 @@
         </div>
       </div>
 
-      <!-- Mobile Sub-bar: Mine reiser switcher + Reisefølge avatars + quick pass indicator -->
-      <div class="sm:hidden flex items-center justify-between pt-2 mt-2 border-t border-slate-100 text-xs gap-1.5">
-        <div class="flex items-center gap-1.5 min-w-0">
-          <button onclick="openTripManagerModal('mine')" class="flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-100 active:bg-slate-200 text-slate-800 font-bold text-[11px] border border-slate-200 transition shadow-2xs shrink-0">
+      <!-- Mobile Sub-bar: Clean, non-overlapping action strip -->
+      <div class="sm:hidden flex items-center justify-between pt-2 mt-1.5 border-t border-slate-100 text-xs gap-1.5 overflow-x-auto no-scrollbar">
+        <div class="flex items-center gap-1.5 min-w-0 shrink-0">
+          <button onclick="openTripManagerModal('mine')" class="flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-100 active:bg-slate-200 text-slate-800 font-bold text-[11px] border border-slate-200 transition shrink-0">
             <i data-lucide="folder-open" class="w-3 h-3 text-brand-600"></i>
             <span>Reiser</span>
             <span id="header-trip-count-badge-mobile" class="px-1.5 py-0.2 rounded-full bg-brand-600 text-white font-extrabold text-[10px]">1</span>
           </button>
-          <button onclick="openTripManagerModal('shared')" class="flex items-center gap-1 px-2 py-1 rounded-lg bg-brand-50 active:bg-brand-100 text-brand-800 font-bold text-[11px] border border-brand-200 transition shrink-0">
-            <i data-lucide="users" class="w-3 h-3 text-brand-600"></i>
-            <span>Delte</span>
-          </button>
-          <div id="mobile-members-avatars" onclick="handleSaveAndShareTrip()" class="flex items-center -space-x-1.5 pl-0.5 cursor-pointer"></div>
+          <span id="header-visibility-badge-mobile" onclick="handleSaveAndShareTrip()" class="cursor-pointer inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 shrink-0">
+            🔒 Privat
+          </span>
+          <div id="mobile-members-avatars" onclick="handleSaveAndShareTrip()" class="flex items-center -space-x-1.5 pl-0.5 cursor-pointer shrink-0"></div>
         </div>
-        <button onclick="openTripSettingsModal()" id="mobile-subbar-pass" class="text-[11px] font-semibold text-slate-600 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200/80 shrink-0">
-          3 / 7 dager
-        </button>
+        <div class="flex items-center gap-1 shrink-0">
+          <button onclick="openTripSettingsModal()" id="mobile-subbar-pass" class="text-[11px] font-semibold text-slate-600 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200/80 shrink-0">
+            3 / 7 dgr
+          </button>
+          <button onclick="openTripSettingsModal()" class="p-1 rounded-lg text-slate-500 bg-slate-50 border border-slate-200/80 shrink-0" title="Reiseinnstillinger">
+            <i data-lucide="settings" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
       </div>
     </header>
 
@@ -400,47 +404,47 @@
     </div>
 
     <!-- CONTENT CONTAINERS FOR 4 TABS -->
-    <div class="p-3.5 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-5 sm:space-y-6 min-w-0 overflow-x-hidden">
+    <div class="p-3 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-4 sm:space-y-6 min-w-0 overflow-x-hidden">
 
       <!-- ===================================================================== -->
       <!-- TAB 1: OVERSIKT & KART                                                -->
       <!-- ===================================================================== -->
-      <section id="tab-overview" class="tab-content space-y-5 sm:space-y-6 w-full max-w-full">
+      <section id="tab-overview" class="tab-content space-y-4 sm:space-y-6 w-full max-w-full">
         
         <!-- Key Metrics Cards Grid -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 w-full">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 w-full">
           <!-- Stat 1: Antall land -->
-          <div class="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-3 overflow-hidden min-w-0">
-            <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-              <i data-lucide="globe" class="w-5 h-5"></i>
+          <div class="bg-white p-3 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-2.5 sm:gap-3 overflow-hidden min-w-0">
+            <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+              <i data-lucide="globe" class="w-4 h-4 sm:w-5 sm:h-5"></i>
             </div>
             <div class="flex-1 min-w-0">
-              <p class="text-[11px] sm:text-xs font-medium text-slate-500 truncate">Antall land</p>
-              <h3 id="stat-countries-count" class="text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight truncate">4 land</h3>
+              <p class="text-[10px] sm:text-xs font-medium text-slate-500 truncate">Antall land</p>
+              <h3 id="stat-countries-count" class="text-base sm:text-2xl font-extrabold text-slate-900 tracking-tight truncate">4 land</h3>
               <p id="stat-countries-sub" class="text-[10px] sm:text-[11px] text-slate-400 truncate">Norge, Danmark, Tyskland...</p>
             </div>
           </div>
 
           <!-- Stat 2: Totalt antall dager -->
-          <div class="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-3 overflow-hidden min-w-0">
-            <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
-              <i data-lucide="calendar" class="w-5 h-5"></i>
+          <div class="bg-white p-3 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-2.5 sm:gap-3 overflow-hidden min-w-0">
+            <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
+              <i data-lucide="calendar" class="w-4 h-4 sm:w-5 sm:h-5"></i>
             </div>
             <div class="flex-1 min-w-0">
-              <p class="text-[11px] sm:text-xs font-medium text-slate-500 truncate">Total reisetid</p>
-              <h3 id="stat-total-days" class="text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight truncate">14 dager</h3>
+              <p class="text-[10px] sm:text-xs font-medium text-slate-500 truncate">Total reisetid</p>
+              <h3 id="stat-total-days" class="text-base sm:text-2xl font-extrabold text-slate-900 tracking-tight truncate">14 dager</h3>
               <p id="stat-total-days-sub" class="text-[10px] sm:text-[11px] text-slate-400 truncate">1. jul – 15. jul</p>
             </div>
           </div>
 
           <!-- Stat 3: Reisedager brukt -->
-          <div class="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-3 overflow-hidden min-w-0">
-            <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-              <i data-lucide="ticket" class="w-5 h-5"></i>
+          <div class="bg-white p-3 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-2.5 sm:gap-3 overflow-hidden min-w-0">
+            <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+              <i data-lucide="ticket" class="w-4 h-4 sm:w-5 sm:h-5"></i>
             </div>
             <div class="flex-1 min-w-0">
-              <p class="text-[11px] sm:text-xs font-medium text-slate-500 truncate">Reisedager på pass</p>
-              <h3 id="stat-pass-days" class="text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight truncate">3 / 7 dager</h3>
+              <p class="text-[10px] sm:text-xs font-medium text-slate-500 truncate">Reisedager på pass</p>
+              <h3 id="stat-pass-days" class="text-base sm:text-2xl font-extrabold text-slate-900 tracking-tight truncate">3 / 7 dager</h3>
               <div class="w-full bg-slate-100 rounded-full h-1.5 mt-1 overflow-hidden">
                 <div id="stat-pass-bar" class="bg-amber-500 h-1.5 rounded-full" style="width: 43%"></div>
               </div>
@@ -448,72 +452,74 @@
           </div>
 
           <!-- Stat 4: Budsjett brukt -->
-          <div class="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-3 overflow-hidden min-w-0">
-            <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
-              <i data-lucide="pie-chart" class="w-5 h-5"></i>
+          <div class="bg-white p-3 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-2.5 sm:gap-3 overflow-hidden min-w-0">
+            <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+              <i data-lucide="pie-chart" class="w-4 h-4 sm:w-5 sm:h-5"></i>
             </div>
             <div class="flex-1 min-w-0">
-              <p class="text-xs font-medium text-slate-500">Budsjett brukt</p>
-              <h3 id="stat-budget-spent" class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">13 670 kr</h3>
-              <p id="stat-budget-sub" class="text-[11px] text-slate-400 truncate">av 22 000 kr (62%)</p>
+              <p class="text-[10px] sm:text-xs font-medium text-slate-500 truncate">Mitt budsjett brukt</p>
+              <h3 id="stat-budget-spent" class="text-base sm:text-2xl font-extrabold text-slate-900 tracking-tight truncate">13 670 kr</h3>
+              <p id="stat-budget-sub" class="text-[10px] sm:text-[11px] text-slate-400 truncate">av 22 000 kr (62%)</p>
             </div>
           </div>
         </div>
 
         <!-- Main Grid: Timeline + Map Layout -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start">
           
           <!-- LEFT: Timeline of stops (5 cols on lg) -->
-          <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 sm:p-6 space-y-4">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100 gap-2 flex-wrap">
-              <div>
-                <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <i data-lucide="milestone" class="w-4 h-4 text-brand-600"></i>
-                  Rute & Stoppesteder
+          <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200/80 shadow-xs p-4 sm:p-6 space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 gap-2">
+              <div class="min-w-0">
+                <h2 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                  <i data-lucide="milestone" class="w-4 h-4 text-brand-600 shrink-0"></i>
+                  <span>Rute & Stoppesteder</span>
                 </h2>
-                <p class="text-xs text-slate-500">Bruk pilene for å endre rekkefølge, eller finn ekte tog mellom byene</p>
+                <p class="text-[11px] sm:text-xs text-slate-500">Endre rekkefølge eller finn ekte tog mellom byene</p>
               </div>
-              <div class="flex items-center gap-1.5">
-                <button onclick="switchTab('trains'); focusLiveTrainSearch()" class="text-xs font-semibold text-slate-700 hover:text-brand-700 bg-slate-100 hover:bg-brand-50 px-2.5 py-1.5 rounded-lg transition flex items-center gap-1" title="Søk reelle togtider i Europa">
-                  <i data-lucide="search" class="w-3.5 h-3.5 text-brand-600"></i> Finn tog
+              <div class="flex items-center gap-1.5 shrink-0">
+                <button onclick="switchTab('trains'); focusLiveTrainSearch()" class="text-xs font-semibold text-slate-700 hover:text-brand-700 bg-slate-100 hover:bg-brand-50 px-2.5 py-1.5 rounded-xl transition flex items-center gap-1" title="Søk reelle togtider i Europa">
+                  <i data-lucide="search" class="w-3.5 h-3.5 text-brand-600"></i>
+                  <span class="hidden xs:inline">Finn tog</span>
                 </button>
-                <button onclick="openAddStopModal()" class="text-xs font-semibold text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 px-3 py-1.5 rounded-lg transition flex items-center gap-1">
-                  <i data-lucide="plus" class="w-3.5 h-3.5"></i> Legg til
+                <button onclick="openAddStopModal()" class="text-xs font-bold text-white bg-brand-600 hover:bg-brand-500 px-3 py-1.5 rounded-xl shadow-2xs transition flex items-center gap-1">
+                  <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                  <span>Legg til</span>
                 </button>
               </div>
             </div>
 
-            <!-- Scrollable Timeline items container -->
-            <div id="timeline-container" class="space-y-4 max-h-[620px] overflow-y-auto pr-1">
+            <!-- Timeline items container (natural page scroll on mobile, scrollable box on desktop) -->
+            <div id="timeline-container" class="space-y-3 lg:max-h-[620px] lg:overflow-y-auto lg:pr-1">
               <!-- Dynamically populated by renderTimeline() in app.js -->
             </div>
           </div>
 
           <!-- RIGHT: Interactive Leaflet Map (7 cols on lg) -->
           <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden flex flex-col">
-            <div class="p-4 sm:px-6 sm:py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2 bg-slate-50/50">
+            <div class="p-3.5 sm:px-6 sm:py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2 bg-slate-50/50">
               <div class="flex items-center gap-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                <h2 class="text-sm sm:text-base font-bold text-slate-900">Interaktivt Togkart for Europa</h2>
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+                <h2 class="text-xs sm:text-base font-bold text-slate-900">Interaktivt Togkart</h2>
               </div>
-              <div class="flex items-center gap-2 flex-wrap">
-                <button id="btn-fetch-all-tracks" onclick="fetchRealTracksForAllTrains()" class="px-2.5 py-1 text-xs font-semibold text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-200 rounded-lg shadow-2xs flex items-center gap-1.5 transition" title="Hent faktiske jernbanespor fra rutemotoren for alle etapper">
-                  <i data-lucide="zap" class="w-3.5 h-3.5 text-brand-600"></i>
-                  <span id="btn-fetch-all-tracks-label">Last ekte jernbanespor</span>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <button id="btn-fetch-all-tracks" onclick="fetchRealTracksForAllTrains()" class="px-2.5 py-1 text-[11px] sm:text-xs font-semibold text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-200 rounded-lg shadow-2xs flex items-center gap-1 transition" title="Hent faktiske jernbanespor fra rutemotoren for alle etapper">
+                  <i data-lucide="zap" class="w-3 h-3 sm:w-3.5 sm:h-3.5 text-brand-600"></i>
+                  <span id="btn-fetch-all-tracks-label">Ekte jernbanespor</span>
                 </button>
-                <button onclick="resetMapView()" class="px-2.5 py-1 text-xs font-medium text-slate-600 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg shadow-2xs flex items-center gap-1">
-                  <i data-lucide="locate-fixed" class="w-3.5 h-3.5"></i>
-                  <span>Tilpass rute</span>
+                <button onclick="resetMapView()" class="px-2.5 py-1 text-[11px] sm:text-xs font-medium text-slate-600 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg shadow-2xs flex items-center gap-1">
+                  <i data-lucide="locate-fixed" class="w-3 h-3 sm:w-3.5 sm:h-3.5"></i>
+                  <span>Tilpass</span>
                 </button>
               </div>
             </div>
 
             <!-- Map Container -->
-            <div class="relative w-full h-[380px] sm:h-[460px] lg:h-[600px] bg-slate-100">
+            <div class="relative w-full h-[340px] sm:h-[460px] lg:h-[600px] bg-slate-100">
               <div id="rail-map" class="w-full h-full z-10"></div>
               
-              <!-- Map Legend Overlay -->
-              <div class="absolute bottom-3 left-3 z-[400] bg-white/95 backdrop-blur-md px-3 py-2.5 rounded-xl border border-slate-200 shadow-md text-[11px] text-slate-600 space-y-1.5">
+              <!-- Map Legend Overlay (Tablet/Desktop only - on mobile it sits cleanly below the map) -->
+              <div class="hidden sm:block absolute bottom-3 left-3 z-[400] bg-white/95 backdrop-blur-md px-3 py-2.5 rounded-xl border border-slate-200 shadow-md text-[11px] text-slate-600 space-y-1.5">
                 <div class="flex items-center gap-2">
                   <span class="w-3 h-3 rounded-full bg-brand-600 inline-block border border-white shadow-2xs"></span>
                   <span>Stoppested med overnatting</span>
@@ -526,6 +532,22 @@
                   <span class="w-4 h-0.5 bg-slate-400 border-t-2 border-dashed border-slate-400 inline-block"></span>
                   <span>Planlagt etappe (Luftlinje)</span>
                 </div>
+              </div>
+            </div>
+
+            <!-- Mobile Map Legend Footer (Never overlaps map pins or popups on phone) -->
+            <div class="sm:hidden flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5 bg-slate-50 border-t border-slate-100 text-[10px] text-slate-600 font-medium">
+              <div class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-brand-600 inline-block"></span>
+                <span>Stoppested</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="w-3.5 h-1 bg-brand-600 rounded-full inline-block"></span>
+                <span>Ekte togspor</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="w-3.5 h-0.5 border-t-2 border-dashed border-slate-400 inline-block"></span>
+                <span>Luftlinje</span>
               </div>
             </div>
           </div>
@@ -722,29 +744,29 @@
         </div>
         
         <!-- Budget Overview Summary Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-            <div class="flex items-center justify-between">
-              <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Mitt Totalbudsjett</p>
-              <button onclick="openEditPersonalBudgetPrompt()" class="text-xs text-brand-600 hover:underline font-semibold">Endre</button>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+          <div class="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs min-w-0">
+            <div class="flex items-center justify-between gap-1">
+              <p class="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider truncate">Mitt Budsjett</p>
+              <button onclick="openEditPersonalBudgetPrompt()" class="text-[11px] sm:text-xs text-brand-600 hover:underline font-semibold shrink-0">Endre</button>
             </div>
-            <h3 id="budget-total-val" class="text-2xl font-extrabold text-slate-900 mt-1">22 000 kr</h3>
-            <p class="text-xs text-slate-500 mt-1">Din personlige ramme for turen</p>
+            <h3 id="budget-total-val" class="text-lg sm:text-2xl font-extrabold text-slate-900 mt-1 truncate">22 000 kr</h3>
+            <p class="text-[10px] sm:text-xs text-slate-500 mt-0.5 truncate">Din personlige ramme</p>
           </div>
-          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Brukt hittil</p>
-            <h3 id="budget-spent-val" class="text-2xl font-extrabold text-emerald-600 mt-1">13 670 kr</h3>
-            <p id="budget-spent-pct" class="text-xs text-slate-500 mt-1">62% av budsjettet</p>
+          <div class="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs min-w-0">
+            <p class="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider truncate">Brukt hittil</p>
+            <h3 id="budget-spent-val" class="text-lg sm:text-2xl font-extrabold text-emerald-600 mt-1 truncate">13 670 kr</h3>
+            <p id="budget-spent-pct" class="text-[10px] sm:text-xs text-slate-500 mt-0.5 truncate">62% av budsjettet</p>
           </div>
-          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Gjenstår</p>
-            <h3 id="budget-remaining-val" class="text-2xl font-extrabold text-slate-900 mt-1">8 330 kr</h3>
-            <p class="text-xs text-slate-500 mt-1">Ledig til mat & opplevelser</p>
+          <div class="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs min-w-0">
+            <p class="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider truncate">Gjenstår</p>
+            <h3 id="budget-remaining-val" class="text-lg sm:text-2xl font-extrabold text-slate-900 mt-1 truncate">8 330 kr</h3>
+            <p class="text-[10px] sm:text-xs text-slate-500 mt-0.5 truncate">Ledig til turen</p>
           </div>
-          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Snitt per dag</p>
-            <h3 id="budget-daily-avg" class="text-2xl font-extrabold text-rail-accent mt-1">378 kr / dag</h3>
-            <p id="budget-daily-days-sub" class="text-xs text-slate-500 mt-1">For de planlagte dagene</p>
+          <div class="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs min-w-0">
+            <p class="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider truncate">Snitt per dag</p>
+            <h3 id="budget-daily-avg" class="text-lg sm:text-2xl font-extrabold text-rail-accent mt-1 truncate">378 kr / dag</h3>
+            <p id="budget-daily-days-sub" class="text-[10px] sm:text-xs text-slate-500 mt-0.5 truncate">For planlagte dager</p>
           </div>
         </div>
 
@@ -853,31 +875,31 @@
   <!-- ========================================================================= -->
   <!-- MOBILE BOTTOM NAVIGATION BAR                                              -->
   <!-- ========================================================================= -->
-  <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-2 pt-2 pb-safe z-40 flex items-center justify-around shadow-xl" aria-label="Mobilnavigasjon">
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-1.5 pt-1.5 pb-safe z-40 grid grid-cols-5 gap-1 shadow-xl" aria-label="Mobilnavigasjon">
     
-    <button onclick="switchTab('overview')" id="mobile-tab-overview" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[44px] px-2.5 py-1 rounded-2xl text-brand-600 font-bold active:scale-95 transition">
-      <i data-lucide="map-pin" class="w-5 h-5"></i>
-      <span class="text-[10px] mt-0.5">Oversikt</span>
+    <button onclick="switchTab('overview')" id="mobile-tab-overview" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-brand-600 font-bold active:scale-95 transition min-w-0">
+      <i data-lucide="map-pin" class="w-5 h-5 shrink-0"></i>
+      <span class="text-[10px] mt-0.5 truncate">Oversikt</span>
     </button>
 
-    <button onclick="switchTab('trains')" id="mobile-tab-trains" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[44px] px-2.5 py-1 rounded-2xl text-slate-400 font-medium active:scale-95 transition">
-      <i data-lucide="train" class="w-5 h-5"></i>
-      <span class="text-[10px] mt-0.5">Tog</span>
+    <button onclick="switchTab('trains')" id="mobile-tab-trains" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-slate-400 font-medium active:scale-95 transition min-w-0">
+      <i data-lucide="train" class="w-5 h-5 shrink-0"></i>
+      <span class="text-[10px] mt-0.5 truncate">Tog</span>
     </button>
 
-    <button onclick="switchTab('budget')" id="mobile-tab-budget" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[44px] px-2.5 py-1 rounded-2xl text-slate-400 font-medium active:scale-95 transition">
-      <i data-lucide="wallet" class="w-5 h-5"></i>
-      <span class="text-[10px] mt-0.5">Budsjett</span>
+    <button onclick="switchTab('budget')" id="mobile-tab-budget" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-slate-400 font-medium active:scale-95 transition min-w-0">
+      <i data-lucide="wallet" class="w-5 h-5 shrink-0"></i>
+      <span class="text-[10px] mt-0.5 truncate">Budsjett</span>
     </button>
 
-    <button onclick="switchTab('packing')" id="mobile-tab-packing" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[44px] px-2.5 py-1 rounded-2xl text-slate-400 font-medium active:scale-95 transition">
-      <i data-lucide="check-square" class="w-5 h-5"></i>
-      <span class="text-[10px] mt-0.5">Pakkeliste</span>
+    <button onclick="switchTab('packing')" id="mobile-tab-packing" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-slate-400 font-medium active:scale-95 transition min-w-0">
+      <i data-lucide="check-square" class="w-5 h-5 shrink-0"></i>
+      <span class="text-[10px] mt-0.5 truncate">Pakkeliste</span>
     </button>
 
-    <button onclick="openTripManagerModal('mine')" id="mobile-tab-trips" class="flex flex-col items-center justify-center min-h-[44px] px-2.5 py-1 rounded-2xl text-slate-500 font-semibold active:scale-95 transition">
-      <i data-lucide="compass" class="w-5 h-5 text-brand-600"></i>
-      <span class="text-[10px] mt-0.5">Reiser</span>
+    <button onclick="openTripManagerModal('mine')" id="mobile-tab-trips" class="flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-slate-500 font-semibold active:scale-95 transition min-w-0">
+      <i data-lucide="compass" class="w-5 h-5 text-brand-600 shrink-0"></i>
+      <span class="text-[10px] mt-0.5 truncate">Reiser</span>
     </button>
   </nav>
 
@@ -1366,20 +1388,20 @@
       </div>
 
       <!-- 3-Tab Switcher: Mine Reiser | Delte Reiser | Bli med via kode -->
-      <div class="grid grid-cols-3 gap-1.5 bg-slate-100 p-1 rounded-2xl">
-        <button type="button" id="trip-tab-btn-mine" onclick="switchTripManagerTab('mine')" class="py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-white text-slate-900 shadow-2xs">
-          <i data-lucide="folder" class="w-3.5 h-3.5 text-brand-600"></i>
-          <span>Mine reiser</span>
-          <span id="trip-tab-count-mine" class="px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-700 text-[10px]">1</span>
+      <div class="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-2xl">
+        <button type="button" id="trip-tab-btn-mine" onclick="switchTripManagerTab('mine')" class="py-2 px-1.5 sm:px-3 rounded-xl text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1 bg-white text-slate-900 shadow-2xs min-w-0">
+          <i data-lucide="folder" class="w-3.5 h-3.5 text-brand-600 shrink-0"></i>
+          <span class="truncate">Mine reiser</span>
+          <span id="trip-tab-count-mine" class="px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-700 text-[10px] shrink-0">1</span>
         </button>
-        <button type="button" id="trip-tab-btn-shared" onclick="switchTripManagerTab('shared')" class="py-2 px-3 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900">
-          <i data-lucide="users" class="w-3.5 h-3.5 text-brand-600"></i>
-          <span>Delte reiser</span>
-          <span id="trip-tab-count-shared" class="px-1.5 py-0.2 rounded-full bg-brand-100 text-brand-800 text-[10px]">0</span>
+        <button type="button" id="trip-tab-btn-shared" onclick="switchTripManagerTab('shared')" class="py-2 px-1.5 sm:px-3 rounded-xl text-[11px] sm:text-xs font-semibold transition flex items-center justify-center gap-1 text-slate-600 hover:text-slate-900 min-w-0">
+          <i data-lucide="users" class="w-3.5 h-3.5 text-brand-600 shrink-0"></i>
+          <span class="truncate">Delte</span>
+          <span id="trip-tab-count-shared" class="px-1.5 py-0.2 rounded-full bg-brand-100 text-brand-800 text-[10px] shrink-0">0</span>
         </button>
-        <button type="button" id="trip-tab-btn-join" onclick="switchTripManagerTab('join')" class="py-2 px-3 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900">
-          <i data-lucide="link" class="w-3.5 h-3.5 text-rail-accent"></i>
-          <span>Bli med (Kode)</span>
+        <button type="button" id="trip-tab-btn-join" onclick="switchTripManagerTab('join')" class="py-2 px-1.5 sm:px-3 rounded-xl text-[11px] sm:text-xs font-semibold transition flex items-center justify-center gap-1 text-slate-600 hover:text-slate-900 min-w-0">
+          <i data-lucide="link" class="w-3.5 h-3.5 text-rail-accent shrink-0"></i>
+          <span class="truncate">Bli med</span>
         </button>
       </div>
 
@@ -1872,7 +1894,7 @@
   <!-- ========================================================================= -->
   <!-- MODULAR JAVASCRIPT ENTRYPOINT                                             -->
   <!-- ========================================================================= -->
-  <script type="module" src="./app.js?v=20261110-5"></script>
+  <script type="module" src="./app.js?v=20261110-6"></script>
 
 </body>
 </html>
