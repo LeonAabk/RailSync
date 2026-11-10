@@ -3633,14 +3633,30 @@ function getFallbackNearTermDate(dateStr) {
 
 // Core API call to Transitous /api/v5/plan
 async function queryTransitousItineraries(fromSt, toSt, dateStr, timeStr) {
-  const safeTime = timeStr || "08:00";
-  const isoQuery = new Date(`${dateStr}T${safeTime}:00`).toISOString();
-  const url = `${TRANSITOUS_API_BASE}/api/v5/plan?fromPlace=${fromSt.lat},${fromSt.lng}&toPlace=${toSt.lat},${toSt.lng}&time=${encodeURIComponent(isoQuery)}&pedestrianProfile=NORMAL`;
+  const cleanDate = dateStr || getFallbackNearTermDate();
+  const cleanTime = (timeStr || "08:00").slice(0, 5);
+  let parsedDate = new Date(`${cleanDate}T${cleanTime}:00`);
+  if (isNaN(parsedDate.getTime())) {
+    parsedDate = new Date();
+  }
+  const isoQuery = parsedDate.toISOString();
+  const railModes = "RAIL,HIGHSPEED_RAIL,LONG_DISTANCE,NIGHT_RAIL,REGIONAL_RAIL,REGIONAL_FAST_RAIL,SUBURBAN,SUBWAY,TRAM,FERRY";
+  const railUrl = `${TRANSITOUS_API_BASE}/api/v5/plan?fromPlace=${fromSt.lat},${fromSt.lng}&toPlace=${toSt.lat},${toSt.lng}&time=${encodeURIComponent(isoQuery)}&transitModes=${railModes}`;
 
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const data = await res.json();
-  return data.itineraries || [];
+  const res = await fetch(railUrl);
+  if (res.ok) {
+    const data = await res.json();
+    if (Array.isArray(data.itineraries) && data.itineraries.length > 0) {
+      return data.itineraries;
+    }
+  }
+
+  // Fallback without transitModes filter in case a connector leg is needed
+  const fallbackUrl = `${TRANSITOUS_API_BASE}/api/v5/plan?fromPlace=${fromSt.lat},${fromSt.lng}&toPlace=${toSt.lat},${toSt.lng}&time=${encodeURIComponent(isoQuery)}`;
+  const fallbackRes = await fetch(fallbackUrl);
+  if (!fallbackRes.ok) throw new Error(`HTTP ${fallbackRes.status}`);
+  const fallbackData = await fallbackRes.json();
+  return fallbackData.itineraries || [];
 }
 
 export async function executeLiveTrainSearch(e) {
