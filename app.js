@@ -554,6 +554,30 @@ export function canEditActiveTrip() {
   return active.sharePermission !== "view";
 }
 
+function requireEditPermission() {
+  if (!canEditActiveTrip()) {
+    showToast(
+      "Kun lesevisning",
+      "Denne delte reisen er satt til «Kun visning». Klikk «Lag min egen kopi» for å redigere.",
+      "eye"
+    );
+    return false;
+  }
+  return true;
+}
+
+function syncUrlWithActiveTrip() {
+  const active = getActiveTripObject();
+  if (!active) return;
+  const baseUrl = `${window.location.origin}${window.location.pathname}`;
+  if (active.visibility === "shared" && active.id !== "eksempel-1") {
+    const shareUrl = `${baseUrl}?trip=${active.id}`;
+    window.history.replaceState({ path: shareUrl }, "", shareUrl);
+  } else if (window.location.search.includes("trip=")) {
+    window.history.replaceState({ path: baseUrl }, "", baseUrl);
+  }
+}
+
 export function syncActiveTripToState() {
   const active = getActiveTripObject();
   if (!active) return;
@@ -793,6 +817,12 @@ export async function fetchAndJoinSharedTrip(tripIdOrCode, fromUrlParam = false)
   }
 
   const upperCode = cleanInput.toUpperCase();
+  let normalizedCode = upperCode;
+  if (/^[A-Z0-9]{4}$/.test(upperCode)) {
+    normalizedCode = `RS-${upperCode}`;
+  } else if (/^RS[A-Z0-9]{4}$/.test(upperCode)) {
+    normalizedCode = `RS-${upperCode.slice(2)}`;
+  }
 
   // 1. Check Firestore (by doc ID or by shareCode)
   if (isFirebaseConfigured() && db) {
@@ -808,7 +838,7 @@ export async function fetchAndJoinSharedTrip(tripIdOrCode, fromUrlParam = false)
         cloudData = docSnap.data();
       } else {
         // Query by 6-char shareCode (e.g. RS-4829)
-        const q = query(collection(db, "trips"), where("shareCode", "==", upperCode));
+        const q = query(collection(db, "trips"), where("shareCode", "==", normalizedCode));
         const qSnap = await getDocs(q);
         if (!qSnap.empty) {
           foundId = qSnap.docs[0].id;
@@ -867,10 +897,11 @@ export async function fetchAndJoinSharedTrip(tripIdOrCode, fromUrlParam = false)
   }
 
   // 2. Check local trip cache / existing trips by ID or shareCode
-  const localMatch = allTrips.find(t => t.id === cleanInput || (t.shareCode && t.shareCode.toUpperCase() === upperCode));
+  const localMatch = allTrips.find(t => t.id === cleanInput || (t.shareCode && (t.shareCode.toUpperCase() === upperCode || t.shareCode.toUpperCase() === normalizedCode)));
   if (localMatch) {
     activeTripId = localMatch.id;
     syncActiveTripToState();
+    syncUrlWithActiveTrip();
     saveAllTripsToLocalStorage();
     renderAll();
     updateMapLayers();
@@ -1068,6 +1099,7 @@ export async function triggerNativeShare() {
 }
 
 // Toast notification helper
+let toastTimeout = null;
 export function showToast(title, message, iconName = "check") {
   const toast = document.getElementById("toast");
   const toastTitle = document.getElementById("toast-title");
@@ -1085,7 +1117,8 @@ export function showToast(title, message, iconName = "check") {
   toast.classList.remove("translate-y-20", "opacity-0", "pointer-events-none");
   toast.classList.add("translate-y-0", "opacity-100");
 
-  setTimeout(() => {
+  if (toastTimeout) clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => {
     toast.classList.remove("translate-y-0", "opacity-100");
     toast.classList.add("translate-y-20", "opacity-0", "pointer-events-none");
   }, 4000);
@@ -1270,8 +1303,18 @@ export function resetMapView() {
 }
 
 export function centerMapOnStop(lat, lng) {
-  if (map) {
-    map.flyTo([lat, lng], 8, { duration: 1.2 });
+  if (!map) return;
+  if (window.innerWidth < 1024) {
+    const mapEl = document.getElementById("rail-map");
+    if (mapEl) mapEl.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+  map.flyTo([lat, lng], 8, { duration: 1.0 });
+  const targetMarker = mapMarkers.find(m => {
+    const pos = m.getLatLng();
+    return Math.abs(pos.lat - lat) < 0.001 && Math.abs(pos.lng - lng) < 0.001;
+  });
+  if (targetMarker) {
+    setTimeout(() => targetMarker.openPopup(), 450);
   }
 }
 
@@ -1780,8 +1823,37 @@ export function renderBudget() {
   }
 
   const tbody = document.getElementById("expenses-table-body");
+  const mobileList = document.getElementById("expenses-mobile-list");
   const countBadge = document.getElementById("expenses-count-badge");
   if (countBadge) countBadge.textContent = `${appState.expenses.length} poster`;
+
+  if (mobileList) {
+    if (appState.expenses.length === 0) {
+      mobileList.innerHTML = `<div class="p-6 text-center text-xs text-slate-400">Ingen utgifter registrert ennå.</div>`;
+    } else {
+      mobileList.innerHTML = appState.expenses.map(exp => {
+        const payerName = exp.paidBy || (membersList[0] ? membersList[0].name : "Meg");
+        return `
+          <div class="p-3.5 flex items-center justify-between gap-3">
+            <div class="min-w-0 flex-1 space-y-1">
+              <p class="font-bold text-slate-900 text-xs truncate">${escapeHtml(exp.title)}</p>
+              <div class="flex items-center flex-wrap gap-1.5 text-[11px]">
+                <span class="px-2 py-0.5 rounded-full font-semibold bg-slate-100 text-slate-700">${escapeHtml(exp.category)}</span>
+                <span class="px-2 py-0.5 rounded-md font-semibold bg-brand-50 text-brand-800 border border-brand-200/60">Betalt av ${escapeHtml(payerName)}</span>
+                <span class="text-slate-400">${formatDate(exp.date)}</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <span class="font-extrabold text-slate-900 text-sm">${formatNumber(exp.amount)} kr</span>
+              <button onclick="deleteExpense('${exp.id}')" class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg bg-slate-50 transition" title="Slett utgift">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+  }
 
   if (tbody) {
     if (appState.expenses.length === 0) {
@@ -1883,7 +1955,7 @@ export function renderPacking() {
                     ${escapeHtml(item.text)}
                   </span>
                 </label>
-                <button onclick="deletePackingItem('${item.id}')" class="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-600 p-1 rounded transition" title="Slett">
+                <button onclick="deletePackingItem('${item.id}')" class="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 text-slate-400 hover:text-rose-600 p-1 rounded transition" title="Slett">
                   <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                 </button>
               </div>
@@ -1918,6 +1990,7 @@ export function renderHeaderCollaborationBar() {
 
   const visBadge = document.getElementById("header-visibility-badge");
   const avatarsContainer = document.getElementById("header-members-avatars");
+  const mobileAvatarsContainer = document.getElementById("mobile-members-avatars");
   const countLabel = document.getElementById("header-members-count-label");
   const readonlyBanner = document.getElementById("readonly-trip-banner");
 
@@ -1944,17 +2017,18 @@ export function renderHeaderCollaborationBar() {
   }
 
   const members = Array.isArray(active.members) ? active.members : [];
-  if (avatarsContainer) {
-    avatarsContainer.innerHTML = members.slice(0, 5).map(m => `
-      <span 
-        title="${escapeHtml(m.name)} (${m.role === 'owner' ? 'Eier' : (m.role === 'viewer' ? 'Kun visning' : 'Kan redigere')})"
-        class="w-6 h-6 rounded-full text-white text-[10px] font-extrabold flex items-center justify-center ring-2 ring-white shadow-2xs"
-        style="background-color: ${escapeHtml(m.avatarColor || '#0d9488')}"
-      >
-        ${escapeHtml(getInitials(m.name))}
-      </span>
-    `).join("");
-  }
+  const avatarsHtml = members.slice(0, 5).map(m => `
+    <span 
+      title="${escapeHtml(m.name)} (${m.role === 'owner' ? 'Eier' : (m.role === 'viewer' ? 'Kun visning' : 'Kan redigere')})"
+      class="w-6 h-6 rounded-full text-white text-[10px] font-extrabold flex items-center justify-center ring-2 ring-white shadow-2xs"
+      style="background-color: ${escapeHtml(m.avatarColor || '#0d9488')}"
+    >
+      ${escapeHtml(getInitials(m.name))}
+    </span>
+  `).join("");
+
+  if (avatarsContainer) avatarsContainer.innerHTML = avatarsHtml;
+  if (mobileAvatarsContainer) mobileAvatarsContainer.innerHTML = avatarsHtml;
 
   if (countLabel) {
     countLabel.textContent = members.length > 1 ? `${members.length} på turen` : `Reisefølge`;
@@ -2339,6 +2413,13 @@ export function selectProfileColor(color) {
   const preview = document.getElementById("profile-modal-avatar-preview");
   if (colorInput) colorInput.value = color;
   if (preview) preview.style.backgroundColor = color;
+  document.querySelectorAll("[data-profile-color]").forEach(btn => {
+    if (btn.getAttribute("data-profile-color") === color) {
+      btn.classList.add("ring-2", "ring-offset-2", "ring-slate-800");
+    } else {
+      btn.classList.remove("ring-2", "ring-offset-2", "ring-slate-800", "ring-slate-300");
+    }
+  });
 }
 
 export function renderUserProfileModal() {
@@ -2352,12 +2433,14 @@ export function renderUserProfileModal() {
   const statusBadge = document.getElementById("profile-cloud-status-badge");
   const authActions = document.getElementById("profile-auth-actions");
 
+  const activeColor = userProfile.avatarColor || "#0d9488";
   if (nameInput) nameInput.value = userProfile.displayName || "Reisende";
   if (userInput) userInput.value = userProfile.username || "@reisende";
   if (stationInput) stationInput.value = userProfile.homeStation || "Oslo S";
   if (passSelect && userProfile.defaultPassType) passSelect.value = userProfile.defaultPassType;
-  if (colorInput) colorInput.value = userProfile.avatarColor || "#0d9488";
+  if (colorInput) colorInput.value = activeColor;
   if (bioInput) bioInput.value = userProfile.bio || "";
+  selectProfileColor(activeColor);
 
   if (preview) {
     preview.textContent = getInitials(userProfile.displayName || "Reisende");
@@ -2477,6 +2560,7 @@ export function switchActiveTrip(tripId) {
   syncStateToActiveTrip();
   activeTripId = tripId;
   syncActiveTripToState();
+  syncUrlWithActiveTrip();
   persistState();
   subscribeToActiveSharedTrip();
   renderAll();
@@ -2537,8 +2621,8 @@ export function duplicateTrip(tripId) {
   newTrip.activityLog = [
     {
       text: `Opprettet privat kopi fra «${source.title}»`,
-      user: newTrip.owner.name,
-      time: new Date().toLocaleTimeString("no-NO", { hour: "2-digit", minute: "2-digit" })
+      by: newTrip.owner.name,
+      time: new Date().toISOString()
     }
   ];
   if (!newTrip.trip) newTrip.trip = {};
@@ -2553,6 +2637,7 @@ export function duplicateTrip(tripId) {
 
   activeTripId = newId;
   syncActiveTripToState();
+  syncUrlWithActiveTrip();
   persistState();
   subscribeToActiveSharedTrip();
   renderAll();
@@ -2571,10 +2656,17 @@ export function createNewTrip() {
   syncStateToActiveTrip();
   const newId = "trip_" + Date.now();
   const proposalNumber = allTrips.length + 1;
-  const newTitle = `Forslag ${proposalNumber} for Europaturné 2026`;
-  const passDays = Number(userProfile.defaultPassDays) || 7;
+  const newTitle = `Forslag ${proposalNumber} for Europaturné`;
+  const passMatch = (userProfile.defaultPassType || "").match(/(\d+)\s*dager/i);
+  const passDays = passMatch ? parseInt(passMatch[1], 10) : 7;
   const homeStation = userProfile.homeStation || "Oslo S";
-  const homeCity = homeStation.replace(/\s+(S|H|Hbf|stasjon|Centralstation)$/i, "").trim() || "Oslo";
+  const matchedHub = EUROPEAN_RAIL_STATIONS.find(
+    st => st.name.toLowerCase() === homeStation.toLowerCase() || st.city.toLowerCase() === homeStation.toLowerCase()
+  );
+  const homeCity = matchedHub ? matchedHub.city : (homeStation.replace(/\s+(S|H|Hbf|stasjon|Centralstation)$/i, "").trim() || "Oslo");
+  const homeCountry = matchedHub ? matchedHub.country : "Norge";
+  const homeLat = matchedHub ? matchedHub.lat : 59.9139;
+  const homeLng = matchedHub ? matchedHub.lng : 10.7522;
 
   const newTrip = ensureTripCollaborationFields({
     id: newId,
@@ -2595,13 +2687,13 @@ export function createNewTrip() {
       {
         id: "stop-new-1",
         city: homeCity,
-        country: "Norge",
+        country: homeCountry,
         arrival: "2026-07-01",
         departure: "2026-07-02",
         accommodationStatus: "Hjemme / Start",
         accommodationNote: `Startreise fra ${homeStation}`,
-        lat: 59.9139,
-        lng: 10.7522,
+        lat: homeLat,
+        lng: homeLng,
         order: 1
       },
       {
@@ -2649,6 +2741,7 @@ export function createNewTrip() {
   allTrips.push(newTrip);
   activeTripId = newId;
   syncActiveTripToState();
+  syncUrlWithActiveTrip();
   persistState();
   subscribeToActiveSharedTrip();
   renderAll();
@@ -2673,6 +2766,7 @@ export function deleteTrip(tripId) {
     activeTripId = allTrips[0].id;
   }
   syncActiveTripToState();
+  syncUrlWithActiveTrip();
   persistState();
   renderAll();
   updateMapLayers();
@@ -2705,6 +2799,7 @@ export function renameTripInManager(tripId) {
 // =============================================================================
 
 export function moveStopOrder(stopId, direction) {
+  if (!requireEditPermission()) return;
   const index = appState.stops.findIndex(s => s.id === stopId);
   if (index === -1) return;
   const newIndex = index + direction;
@@ -2806,6 +2901,7 @@ export function selectSearchResult(city, country, lat, lng) {
 }
 
 export function openAddStopModal() {
+  if (!requireEditPermission()) return;
   document.getElementById("stop-edit-id").value = "";
   document.getElementById("modal-stop-title").textContent = "Legg til stoppested";
   document.getElementById("modal-stop-btn-text").textContent = "Lagre stoppested";
@@ -2813,10 +2909,28 @@ export function openAddStopModal() {
   document.getElementById("stop-preset-select").value = "";
   document.getElementById("stop-search-input").value = "";
   document.getElementById("search-results-dropdown").classList.add("hidden");
+
+  // Smart default arrival & departure dates based on previous stop
+  const lastStop = appState.stops.length > 0 ? appState.stops[appState.stops.length - 1] : null;
+  const baseArrival = (lastStop && lastStop.departure) || (appState.trip && appState.trip.startDate) || "2026-07-15";
+  const arrEl = document.getElementById("stop-arrival");
+  const depEl = document.getElementById("stop-departure");
+  if (arrEl) arrEl.value = baseArrival;
+  if (depEl) {
+    try {
+      const d = new Date(baseArrival);
+      d.setDate(d.getDate() + 3);
+      depEl.value = d.toISOString().split("T")[0];
+    } catch (e) {
+      depEl.value = baseArrival;
+    }
+  }
+
   openModal('modal-add-stop');
 }
 
 export function openEditStopModal(stopId) {
+  if (!requireEditPermission()) return;
   const stop = appState.stops.find(s => s.id === stopId);
   if (!stop) return;
 
@@ -2842,6 +2956,7 @@ export function openEditStopModal(stopId) {
 
 export function handleSaveStop(e) {
   e.preventDefault();
+  if (!requireEditPermission()) return;
   const editId = document.getElementById("stop-edit-id").value;
   const city = document.getElementById("stop-city").value.trim();
   const country = document.getElementById("stop-country").value.trim();
@@ -2888,6 +3003,7 @@ export function handleSaveStop(e) {
 }
 
 export function deleteStop(id) {
+  if (!requireEditPermission()) return;
   const stop = appState.stops.find(s => s.id === id);
   appState.stops = appState.stops.filter(s => s.id !== id);
   appState.stops.forEach((s, idx) => { s.order = idx + 1; });
@@ -2912,6 +3028,7 @@ export function setPresetPassDays(days) {
 
 export function handleSaveTripSettings(e) {
   e.preventDefault();
+  if (!requireEditPermission()) return;
   appState.trip.title = document.getElementById("settings-title").value.trim() || "Sommerens Europaturné";
   appState.trip.startDate = document.getElementById("settings-start-date").value;
   appState.trip.endDate = document.getElementById("settings-end-date").value;
@@ -2925,6 +3042,7 @@ export function handleSaveTripSettings(e) {
 
 export function handleSaveTrain(e) {
   e.preventDefault();
+  if (!requireEditPermission()) return;
   const fromCity = document.getElementById("train-from").value.trim();
   const toCity = document.getElementById("train-to").value.trim();
   const date = document.getElementById("train-date").value;
@@ -2959,6 +3077,7 @@ export function handleSaveTrain(e) {
 }
 
 export function toggleTrainReservation(trainId) {
+  if (!requireEditPermission()) return;
   const train = appState.trains.find(t => t.id === trainId);
   if (!train) return;
   if (train.reservationStatus === "required") {
@@ -2973,6 +3092,7 @@ export function toggleTrainReservation(trainId) {
 }
 
 export function deleteTrain(id) {
+  if (!requireEditPermission()) return;
   const train = appState.trains.find(t => t.id === id);
   appState.trains = appState.trains.filter(t => t.id !== id);
   persistState(train ? `Fjernet togreise: ${train.fromCity} → ${train.toCity}` : null);
@@ -2982,6 +3102,7 @@ export function deleteTrain(id) {
 
 export function handleSaveExpense(e) {
   e.preventDefault();
+  if (!requireEditPermission()) return;
   const title = document.getElementById("expense-title").value.trim();
   const category = document.getElementById("expense-category").value;
   const amount = parseFloat(document.getElementById("expense-amount").value) || 0;
@@ -3006,12 +3127,14 @@ export function handleSaveExpense(e) {
 }
 
 export function deleteExpense(id) {
+  if (!requireEditPermission()) return;
   appState.expenses = appState.expenses.filter(e => e.id !== id);
   persistState();
   renderAll();
 }
 
 export function togglePackingItem(id) {
+  if (!requireEditPermission()) return;
   const item = appState.packingList.find(i => i.id === id);
   if (item) {
     item.checked = !item.checked;
@@ -3022,6 +3145,7 @@ export function togglePackingItem(id) {
 
 export function handleSavePackingItem(e) {
   e.preventDefault();
+  if (!requireEditPermission()) return;
   const text = document.getElementById("packing-text").value.trim();
   const category = document.getElementById("packing-category").value;
 
@@ -3040,6 +3164,7 @@ export function handleSavePackingItem(e) {
 
 export function handleQuickAddPacking(e, category) {
   e.preventDefault();
+  if (!requireEditPermission()) return;
   const form = e.target;
   const input = form.elements['quickItemText'];
   if (!input || !input.value.trim()) return;
@@ -3057,6 +3182,7 @@ export function handleQuickAddPacking(e, category) {
 }
 
 export function deletePackingItem(id) {
+  if (!requireEditPermission()) return;
   appState.packingList = appState.packingList.filter(i => i.id !== id);
   persistState();
   renderPacking();
@@ -3077,13 +3203,26 @@ export function closeModal(id) {
   const el = document.getElementById(id);
   if (el) {
     el.classList.add("hidden");
-    document.body.style.overflow = "auto";
+    const anyStillOpen = Array.from(document.querySelectorAll("[id^='modal-']")).some(
+      m => !m.classList.contains("hidden")
+    );
+    if (!anyStillOpen) {
+      document.body.style.overflow = "auto";
+    }
   }
 }
 
-export function openAddTrainModal() { openModal('modal-add-train'); }
+export function openAddTrainModal() {
+  if (!requireEditPermission()) return;
+  const dateEl = document.getElementById("train-date");
+  if (dateEl && appState.trip && appState.trip.startDate) {
+    dateEl.value = appState.trip.startDate;
+  }
+  openModal('modal-add-train');
+}
 
 export function openAddExpenseModal() {
+  if (!requireEditPermission()) return;
   const paidBySelect = document.getElementById("expense-paid-by");
   if (paidBySelect) {
     const active = getActiveTripObject();
@@ -3102,11 +3241,22 @@ export function openAddExpenseModal() {
   openModal('modal-add-expense');
 }
 
-export function openAddPackingItemModal() { openModal('modal-add-packing'); }
+export function openAddPackingItemModal() {
+  if (!requireEditPermission()) return;
+  openModal('modal-add-packing');
+}
 
 window.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
     document.querySelectorAll("[id^='modal-']").forEach(m => closeModal(m.id));
+  }
+});
+
+// Close modal when clicking directly on the dark backdrop overlay
+document.addEventListener("click", (e) => {
+  const target = e.target;
+  if (target && target.id && target.id.startsWith("modal-") && target.classList.contains("fixed")) {
+    closeModal(target.id);
   }
 });
 
@@ -3713,18 +3863,27 @@ export async function executeLiveTrainSearch(e) {
       return;
     }
 
-    let rawItineraries = await queryTransitousItineraries(liveSelectedFrom, liveSelectedTo, requestedDate, requestedTime);
+    const todayIso = new Date().toISOString().split("T")[0];
     let usedFallbackDate = false;
     let effectiveSearchDate = requestedDate;
+    let rawItineraries = [];
 
-    // If the user's trip is many months in the future and GTFS schedules aren't published yet, fallback to same weekday in current timetable period
-    if (rawItineraries.length === 0) {
-      const fallbackDate = getFallbackNearTermDate(requestedDate);
-      if (fallbackDate !== requestedDate) {
-        rawItineraries = await queryTransitousItineraries(liveSelectedFrom, liveSelectedTo, fallbackDate, requestedTime);
-        if (rawItineraries.length > 0) {
-          usedFallbackDate = true;
-          effectiveSearchDate = fallbackDate;
+    // If requestedDate is in the past, immediately query the matching weekday in the active timetable window
+    if (requestedDate < todayIso) {
+      effectiveSearchDate = getFallbackNearTermDate(requestedDate);
+      usedFallbackDate = effectiveSearchDate !== requestedDate;
+      rawItineraries = await queryTransitousItineraries(liveSelectedFrom, liveSelectedTo, effectiveSearchDate, requestedTime);
+    } else {
+      rawItineraries = await queryTransitousItineraries(liveSelectedFrom, liveSelectedTo, requestedDate, requestedTime);
+      // If the user's trip is many months in the future and GTFS schedules aren't published yet, fallback to same weekday in current timetable period
+      if (rawItineraries.length === 0) {
+        const fallbackDate = getFallbackNearTermDate(requestedDate);
+        if (fallbackDate !== requestedDate) {
+          rawItineraries = await queryTransitousItineraries(liveSelectedFrom, liveSelectedTo, fallbackDate, requestedTime);
+          if (rawItineraries.length > 0) {
+            usedFallbackDate = true;
+            effectiveSearchDate = fallbackDate;
+          }
         }
       }
     }
@@ -3922,6 +4081,7 @@ function renderLiveSearchResults(usedFallbackDate, requestedDate, effectiveSearc
 }
 
 export function importLiveJourneyToTrip(idx) {
+  if (!requireEditPermission()) return;
   const j = liveSearchJourneys[idx];
   if (!j) return;
 
@@ -3982,6 +4142,10 @@ export function previewLiveRouteOnMap(idx) {
 
   setTimeout(() => {
     if (!map) return;
+    if (window.innerWidth < 1024) {
+      const mapEl = document.getElementById("rail-map");
+      if (mapEl) mapEl.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
     if (previewTrackPolyline) {
       map.removeLayer(previewTrackPolyline);
       previewTrackPolyline = null;
@@ -4014,6 +4178,10 @@ export function focusTrainTrackOnMap(trainId) {
   switchTab("overview");
   setTimeout(() => {
     if (!map) return;
+    if (window.innerWidth < 1024) {
+      const mapEl = document.getElementById("rail-map");
+      if (mapEl) mapEl.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
     const bounds = L.latLngBounds(train.routeGeometry);
     map.fitBounds(bounds, { padding: [60, 60] });
   }, 220);
