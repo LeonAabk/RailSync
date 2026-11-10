@@ -704,16 +704,32 @@
       <!-- TAB 3: BUDSJETT                                                       -->
       <!-- ===================================================================== -->
       <section id="tab-budget" class="tab-content hidden space-y-6">
+
+        <!-- Personal Budget Privacy Banner -->
+        <div class="bg-brand-50/70 border border-brand-200/80 rounded-2xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div class="flex items-center gap-2.5 text-xs sm:text-sm text-brand-950 font-semibold">
+            <span class="w-7 h-7 rounded-lg bg-brand-600 text-white flex items-center justify-center shrink-0">
+              <i data-lucide="shield-check" class="w-4 h-4"></i>
+            </span>
+            <div>
+              <span>Mitt personlige budsjett</span>
+              <span class="text-slate-600 font-normal block sm:inline sm:ml-1.5">– Dine budsjettrammer og utgifter er helt private og deles ikke med de du reiser med.</span>
+            </div>
+          </div>
+          <button onclick="openEditPersonalBudgetPrompt()" class="text-xs font-bold text-brand-700 hover:text-brand-800 bg-white hover:bg-brand-100/60 border border-brand-200 px-3 py-1.5 rounded-xl transition self-start sm:self-auto shrink-0">
+            Endre mitt totalbudsjett
+          </button>
+        </div>
         
         <!-- Budget Overview Summary Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
             <div class="flex items-center justify-between">
-              <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Totalbudsjett</p>
-              <button onclick="openTripSettingsModal()" class="text-xs text-brand-600 hover:underline">Endre</button>
+              <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Mitt Totalbudsjett</p>
+              <button onclick="openEditPersonalBudgetPrompt()" class="text-xs text-brand-600 hover:underline font-semibold">Endre</button>
             </div>
             <h3 id="budget-total-val" class="text-2xl font-extrabold text-slate-900 mt-1">22 000 kr</h3>
-            <p class="text-xs text-slate-500 mt-1">Satt totalramme for turen</p>
+            <p class="text-xs text-slate-500 mt-1">Din personlige ramme for turen</p>
           </div>
           <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
             <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Brukt hittil</p>
@@ -737,7 +753,7 @@
           <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
               <h2 class="text-base font-bold text-slate-900">Utgiftsfordeling på kategorier</h2>
-              <p class="text-xs text-slate-500">Se hvor mye penger som går til transport, opphold, mat og fornøyelser</p>
+              <p class="text-xs text-slate-500">Se hvor mye av ditt eget budsjett som går til transport, opphold, mat og fornøyelser</p>
             </div>
             <button onclick="openAddExpenseModal()" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs sm:text-sm shadow-sm transition">
               <i data-lucide="plus-circle" class="w-4 h-4"></i>
@@ -751,29 +767,10 @@
           </div>
         </div>
 
-        <!-- Shared Trip Expense Split per Member -->
-        <div id="budget-members-split-card" class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 sm:p-6 space-y-4">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
-            <div>
-              <h3 class="font-bold text-slate-900 text-sm sm:text-base flex items-center gap-2">
-                <i data-lucide="users" class="w-4 h-4 text-brand-600"></i>
-                Utgiftsfordeling i reisefølget (Hvem har lagt ut?)
-              </h3>
-              <p class="text-xs text-slate-500">Oversikt over hvor mye hver deltaker på turen har betalt så langt</p>
-            </div>
-            <button onclick="handleSaveAndShareTrip()" class="text-xs font-semibold text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 px-3 py-1.5 rounded-lg transition self-start sm:self-auto">
-              Administrer reisefølge
-            </button>
-          </div>
-          <div id="budget-members-split-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <!-- Dynamically populated by renderBudget() -->
-          </div>
-        </div>
-
         <!-- Expenses Transaction Table & Mobile Card List -->
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
           <div class="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
-            <h3 class="font-bold text-slate-900 text-sm sm:text-base">Registrerte utgifter</h3>
+            <h3 class="font-bold text-slate-900 text-sm sm:text-base">Mine registrerte utgifter</h3>
             <span id="expenses-count-badge" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">9 poster</span>
           </div>
 
@@ -789,7 +786,6 @@
                 <tr>
                   <th class="py-3 px-4 sm:px-6">Beskrivelse</th>
                   <th class="py-3 px-4">Kategori</th>
-                  <th class="py-3 px-4">Betalt av</th>
                   <th class="py-3 px-4">Dato</th>
                   <th class="py-3 px-4 text-right">Beløp</th>
                   <th class="py-3 px-4 text-right">Handling</th>
@@ -1082,7 +1078,7 @@
         </div>
 
         <div>
-          <label for="settings-total-budget" class="block text-xs font-semibold text-slate-700 mb-1">Totalbudsjett (NOK) *</label>
+          <label for="settings-total-budget" class="block text-xs font-semibold text-slate-700 mb-1">Mitt personlige totalbudsjett (NOK) – deles ikke med andre *</label>
           <input type="number" id="settings-total-budget" required step="500" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3.5 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
         </div>
 
@@ -1205,8 +1201,8 @@
             <i data-lucide="wallet" class="w-5 h-5"></i>
           </div>
           <div>
-            <h3 id="modal-expense-title" class="font-bold text-slate-900 text-base">Legg til utgift</h3>
-            <p class="text-xs text-slate-500">Registrer kostnader for turen</p>
+            <h3 id="modal-expense-title" class="font-bold text-slate-900 text-base">Legg til personlig utgift</h3>
+            <p class="text-xs text-slate-500">Kun synlig i ditt eget budsjett</p>
           </div>
         </div>
         <button onclick="closeModal('modal-add-expense')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
@@ -1236,18 +1232,9 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label for="expense-paid-by" class="block text-xs font-semibold text-slate-700 mb-1">Betalt av (i reisefølget)</label>
-            <select id="expense-paid-by" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
-              <option value="Meg">Meg</option>
-              <option value="Felles">Felleskasse</option>
-            </select>
-          </div>
-          <div>
-            <label for="expense-date" class="block text-xs font-semibold text-slate-700 mb-1">Dato</label>
-            <input type="date" id="expense-date" value="2026-07-10" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3.5 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
-          </div>
+        <div>
+          <label for="expense-date" class="block text-xs font-semibold text-slate-700 mb-1">Dato</label>
+          <input type="date" id="expense-date" value="2026-07-10" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3.5 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
         </div>
 
         <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
@@ -1256,6 +1243,51 @@
           </button>
           <button type="submit" class="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm shadow-sm transition">
             Lagre utgift
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: ENDRE MITT PERSONLIGE TOTALBUDSJETT                                -->
+  <!-- ========================================================================= -->
+  <div id="modal-edit-budget" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 space-y-4" role="dialog" aria-modal="true" aria-labelledby="modal-personal-budget-title">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center">
+            <i data-lucide="wallet" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 id="modal-personal-budget-title" class="font-bold text-slate-900 text-base">Mitt totalbudsjett</h3>
+            <p class="text-xs text-slate-500">Privat for deg på denne reisen</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-edit-budget')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="form-edit-personal-budget" onsubmit="handleSavePersonalBudget(event)" class="space-y-4">
+        <div>
+          <label for="personal-budget-input" class="block text-xs font-semibold text-slate-700 mb-1">Din budsjettramme (NOK) *</label>
+          <input type="number" id="personal-budget-input" required step="500" min="0" class="w-full bg-slate-50 border border-slate-200 text-base rounded-xl px-3.5 py-2.5 text-slate-900 font-bold focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          <div class="flex items-center gap-1.5 flex-wrap mt-2">
+            <button type="button" onclick="document.getElementById('personal-budget-input').value = 10000" class="px-2.5 py-1 text-xs rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition">10 000 kr</button>
+            <button type="button" onclick="document.getElementById('personal-budget-input').value = 15000" class="px-2.5 py-1 text-xs rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition">15 000 kr</button>
+            <button type="button" onclick="document.getElementById('personal-budget-input').value = 20000" class="px-2.5 py-1 text-xs rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition">20 000 kr</button>
+            <button type="button" onclick="document.getElementById('personal-budget-input').value = 25000" class="px-2.5 py-1 text-xs rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition">25 000 kr</button>
+            <button type="button" onclick="document.getElementById('personal-budget-input').value = 30000" class="px-2.5 py-1 text-xs rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition">30 000 kr</button>
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
+          <button type="button" onclick="closeModal('modal-edit-budget')" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-semibold text-xs sm:text-sm transition">
+            Avbryt
+          </button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs sm:text-sm shadow-sm transition">
+            Lagre budsjett
           </button>
         </div>
       </form>
@@ -1840,7 +1872,7 @@
   <!-- ========================================================================= -->
   <!-- MODULAR JAVASCRIPT ENTRYPOINT                                             -->
   <!-- ========================================================================= -->
-  <script type="module" src="./app.js?v=20261110-4"></script>
+  <script type="module" src="./app.js?v=20261110-5"></script>
 
 </body>
 </html>

@@ -110,6 +110,15 @@ export async function syncUserProfileWithCloud(user) {
       const snap = await getDoc(userDocRef);
       if (snap.exists()) {
         const cloudProf = snap.data();
+        if (cloudProf.personalBudgets && typeof cloudProf.personalBudgets === "object") {
+          personalBudgetsByTrip = {
+            ...cloudProf.personalBudgets,
+            ...personalBudgetsByTrip
+          };
+          try {
+            localStorage.setItem("railsync_personal_budgets_v1", JSON.stringify(personalBudgetsByTrip));
+          } catch (e) {}
+        }
         userProfile = {
           ...userProfile,
           ...cloudProf,
@@ -118,6 +127,7 @@ export async function syncUserProfileWithCloud(user) {
       } else {
         await setDoc(userDocRef, {
           ...userProfile,
+          personalBudgets: personalBudgetsByTrip,
           uid: user.uid,
           updatedAt: new Date().toISOString()
         }, { merge: true });
@@ -578,15 +588,113 @@ function syncUrlWithActiveTrip() {
   }
 }
 
+// =============================================================================
+// PERSONAL BUDGET STORE (Private per traveler – never shared with companions)
+// =============================================================================
+export let personalBudgetsByTrip = {};
+
+export function loadPersonalBudgetsFromStorage() {
+  try {
+    const raw = localStorage.getItem("railsync_personal_budgets_v1");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") {
+        personalBudgetsByTrip = parsed;
+      }
+    }
+  } catch (e) {
+    console.warn("Kunne ikke lese personlige budsjetter:", e);
+  }
+}
+
+export function savePersonalBudgetsToStorage() {
+  try {
+    localStorage.setItem("railsync_personal_budgets_v1", JSON.stringify(personalBudgetsByTrip));
+  } catch (e) {}
+
+  if (currentUser && isFirebaseConfigured() && db) {
+    setDoc(doc(db, "users", currentUser.uid), {
+      personalBudgets: personalBudgetsByTrip,
+      updatedAt: new Date().toISOString()
+    }, { merge: true }).catch(() => {});
+  }
+}
+
+export function getPersonalBudgetForTrip(tripObj) {
+  if (!tripObj || !tripObj.id) {
+    return { totalBudget: 20000, expenses: [] };
+  }
+
+  const existing = personalBudgetsByTrip[tripObj.id];
+  if (existing && typeof existing === "object") {
+    return {
+      totalBudget: Number(existing.totalBudget) || 20000,
+      expenses: Array.isArray(existing.expenses) ? JSON.parse(JSON.stringify(existing.expenses)) : []
+    };
+  }
+
+  let initialBudget = 20000;
+  let initialExpenses = [];
+
+  if (tripObj.id === "eksempel-1") {
+    initialBudget = defaultTripState.trip.totalBudget || 22000;
+    initialExpenses = JSON.parse(JSON.stringify(defaultTripState.expenses));
+  } else if (isTripOwnedByCurrentUser(tripObj)) {
+    initialBudget = (tripObj.trip && Number(tripObj.trip.totalBudget)) || 20000;
+    initialExpenses = Array.isArray(tripObj.expenses) ? JSON.parse(JSON.stringify(tripObj.expenses)) : [];
+  } else {
+    // Joining someone else's shared trip: create a separate personal budget for this traveler
+    const passDays = (tripObj.trip && tripObj.trip.totalPassDays) || 7;
+    initialBudget = 20000;
+    initialExpenses = [
+      {
+        id: "exp-personal-" + Date.now(),
+        title: `Interrail Global Pass ${passDays} dager`,
+        category: "Transport",
+        amount: 3900,
+        date: (tripObj.trip && tripObj.trip.startDate) || new Date().toISOString().split("T")[0]
+      }
+    ];
+  }
+
+  personalBudgetsByTrip[tripObj.id] = {
+    totalBudget: initialBudget,
+    expenses: JSON.parse(JSON.stringify(initialExpenses)),
+    updatedAt: new Date().toISOString()
+  };
+  savePersonalBudgetsToStorage();
+
+  return {
+    totalBudget: initialBudget,
+    expenses: initialExpenses
+  };
+}
+
+export function updatePersonalBudgetForTrip(tripId, totalBudget, expenses) {
+  if (!tripId) return;
+  personalBudgetsByTrip[tripId] = {
+    totalBudget: Number(totalBudget) || 20000,
+    expenses: JSON.parse(JSON.stringify(expenses || [])),
+    updatedAt: new Date().toISOString()
+  };
+  savePersonalBudgetsToStorage();
+}
+
 export function syncActiveTripToState() {
   const active = getActiveTripObject();
   if (!active) return;
 
+  const myBudget = getPersonalBudgetForTrip(active);
+
   appState.trip = JSON.parse(JSON.stringify(active.trip || defaultTripState.trip));
+  appState.trip.totalBudget = myBudget.totalBudget;
   appState.stops = JSON.parse(JSON.stringify(active.stops || []));
   appState.trains = JSON.parse(JSON.stringify(active.trains || []));
-  appState.expenses = JSON.parse(JSON.stringify(active.expenses || []));
+  appState.expenses = myBudget.expenses;
   appState.packingList = JSON.parse(JSON.stringify(active.packingList || []));
+
+  active.trip.totalBudget = myBudget.totalBudget;
+  active.expenses = JSON.parse(JSON.stringify(myBudget.expenses));
 
   subscribeToActiveSharedTrip();
 }
@@ -603,6 +711,8 @@ export function syncStateToActiveTrip(activityText = "") {
   } else {
     ensureTripCollaborationFields(active);
   }
+
+  updatePersonalBudgetForTrip(active.id, appState.trip.totalBudget, appState.expenses);
 
   active.title = appState.trip.title || "Min Reise";
   active.trip = JSON.parse(JSON.stringify(appState.trip));
@@ -635,8 +745,16 @@ async function pushTripToFirestore(tripObj) {
   if (!isFirebaseConfigured() || !db || !tripObj || !tripObj.id) return;
   try {
     const docRef = doc(db, "trips", tripObj.id);
+    const cloudPayload = JSON.parse(JSON.stringify(tripObj));
+    // Never share personal expenses or personal totalBudget in shared trips
+    if (cloudPayload.visibility === "shared") {
+      delete cloudPayload.expenses;
+      if (cloudPayload.trip) {
+        delete cloudPayload.trip.totalBudget;
+      }
+    }
     await setDoc(docRef, {
-      ...JSON.parse(JSON.stringify(tripObj)),
+      ...cloudPayload,
       savedAt: new Date().toISOString()
     }, { merge: true });
   } catch (err) {
@@ -677,6 +795,12 @@ export function subscribeToActiveSharedTrip() {
           title: cloudData.trip.title || cloudData.title || "Delt Reise"
         });
 
+        // Always keep current traveler's own personal budget & expenses (never overwrite from shared trip)
+        const myBudget = getPersonalBudgetForTrip(merged);
+        if (!merged.trip) merged.trip = {};
+        merged.trip.totalBudget = myBudget.totalBudget;
+        merged.expenses = myBudget.expenses;
+
         const idx = allTrips.findIndex(t => t.id === active.id);
         if (idx !== -1) {
           allTrips[idx] = merged;
@@ -685,7 +809,7 @@ export function subscribeToActiveSharedTrip() {
           appState.trip = JSON.parse(JSON.stringify(merged.trip));
           appState.stops = JSON.parse(JSON.stringify(merged.stops || []));
           appState.trains = JSON.parse(JSON.stringify(merged.trains || []));
-          appState.expenses = JSON.parse(JSON.stringify(merged.expenses || []));
+          appState.expenses = JSON.parse(JSON.stringify(myBudget.expenses));
           appState.packingList = JSON.parse(JSON.stringify(merged.packingList || []));
           saveAllTripsToLocalStorage();
           renderAll();
@@ -727,6 +851,9 @@ export async function syncAllUserTripsWithCloud(silent = false) {
             id: docSnap.id,
             title: data.trip.title || data.title || "Min Reise"
           });
+          const myBudget = getPersonalBudgetForTrip(cloudTrip);
+          cloudTrip.trip.totalBudget = myBudget.totalBudget;
+          cloudTrip.expenses = myBudget.expenses;
           const existingIdx = allTrips.findIndex(local => local.id === docSnap.id);
           if (existingIdx === -1) {
             allTrips.push(cloudTrip);
@@ -771,6 +898,7 @@ export function saveAllTripsToLocalStorage() {
 // =============================================================================
 export async function loadAppState() {
   loadLocalUserProfile();
+  loadPersonalBudgetsFromStorage();
 
   // First load saved trips from localStorage so we don't lose existing trips when opening a shared link
   try {
@@ -853,6 +981,11 @@ export async function fetchAndJoinSharedTrip(tripIdOrCode, fromUrlParam = false)
           visibility: "shared",
           title: cloudData.trip.title || cloudData.title || "Delt Reise"
         });
+
+        // Ensure personal budget is kept separate from trip owner's budget
+        const myBudget = getPersonalBudgetForTrip(loadedTrip);
+        loadedTrip.trip.totalBudget = myBudget.totalBudget;
+        loadedTrip.expenses = myBudget.expenses;
 
         // Automatically add current user to members if not already in the list
         const myUid = currentUser ? currentUser.uid : userProfile.uid;
@@ -1772,56 +1905,6 @@ export function renderBudget() {
     }).join("");
   }
 
-  // Render Shared Trip Expense Split per Member
-  const activeTripObj = getActiveTripObject();
-  const membersList = (activeTripObj && Array.isArray(activeTripObj.members) && activeTripObj.members.length > 0)
-    ? activeTripObj.members
-    : [{ id: "me", name: userProfile.displayName || "Meg", role: "owner", avatarColor: userProfile.avatarColor || "#0d9488" }];
-
-  const splitContainer = document.getElementById("budget-members-split-container");
-  if (splitContainer) {
-    const perPersonShare = membersList.length > 0 ? Math.round(totalSpent / membersList.length) : totalSpent;
-    splitContainer.innerHTML = membersList.map((m, idx) => {
-      const paidByThisMember = appState.expenses
-        .filter(e => {
-          const payer = (e.paidBy || "").toLowerCase();
-          if (!payer || payer === "meg") return idx === 0;
-          return payer === m.name.toLowerCase();
-        })
-        .reduce((sum, e) => sum + Number(e.amount || 0), 0);
-
-      const diff = paidByThisMember - perPersonShare;
-      let diffLabel = `<span class="text-[11px] text-slate-400 font-medium">Snitt: ${formatNumber(perPersonShare)} kr/pers</span>`;
-      if (membersList.length > 1) {
-        if (diff > 20) {
-          diffLabel = `<span class="text-[11px] font-bold text-emerald-700">+${formatNumber(diff)} kr til gode</span>`;
-        } else if (diff < -20) {
-          diffLabel = `<span class="text-[11px] font-bold text-amber-700">${formatNumber(diff)} kr (skylder felles)</span>`;
-        } else {
-          diffLabel = `<span class="text-[11px] font-semibold text-slate-500">I balanse</span>`;
-        }
-      }
-
-      return `
-        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 flex items-center justify-between gap-3">
-          <div class="flex items-center gap-2.5 min-w-0">
-            <span class="w-8 h-8 rounded-full text-white text-xs font-extrabold flex items-center justify-center shrink-0 shadow-2xs" style="background-color: ${escapeHtml(m.avatarColor || '#0d9488')}">
-              ${escapeHtml(getInitials(m.name))}
-            </span>
-            <div class="min-w-0">
-              <p class="text-xs sm:text-sm font-bold text-slate-900 truncate">${escapeHtml(m.name)}</p>
-              ${diffLabel}
-            </div>
-          </div>
-          <div class="text-right shrink-0">
-            <p class="text-sm font-extrabold text-slate-900">${formatNumber(paidByThisMember)} kr</p>
-            <p class="text-[10px] text-slate-400 font-semibold uppercase">Lagt ut</p>
-          </div>
-        </div>
-      `;
-    }).join("");
-  }
-
   const tbody = document.getElementById("expenses-table-body");
   const mobileList = document.getElementById("expenses-mobile-list");
   const countBadge = document.getElementById("expenses-count-badge");
@@ -1829,17 +1912,15 @@ export function renderBudget() {
 
   if (mobileList) {
     if (appState.expenses.length === 0) {
-      mobileList.innerHTML = `<div class="p-6 text-center text-xs text-slate-400">Ingen utgifter registrert ennå.</div>`;
+      mobileList.innerHTML = `<div class="p-6 text-center text-xs text-slate-400">Ingen personlige utgifter registrert ennå.</div>`;
     } else {
       mobileList.innerHTML = appState.expenses.map(exp => {
-        const payerName = exp.paidBy || (membersList[0] ? membersList[0].name : "Meg");
         return `
           <div class="p-3.5 flex items-center justify-between gap-3">
             <div class="min-w-0 flex-1 space-y-1">
               <p class="font-bold text-slate-900 text-xs truncate">${escapeHtml(exp.title)}</p>
               <div class="flex items-center flex-wrap gap-1.5 text-[11px]">
                 <span class="px-2 py-0.5 rounded-full font-semibold bg-slate-100 text-slate-700">${escapeHtml(exp.category)}</span>
-                <span class="px-2 py-0.5 rounded-md font-semibold bg-brand-50 text-brand-800 border border-brand-200/60">Betalt av ${escapeHtml(payerName)}</span>
                 <span class="text-slate-400">${formatDate(exp.date)}</span>
               </div>
             </div>
@@ -1857,21 +1938,15 @@ export function renderBudget() {
 
   if (tbody) {
     if (appState.expenses.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-400">Ingen utgifter registrert.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-slate-400">Ingen personlige utgifter registrert.</td></tr>`;
     } else {
       tbody.innerHTML = appState.expenses.map(exp => {
-        const payerName = exp.paidBy || (membersList[0] ? membersList[0].name : "Meg");
         return `
         <tr class="hover:bg-slate-50/80 transition">
           <td class="py-3 px-4 sm:px-6 font-semibold text-slate-900">${escapeHtml(exp.title)}</td>
           <td class="py-3 px-4">
             <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">
               ${escapeHtml(exp.category)}
-            </span>
-          </td>
-          <td class="py-3 px-4">
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-brand-50 text-brand-800 border border-brand-200/60">
-              ${escapeHtml(payerName)}
             </span>
           </td>
           <td class="py-3 px-4 text-slate-500 text-xs">${formatDate(exp.date)}</td>
@@ -2139,7 +2214,8 @@ export function renderTripManagerList() {
     const isActive = tripItem.id === activeTripId;
     const stopsCount = tripItem.stops ? tripItem.stops.length : 0;
     const daysCount = tripItem.trip ? (tripItem.trip.totalPassDays || 7) : 7;
-    const budgetVal = tripItem.trip ? (tripItem.trip.totalBudget || 22000) : 22000;
+    const myTripBudget = getPersonalBudgetForTrip(tripItem);
+    const budgetVal = myTripBudget.totalBudget || 20000;
     const isShared = tripItem.visibility === "shared";
     const members = Array.isArray(tripItem.members) ? tripItem.members : [];
     const ownerName = tripItem.owner ? tripItem.owner.name : "Meg";
@@ -3100,36 +3176,62 @@ export function deleteTrain(id) {
   updateMapLayers();
 }
 
+export function savePersonalBudgetStateOnly() {
+  updatePersonalBudgetForTrip(activeTripId, appState.trip.totalBudget, appState.expenses);
+  const active = allTrips.find(t => t.id === activeTripId);
+  if (active) {
+    if (!active.trip) active.trip = {};
+    active.trip.totalBudget = appState.trip.totalBudget;
+    active.expenses = JSON.parse(JSON.stringify(appState.expenses));
+  }
+  saveAllTripsToLocalStorage();
+}
+
+export function openEditPersonalBudgetPrompt() {
+  const input = document.getElementById("personal-budget-input");
+  if (input) {
+    input.value = appState.trip.totalBudget || 20000;
+  }
+  openModal("modal-edit-budget");
+}
+
+export function handleSavePersonalBudget(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  const input = document.getElementById("personal-budget-input");
+  const newVal = input ? parseFloat(input.value) : 20000;
+  appState.trip.totalBudget = !isNaN(newVal) && newVal >= 0 ? newVal : 20000;
+  savePersonalBudgetStateOnly();
+  renderAll();
+  closeModal("modal-edit-budget");
+  showToast("Mitt budsjett oppdatert", `Personlig totalbudsjett satt til ${formatNumber(appState.trip.totalBudget)} kr.`, "wallet");
+}
+
 export function handleSaveExpense(e) {
   e.preventDefault();
-  if (!requireEditPermission()) return;
   const title = document.getElementById("expense-title").value.trim();
   const category = document.getElementById("expense-category").value;
   const amount = parseFloat(document.getElementById("expense-amount").value) || 0;
   const date = document.getElementById("expense-date").value;
-  const paidByEl = document.getElementById("expense-paid-by");
-  const paidBy = paidByEl && paidByEl.value ? paidByEl.value : (userProfile.displayName || "Meg");
 
   const newExp = {
     id: "exp-" + Date.now(),
     title,
     category,
     amount,
-    date,
-    paidBy
+    date
   };
 
   appState.expenses.push(newExp);
-  persistState(`La til utgift: ${title} (${formatNumber(amount)} kr, betalt av ${paidBy})`);
+  savePersonalBudgetStateOnly();
   renderAll();
   closeModal('modal-add-expense');
   document.getElementById("form-add-expense").reset();
+  showToast("Utgift lagret", `Lagt til i ditt personlige budsjett (${formatNumber(amount)} kr).`, "wallet");
 }
 
 export function deleteExpense(id) {
-  if (!requireEditPermission()) return;
   appState.expenses = appState.expenses.filter(e => e.id !== id);
-  persistState();
+  savePersonalBudgetStateOnly();
   renderAll();
 }
 
@@ -3222,21 +3324,9 @@ export function openAddTrainModal() {
 }
 
 export function openAddExpenseModal() {
-  if (!requireEditPermission()) return;
-  const paidBySelect = document.getElementById("expense-paid-by");
-  if (paidBySelect) {
-    const active = getActiveTripObject();
-    const members = active && Array.isArray(active.members) ? active.members : [];
-    const options = [];
-    members.forEach(m => {
-      if (m.name && !options.includes(m.name)) options.push(m.name);
-    });
-    if (userProfile.displayName && !options.includes(userProfile.displayName)) {
-      options.unshift(userProfile.displayName);
-    }
-    if (!options.includes("Felles")) options.push("Felles");
-
-    paidBySelect.innerHTML = options.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join("");
+  const dateEl = document.getElementById("expense-date");
+  if (dateEl && appState.trip && appState.trip.startDate) {
+    dateEl.value = appState.trip.startDate;
   }
   openModal('modal-add-expense');
 }
@@ -4341,6 +4431,8 @@ window.toggleTrainReservation = toggleTrainReservation;
 window.deleteTrain = deleteTrain;
 window.renderTrains = renderTrains;
 window.openAddExpenseModal = openAddExpenseModal;
+window.openEditPersonalBudgetPrompt = openEditPersonalBudgetPrompt;
+window.handleSavePersonalBudget = handleSavePersonalBudget;
 window.handleSaveExpense = handleSaveExpense;
 window.deleteExpense = deleteExpense;
 window.openAddPackingItemModal = openAddPackingItemModal;
