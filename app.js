@@ -1305,13 +1305,14 @@ let isApplyingRemoteSnapshot = false;
 // Deep clone active state container
 export const appState = JSON.parse(JSON.stringify(emptyTripState));
 
+// En eksempelreise som aldri er lastet opp og fortsatt har eksempelets navn og stopp
 function isUntouchedExampleTrip(t) {
-  if (!t || t.id !== "eksempel-1") return false;
+  if (!t) return false;
+  if (t.id !== "eksempel-1" && t._cloudCreated) return false;
   const ex = LEGACY_EXAMPLE_TRIP_STATE;
   const strip = (arr) => JSON.stringify((arr || []).map(x => ({ ...x })));
   return String(t.title || (t.trip && t.trip.title) || "") === ex.trip.title
-    && strip(t.stops) === strip(ex.stops)
-    && strip(t.trains) === strip(ex.trains);
+    && strip(t.stops) === strip(ex.stops);
 }
 
 export function hasActiveTrip() {
@@ -2185,8 +2186,15 @@ export async function loadAppState() {
   }
 
   // Eksempelreisen er fjernet: urørt slettes, endret beholdes som brukerens egen reise
-  const example = allTrips.find(t => t.id === "eksempel-1");
   let migrated = false;
+  const untouchedCopies = allTrips.filter(t => t.id !== "eksempel-1" && isUntouchedExampleTrip(t));
+  if (untouchedCopies.length) {
+    migrated = true;
+    allTrips = allTrips.filter(t => !untouchedCopies.includes(t));
+    untouchedCopies.forEach(t => { delete personalBudgetsByTrip[t.id]; });
+    savePersonalBudgetsToStorage();
+  }
+  const example = allTrips.find(t => t.id === "eksempel-1");
   if (example) {
     migrated = true;
     if (isUntouchedExampleTrip(example)) {
