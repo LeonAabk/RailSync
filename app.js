@@ -94,17 +94,71 @@ export const EUROPEAN_INTERRAIL_COUNTRIES = [
 ];
 
 export function getCountryFlag(countryName) {
-  if (!countryName) return "🌍";
+  if (!countryName) return "";
   const clean = String(countryName).trim().toLowerCase();
   const found = EUROPEAN_INTERRAIL_COUNTRIES.find(c => c.name.toLowerCase() === clean || clean.includes(c.name.toLowerCase()));
   if (found) return found.flag;
-  if (clean.includes("italy")) return "🇮🇹";
-  if (clean.includes("germany")) return "🇩🇪";
-  if (clean.includes("france")) return "🇫🇷";
-  if (clean.includes("spain")) return "🇪🇸";
-  if (clean.includes("switzerland")) return "🇨🇭";
-  if (clean.includes("austria")) return "🇦🇹";
-  return "🌍";
+  return "";
+}
+
+export function cleanTagLabel(tag) {
+  if (!tag) return "Prioritert reisemål";
+  return String(tag)
+    .replace(/^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\s]+/gu, "")
+    .trim() || "Prioritert reisemål";
+}
+
+export function getPlaceThumbnailUrl(city = "", country = "") {
+  const key = `${city} ${country}`.toLowerCase();
+  if (key.includes("roma") || key.includes("rome") || key.includes("colosseum")) {
+    return "https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=300&q=80";
+  }
+  if (key.includes("firenze") || key.includes("florence") || key.includes("toscana")) {
+    return "https://images.unsplash.com/photo-1543429257-3eb0b65d9c58?auto=format&fit=crop&w=300&q=80";
+  }
+  if (key.includes("venezia") || key.includes("venice")) {
+    return "https://images.unsplash.com/photo-1514890547357-a9ee288728e0?auto=format&fit=crop&w=300&q=80";
+  }
+  if (key.includes("amalfi") || key.includes("cinque") || key.includes("napoli") || key.includes("italia")) {
+    return "https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=300&q=80";
+  }
+  if (key.includes("zermatt") || key.includes("bernina") || key.includes("glacier") || key.includes("interlaken") || key.includes("luzern") || key.includes("sveits")) {
+    return "https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?auto=format&fit=crop&w=300&q=80";
+  }
+  if (key.includes("innsbruck") || key.includes("salzburg") || key.includes("wien") || key.includes("østerrike") || key.includes("dolomitt") || key.includes("chamonix")) {
+    return "https://images.unsplash.com/photo-1516550893923-42d28e5677af?auto=format&fit=crop&w=300&q=80";
+  }
+  if (key.includes("bled") || key.includes("ljubljana") || key.includes("slovenia")) {
+    return "https://images.unsplash.com/photo-1586717791821-3f44a563fa4c?auto=format&fit=crop&w=300&q=80";
+  }
+  if (key.includes("københavn") || key.includes("danmark")) {
+    return "https://images.unsplash.com/photo-1513622470522-26c3c8a854bc?auto=format&fit=crop&w=300&q=80";
+  }
+  if (key.includes("berlin") || key.includes("hamburg") || key.includes("münchen") || key.includes("tyskland")) {
+    return "https://images.unsplash.com/photo-1560969184-10fe8719e047?auto=format&fit=crop&w=300&q=80";
+  }
+  if (key.includes("paris") || key.includes("nice") || key.includes("lyon") || key.includes("frankrike")) {
+    return "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=300&q=80";
+  }
+  if (key.includes("amsterdam") || key.includes("nederland")) {
+    return "https://images.unsplash.com/photo-1534351590666-13e3e96b5017?auto=format&fit=crop&w=300&q=80";
+  }
+  if (key.includes("barcelona") || key.includes("madrid") || key.includes("spania")) {
+    return "https://images.unsplash.com/photo-1583422409516-2895a77efded?auto=format&fit=crop&w=300&q=80";
+  }
+  if (key.includes("porto") || key.includes("lisboa") || key.includes("portugal")) {
+    return "https://images.unsplash.com/photo-1555881400-74d7acaacd8b?auto=format&fit=crop&w=300&q=80";
+  }
+  if (key.includes("praha") || key.includes("tsjekkia")) {
+    return "https://images.unsplash.com/photo-1541849546-216549ae216d?auto=format&fit=crop&w=300&q=80";
+  }
+  if (key.includes("budapest") || key.includes("ungarn")) {
+    return "https://images.unsplash.com/photo-1549877452-9c387954fbc2?auto=format&fit=crop&w=300&q=80";
+  }
+  if (key.includes("split") || key.includes("kroatia") || key.includes("athen") || key.includes("hellas")) {
+    return "https://images.unsplash.com/photo-1555990538-1e6c0c12db88?auto=format&fit=crop&w=300&q=80";
+  }
+  return "https://images.unsplash.com/photo-1474487548417-781cb71495f3?auto=format&fit=crop&w=300&q=80";
 }
 
 export const DEFAULT_COMMUNITY_TRAVELERS = [
@@ -115,17 +169,17 @@ export const DEFAULT_COMMUNITY_TRAVELERS = [
     avatarColor: "#2563eb",
     homeStation: "Oslo S",
     defaultPassType: "Global Pass 10 dager (Ungdom)",
-    bio: "Elsker alperuter, nattog gjennom Sentral-Europa og skjulte perler langs Middelhavet!",
+    bio: "Alperuter, nattog gjennom Sentral-Europa og kystbyer langs Middelhavet.",
     visitedCountries: ["Norge", "Sverige", "Danmark", "Tyskland", "Østerrike", "Tsjekkia", "Italia"],
     visitedPlaces: [
       { id: "svp1", city: "Innsbruck", country: "Østerrike", note: "2025 – Spektakulær utsikt rett fra togstasjonen" },
-      { id: "svp2", city: "Praha", country: "Tsjekkia", note: "2024 – Rimelig mat og vakker gamleby" },
-      { id: "svp3", city: "Firenze", country: "Italia", note: "2025 – Kunst, solnedgang fra Piazzale Michelangelo" }
+      { id: "svp2", city: "Praha", country: "Tsjekkia", note: "2024 – Rimelig mat og historisk gamleby" },
+      { id: "svp3", city: "Firenze", country: "Italia", note: "2025 – Kunst og solnedgang fra Piazzale Michelangelo" }
     ],
     wishlistPlaces: [
-      { id: "swl1", city: "Zermatt & Glacier Express", country: "Sveits", tag: "🚆 Drømmetogrute" },
-      { id: "swl2", city: "Bled-sjøen", country: "Slovenia", tag: "🏔️ Natur & Alper" },
-      { id: "swl3", city: "Amalfikysten", country: "Italia", tag: "🔥 Øverst på ønskelista" }
+      { id: "swl1", city: "Zermatt & Glacier Express", country: "Sveits", tag: "Klassisk togrute" },
+      { id: "swl2", city: "Bled-sjøen", country: "Slovenia", tag: "Alper & Natur" },
+      { id: "swl3", city: "Amalfikysten", country: "Italia", tag: "Prioritert reisemål" }
     ],
     isCommunityProfile: true
   },
@@ -136,17 +190,17 @@ export const DEFAULT_COMMUNITY_TRAVELERS = [
     avatarColor: "#7c3aed",
     homeStation: "Bergen stasjon",
     defaultPassType: "Global Pass 7 dager (Ungdom)",
-    bio: "Kaffe, foto og hurtigtog! Planlegger sommerens store rundreise til Sør-Europa.",
+    bio: "Arkitektur, foto og hurtigtog. Planlegger sommerens rundreise til Sør-Europa.",
     visitedCountries: ["Norge", "Danmark", "Nederland", "Belgia", "Frankrike", "Spania"],
     visitedPlaces: [
       { id: "nvp1", city: "Amsterdam", country: "Nederland", note: "2024 – Kanaler og sykkelturer" },
       { id: "nvp2", city: "Paris", country: "Frankrike", note: "2025 – Eurostar fra Brussel på 1t 22m" },
-      { id: "nvp3", city: "Barcelona", country: "Spania", note: "2025 – Tapas og strand midt i byen" }
+      { id: "nvp3", city: "Barcelona", country: "Spania", note: "2025 – Tapas og kystlinje" }
     ],
     wishlistPlaces: [
-      { id: "nwl1", city: "Cinque Terre & Roma", country: "Italia", tag: "🔥 Øverst på ønskelista" },
-      { id: "nwl2", city: "Porto & Lisboa", country: "Portugal", tag: "🏖️ Sol, Kyst & Bad" },
-      { id: "nwl3", city: "Interlaken", country: "Sveits", tag: "🏔️ Natur & Alper" }
+      { id: "nwl1", city: "Cinque Terre & Roma", country: "Italia", tag: "Prioritert reisemål" },
+      { id: "nwl2", city: "Porto & Lisboa", country: "Portugal", tag: "Kyst & Middelhav" },
+      { id: "nwl3", city: "Interlaken", country: "Sveits", tag: "Alper & Natur" }
     ],
     isCommunityProfile: true
   },
@@ -157,17 +211,17 @@ export const DEFAULT_COMMUNITY_TRAVELERS = [
     avatarColor: "#f97316",
     homeStation: "Trondheim S",
     defaultPassType: "Global Pass 15 dager (Ungdom)",
-    bio: "Togentusiast fra Trondheim. Har mål om å besøke alle 33 Interrail-land innen 2027!",
+    bio: "Togentusiast fra Trondheim. Mål om å utforske alle 33 Interrail-land innen 2027.",
     visitedCountries: ["Norge", "Sverige", "Tyskland", "Polen", "Ungarn", "Kroatia", "Slovenia"],
     visitedPlaces: [
-      { id: "evp1", city: "Budapest", country: "Ungarn", note: "2025 – Termiske bad og Donau-cruise" },
-      { id: "evp2", city: "Split", country: "Kroatia", note: "2024 – Øyhopping i Adriaterhavet" },
+      { id: "evp1", city: "Budapest", country: "Ungarn", note: "2025 – Termiske bad og Donau" },
+      { id: "evp2", city: "Split", country: "Kroatia", note: "2024 – Adriaterhavskysten" },
       { id: "evp3", city: "Ljubljana", country: "Slovenia", note: "2024 – Europas grønneste hovedstad" }
     ],
     wishlistPlaces: [
-      { id: "ewl1", city: "Bernina Express til Tirano", country: "Sveits", tag: "🚆 Drømmetogrute" },
-      { id: "ewl2", city: "Athen & Meteora", country: "Hellas", tag: "🔥 Øverst på ønskelista" },
-      { id: "ewl3", city: "Roma & Napoli", country: "Italia", tag: "🍕 Mat & Storby" }
+      { id: "ewl1", city: "Bernina Express til Tirano", country: "Sveits", tag: "Klassisk togrute" },
+      { id: "ewl2", city: "Athen & Meteora", country: "Hellas", tag: "Prioritert reisemål" },
+      { id: "ewl3", city: "Roma & Napoli", country: "Italia", tag: "Kultur & Storby" }
     ],
     isCommunityProfile: true
   },
@@ -178,16 +232,16 @@ export const DEFAULT_COMMUNITY_TRAVELERS = [
     avatarColor: "#e11d48",
     homeStation: "Stavanger stasjon",
     defaultPassType: "Global Pass 7 dager (Ungdom)",
-    bio: "Reiser lett med kun håndbagasje! Alltid klar for spontane togturer til nye byer.",
+    bio: "Reiser lett med kun håndbagasje. Alltid klar for spontane togturer til nye byer.",
     visitedCountries: ["Norge", "Danmark", "Tyskland", "Sveits", "Italia"],
     visitedPlaces: [
       { id: "sfvp1", city: "Luzern", country: "Sveits", note: "2025 – Krystallklart vann og fjelltopper" },
-      { id: "sfvp2", city: "Venezia", country: "Italia", note: "2025 – Å ankomme Santa Lucia med tog over lagunen!" }
+      { id: "sfvp2", city: "Venezia", country: "Italia", note: "2025 – Ankomst Santa Lucia over lagunen" }
     ],
     wishlistPlaces: [
-      { id: "sfwl1", city: "Wien & Salzburg", country: "Østerrike", tag: "🍕 Mat & Storby" },
-      { id: "sfwl2", city: "Nice & Côte d'Azur", country: "Frankrike", tag: "🏖️ Sol, Kyst & Bad" },
-      { id: "sfwl3", city: "Bled-sjøen", country: "Slovenia", tag: "🏔️ Natur & Alper" }
+      { id: "sfwl1", city: "Wien & Salzburg", country: "Østerrike", tag: "Kultur & Storby" },
+      { id: "sfwl2", city: "Nice & Côte d'Azur", country: "Frankrike", tag: "Kyst & Middelhav" },
+      { id: "sfwl3", city: "Bled-sjøen", country: "Slovenia", tag: "Alper & Natur" }
     ],
     isCommunityProfile: true
   },
@@ -202,11 +256,11 @@ export const DEFAULT_COMMUNITY_TRAVELERS = [
     visitedCountries: ["Norge", "Sverige", "Tyskland", "Sveits", "Østerrike"],
     visitedPlaces: [
       { id: "kvp1", city: "Zermatt", country: "Sveits", note: "2025 – Matterhorn i soloppgang" },
-      { id: "kvp2", city: "Salzburg", country: "Østerrike", note: "2024 – Perfekt stopp mellom München og Wien" }
+      { id: "kvp2", city: "Salzburg", country: "Østerrike", note: "2024 – Stopp mellom München og Wien" }
     ],
     wishlistPlaces: [
-      { id: "kwl1", city: "Dolomittene & Bolzano", country: "Italia", tag: "🏔️ Natur & Alper" },
-      { id: "kwl2", city: "Chamonix", country: "Frankrike", tag: "🔥 Øverst på ønskelista" }
+      { id: "kwl1", city: "Dolomittene & Bolzano", country: "Italia", tag: "Alper & Natur" },
+      { id: "kwl2", city: "Chamonix", country: "Frankrike", tag: "Prioritert reisemål" }
     ],
     isCommunityProfile: true
   }
@@ -234,7 +288,13 @@ export function ensureSocialProfileFields(prof) {
   if (!prof || typeof prof !== "object") return prof;
   if (!Array.isArray(prof.visitedCountries)) prof.visitedCountries = [];
   if (!Array.isArray(prof.visitedPlaces)) prof.visitedPlaces = [];
-  if (!Array.isArray(prof.wishlistPlaces)) prof.wishlistPlaces = [];
+  if (!Array.isArray(prof.wishlistPlaces)) {
+    prof.wishlistPlaces = [];
+  } else {
+    prof.wishlistPlaces.forEach(w => {
+      if (w && w.tag) w.tag = cleanTagLabel(w.tag);
+    });
+  }
   if (!Array.isArray(prof.friends)) prof.friends = [];
   if (!Array.isArray(prof.incomingFriendRequests)) prof.incomingFriendRequests = [];
   if (!Array.isArray(prof.outgoingFriendRequests)) prof.outgoingFriendRequests = [];
@@ -536,6 +596,7 @@ export function updateAuthUI(user) {
   const headerAvatarEl = document.getElementById("header-user-avatar");
   const sidebarAvatarEl = document.getElementById("sidebar-user-avatar");
   const sidebarLabelEl = document.getElementById("sidebar-user-label");
+  const sidebarSublabelEl = document.getElementById("sidebar-user-sublabel");
 
   const activeName = user
     ? (userProfile.displayName || user.displayName || (user.email ? user.email.split("@")[0] : "Bruker"))
@@ -554,7 +615,10 @@ export function updateAuthUI(user) {
     sidebarAvatarEl.style.backgroundColor = bgColor;
   }
   if (sidebarLabelEl) {
-    sidebarLabelEl.textContent = user ? `${activeName} (Sky)` : `${activeName} (Profil)`;
+    sidebarLabelEl.textContent = activeName;
+  }
+  if (sidebarSublabelEl) {
+    sidebarSublabelEl.textContent = user ? `${userProfile.username || '@konto'} · Skykonto` : `${userProfile.username || '@profil'} · Lokal profil`;
   }
 
   if (user) {
