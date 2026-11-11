@@ -158,6 +158,30 @@ service cloud.firestore {
         && request.resource.data.get('editorUids', []) == resource.data.get('editorUids', []).removeAll([uid]);
     }
 
+    function validBudget(budgetUid) {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['uid', 'name', 'totalBudget', 'expenses', 'updatedAt'])
+        && d.uid == budgetUid
+        && d.totalBudget is number && d.totalBudget >= 0 && d.totalBudget <= 10000000
+        && d.expenses is list && d.expenses.size() <= 500
+        && (!('name' in d) || (d.name is string && d.name.size() <= 60));
+    }
+
+    function validSharedExpense(expenseId) {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['id', 'kind', 'title', 'category', 'amount', 'date', 'paidBy', 'split', 'names',
+                               'createdBy', 'createdAt', 'updatedAt'])
+        && d.id == expenseId
+        && d.kind in ['expense', 'payment']
+        && d.title is string && d.title.size() <= 80
+        && d.amount is number && d.amount > 0 && d.amount <= 1000000
+        && d.paidBy is string && d.paidBy.size() <= 80
+        && d.split is list && d.split.size() >= 1 && d.split.size() <= 30
+        && d.date is string && d.date.size() <= 10
+        && d.names is map && d.names.size() <= 31
+        && (!('category' in d) || (d.category is string && d.category.size() <= 30));
+    }
+
     match /trips/{tripId} {
       // Enkeltreise: eier, medlem, eller delt reise for innloggede som har lenken/koden
       allow get: if isTripOwner() || isTripMember()
@@ -181,6 +205,36 @@ service cloud.firestore {
       );
 
       allow delete: if isTripOwner();
+
+      // Reisen sett fra en underside (budsjetter og felles utgifter)
+      function tripDoc() {
+        return get(/databases/$(database)/documents/trips/$(tripId)).data;
+      }
+      function inTrip() {
+        let t = tripDoc();
+        return signedIn() && (t.get('ownerUid', '') == request.auth.uid || request.auth.uid in t.get('memberUids', []));
+      }
+      function ownsTripDoc() {
+        return signedIn() && tripDoc().get('ownerUid', '') == request.auth.uid;
+      }
+
+      // Hver persons budsjett: alle i reisefølget kan se, bare personen selv kan endre
+      match /budgets/{budgetUid} {
+        allow read: if inTrip();
+        allow create, update: if inTrip() && request.auth.uid == budgetUid && validBudget(budgetUid);
+        allow delete: if signedIn() && (request.auth.uid == budgetUid || ownsTripDoc());
+      }
+
+      // Felles utgifter: alle i reisefølget kan legge til, den som la inn (eller eieren) kan endre/slette
+      match /sharedExpenses/{expenseId} {
+        allow read: if inTrip();
+        allow create: if inTrip() && request.resource.data.createdBy == request.auth.uid && validSharedExpense(expenseId);
+        allow update: if inTrip()
+          && (resource.data.createdBy == request.auth.uid || ownsTripDoc())
+          && request.resource.data.createdBy == resource.data.createdBy
+          && validSharedExpense(expenseId);
+        allow delete: if (inTrip() && resource.data.createdBy == request.auth.uid) || ownsTripDoc();
+      }
     }
 
     // -------------------------------------------------------------------

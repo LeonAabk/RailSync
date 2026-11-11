@@ -493,10 +493,10 @@ export async function syncUserProfileWithCloud(user) {
       if (snap.exists()) {
         const cloudProf = snap.data();
         if (cloudProf.personalBudgets && typeof cloudProf.personalBudgets === "object") {
-          personalBudgetsByTrip = {
+          personalBudgetsByTrip = cleanLegacyBudgets({
             ...cloudProf.personalBudgets,
             ...personalBudgetsByTrip
-          };
+          });
           try {
             localStorage.setItem("railsync_personal_budgets_v1", JSON.stringify(personalBudgetsByTrip));
           } catch (e) {}
@@ -521,6 +521,7 @@ export async function syncUserProfileWithCloud(user) {
     // Lytterne startes også uten nett – de kobler seg på når nettet er tilbake
     startFriendRequestListeners(user.uid);
     startTripListeners(user.uid);
+    startBudgetListeners();
   }
 
   try {
@@ -552,6 +553,7 @@ let memberTripsUnsub = null;
 let ownedTripsUnsub = null;
 
 function stopCloudListeners() {
+  stopBudgetListeners();
   [friendReqInUnsub, friendReqOutUnsub, memberTripsUnsub, ownedTripsUnsub].forEach(fn => {
     if (typeof fn === "function") {
       try { fn(); } catch (e) {}
@@ -1475,13 +1477,26 @@ function syncUrlWithActiveTrip() {
 // =============================================================================
 export let personalBudgetsByTrip = {};
 
+// Fjerner innhold som ble lagt inn automatisk i eldre versjoner (falsk passutgift og 20 000 kr som standard)
+function cleanLegacyBudgets(map) {
+  if (!map || typeof map !== "object") return {};
+  Object.keys(map).forEach(tid => {
+    const b = map[tid];
+    if (!b || typeof b !== "object" || b._base || tid === "eksempel-1") return;
+    const exp = (Array.isArray(b.expenses) ? b.expenses : []).filter(e => !(e && String(e.id || "").startsWith("exp-personal-") && /^Interrail Global Pass/.test(String(e.title || ""))));
+    b.expenses = exp;
+    if (Number(b.totalBudget) === 20000 && exp.length === 0) b.totalBudget = 0;
+  });
+  return map;
+}
+
 export function loadPersonalBudgetsFromStorage() {
   try {
     const raw = localStorage.getItem("railsync_personal_budgets_v1");
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === "object") {
-        personalBudgetsByTrip = parsed;
+        personalBudgetsByTrip = cleanLegacyBudgets(parsed);
       }
     }
   } catch (e) {
@@ -1489,54 +1504,34 @@ export function loadPersonalBudgetsFromStorage() {
   }
 }
 
+// Budsjettene ligger i skyen per reise (trips/{id}/budgets/{uid}); her er bare kopien på enheten
 export function savePersonalBudgetsToStorage() {
+  if (isLoggingOut) return;
   try {
     localStorage.setItem("railsync_personal_budgets_v1", JSON.stringify(personalBudgetsByTrip));
   } catch (e) {}
-
-  if (currentUser && isFirebaseConfigured() && db) {
-    setDoc(doc(db, "users", currentUser.uid), {
-      personalBudgets: personalBudgetsByTrip,
-      updatedAt: new Date().toISOString()
-    }, { merge: true }).catch(() => {});
-  }
 }
 
 export function getPersonalBudgetForTrip(tripObj) {
   if (!tripObj || !tripObj.id) {
-    return { totalBudget: 20000, expenses: [] };
+    return { totalBudget: 0, expenses: [] };
   }
 
   const existing = personalBudgetsByTrip[tripObj.id];
   if (existing && typeof existing === "object") {
     return {
-      totalBudget: Number(existing.totalBudget) || 20000,
+      totalBudget: Number(existing.totalBudget) || 0,
       expenses: Array.isArray(existing.expenses) ? JSON.parse(JSON.stringify(existing.expenses)) : []
     };
   }
 
-  let initialBudget = 20000;
+  // Nytt budsjett starter tomt – brukeren setter rammen selv
+  let initialBudget = 0;
   let initialExpenses = [];
 
   if (tripObj.id === "eksempel-1") {
     initialBudget = defaultTripState.trip.totalBudget || 22000;
     initialExpenses = JSON.parse(JSON.stringify(defaultTripState.expenses));
-  } else if (isTripOwnedByCurrentUser(tripObj)) {
-    initialBudget = (tripObj.trip && Number(tripObj.trip.totalBudget)) || 20000;
-    initialExpenses = Array.isArray(tripObj.expenses) ? JSON.parse(JSON.stringify(tripObj.expenses)) : [];
-  } else {
-    // Joining someone else's shared trip: create a separate personal budget for this traveler
-    const passDays = (tripObj.trip && tripObj.trip.totalPassDays) || 7;
-    initialBudget = 20000;
-    initialExpenses = [
-      {
-        id: "exp-personal-" + Date.now(),
-        title: `Interrail Global Pass ${passDays} dager`,
-        category: "Transport",
-        amount: 3900,
-        date: (tripObj.trip && tripObj.trip.startDate) || new Date().toISOString().split("T")[0]
-      }
-    ];
   }
 
   personalBudgetsByTrip[tripObj.id] = {
@@ -1554,12 +1549,15 @@ export function getPersonalBudgetForTrip(tripObj) {
 
 export function updatePersonalBudgetForTrip(tripId, totalBudget, expenses) {
   if (!tripId) return;
-  personalBudgetsByTrip[tripId] = {
-    totalBudget: Number(totalBudget) || 20000,
-    expenses: JSON.parse(JSON.stringify(expenses || [])),
-    updatedAt: new Date().toISOString()
+  const prev = personalBudgetsByTrip[tripId] || {};
+  const next = {
+    totalBudget: Math.max(0, Number(totalBudget) || 0),
+    expenses: JSON.parse(JSON.stringify(expenses || []))
   };
+  const changed = !sameJson({ totalBudget: Number(prev.totalBudget) || 0, expenses: prev.expenses || [] }, next);
+  personalBudgetsByTrip[tripId] = { ...prev, ...next, updatedAt: changed ? new Date().toISOString() : (prev.updatedAt || new Date().toISOString()) };
   savePersonalBudgetsToStorage();
+  if (changed && !isApplyingRemoteBudget) pushMyBudget(tripId);
 }
 
 export function syncActiveTripToState() {
@@ -1579,6 +1577,7 @@ export function syncActiveTripToState() {
   active.expenses = JSON.parse(JSON.stringify(myBudget.expenses));
 
   subscribeToActiveSharedTrip();
+  if (isCloudReady()) startBudgetListeners();
 }
 
 export function syncStateToActiveTrip(activityText = "") {
@@ -1649,7 +1648,7 @@ export function updateSyncStatus() {
   let state;
   if (!currentUser) state = "";
   else if (syncInFlight > 0) state = "saving";
-  else if (allTrips.some(isTripDirty)) state = online ? (lastSyncFailed ? "retry" : "saving") : "offline";
+  else if (allTrips.some(isTripDirty) || pendingBudgetPushes.size > 0 || sharedOutbox.length > 0) state = online ? (lastSyncFailed ? "retry" : "saving") : "offline";
   else state = "saved";
   if (state === syncStatusState) return;
   syncStatusState = state;
@@ -1675,6 +1674,8 @@ function retryDirtyTrips() {
   allTrips.filter(isTripDirty).forEach(t => {
     if (isTripOwnedByCurrentUser(t) || canEditTrip(t)) pushTripToFirestore(t);
   });
+  [...pendingBudgetPushes].forEach(tid => pushMyBudget(tid));
+  if (sharedOutbox.length > 0) flushSharedOutbox();
 }
 
 if (typeof window !== "undefined") {
@@ -2002,6 +2003,7 @@ async function pushTripToFirestoreInner(tripObj, _retried = false) {
       await ensureShareCodeDoc(tripObj);
     }
     saveAllTripsToLocalStorage();
+    if (tripObj.id === activeTripId) startBudgetListeners();
     return true;
   } catch (err) {
     // Reiser i eldre format (uten eier) kan ikke oppdateres – lagre dem på nytt med ny ID
@@ -3192,125 +3194,667 @@ export function renderTrains() {
   if (window.lucide) lucide.createIcons();
 }
 
+// ---------------------------------------------------------------------------
+// Budsjett i reisefølget
+// - Hver person: trips/{id}/budgets/{uid} – alle i reisefølget kan se, bare eieren endrer
+// - Felles utgifter: trips/{id}/sharedExpenses/{utgiftId} – ett dokument per utgift
+// ---------------------------------------------------------------------------
+export const EXPENSE_CATEGORIES = [
+  { name: "Overnatting", icon: "bed" },
+  { name: "Transport", icon: "train-front" },
+  { name: "Mat", icon: "utensils" },
+  { name: "Aktiviteter", icon: "ticket" },
+  { name: "Annet", icon: "circle-dot" }
+];
+
+let tripBudgets = {};            // tripId -> { uid -> budsjett }
+let sharedExpensesByTrip = {};   // tripId -> [utgifter]
+let budgetListenTripId = null;
+let budgetUnsub = null;
+let sharedExpUnsub = null;
+let isApplyingRemoteBudget = false;
+let budgetViewMode = "personal";
+let budgetViewUid = null;
+const budgetPushQueue = new Map();
+const pendingBudgetPushes = new Set();
+let sharedOutbox = [];
+try { sharedOutbox = JSON.parse(localStorage.getItem("railsync_shared_outbox_v1") || "[]") || []; } catch (e) { sharedOutbox = []; }
+
+function saveSharedOutbox() {
+  if (isLoggingOut) return;
+  try { localStorage.setItem("railsync_shared_outbox_v1", JSON.stringify(sharedOutbox)); } catch (e) {}
+}
+
+function isTripInCloud(t) {
+  return Boolean(t && t.id && t.id !== "eksempel-1" && isCloudReady() && (t._cloudCreated || !isTripOwnedByCurrentUser(t)));
+}
+
+function budgetContentOf(entry) {
+  const e = entry || {};
+  return JSON.parse(JSON.stringify({
+    totalBudget: Math.max(0, Number(e.totalBudget) || 0),
+    expenses: Array.isArray(e.expenses) ? e.expenses : []
+  }));
+}
+
+function myUidOrLocal() {
+  return currentUser ? currentUser.uid : (userProfile.uid || "local_user");
+}
+
+// Lyttere for budsjettene og fellesutgiftene til reisen som er åpen
+export function startBudgetListeners() {
+  const active = getActiveTripObject();
+  const wanted = isTripInCloud(active) ? active.id : null;
+  if (wanted === budgetListenTripId) return;
+  stopBudgetListeners();
+  budgetListenTripId = wanted;
+  budgetViewUid = null;
+  if (!wanted) return;
+  const tid = wanted;
+  try {
+    budgetUnsub = onSnapshot(collection(db, "trips", tid, "budgets"), (snap) => {
+      const map = {};
+      snap.docs.forEach(d => { map[d.id] = d.data() || {}; });
+      tripBudgets[tid] = map;
+      applyMyRemoteBudget(tid, map[currentUser.uid] || null);
+      if (tid === activeTripId) renderBudget();
+    }, (err) => console.warn("Lytter for budsjetter feilet:", err));
+    sharedExpUnsub = onSnapshot(collection(db, "trips", tid, "sharedExpenses"), (snap) => {
+      sharedExpensesByTrip[tid] = snap.docs.map(d => ({ ...(d.data() || {}), id: d.id }));
+      if (tid === activeTripId) renderBudget();
+    }, (err) => console.warn("Lytter for felles utgifter feilet:", err));
+  } catch (e) {
+    console.warn("Kunne ikke starte budsjettlyttere:", e);
+  }
+  flushSharedOutbox();
+}
+
+function stopBudgetListeners() {
+  [budgetUnsub, sharedExpUnsub].forEach(fn => { if (typeof fn === "function") { try { fn(); } catch (e) {} } });
+  budgetUnsub = sharedExpUnsub = null;
+  budgetListenTripId = null;
+}
+
+// Eget budsjett fra skyen: slås sammen med endringer på denne enheten som ikke er sendt ennå
+function applyMyRemoteBudget(tid, remoteDoc) {
+  const entry = personalBudgetsByTrip[tid] || null;
+  const local = budgetContentOf(entry);
+  if (!remoteDoc) {
+    // Ikke i skyen ennå: last opp hvis det finnes noe (også budsjetter fra før denne versjonen)
+    const meaningful = local.totalBudget > 0 || local.expenses.length > 0;
+    if (meaningful && !pendingBudgetPushes.has(tid)) pushMyBudget(tid);
+    return;
+  }
+  const remote = budgetContentOf(remoteDoc);
+  const base = entry && entry._base ? entry._base : null;
+  let next = remote;
+  let needsPush = false;
+  if (base && !sameJson(local, base) && !sameJson(local, remote)) {
+    next = {
+      totalBudget: local.totalBudget !== base.totalBudget ? local.totalBudget : remote.totalBudget,
+      expenses: mergeItemList(base.expenses, local.expenses, remote.expenses)
+    };
+    needsPush = !sameJson(next, remote);
+  }
+  personalBudgetsByTrip[tid] = { ...(entry || {}), ...next, _base: remote, updatedAt: remoteDoc.updatedAt || new Date().toISOString() };
+  savePersonalBudgetsToStorage();
+  if (tid === activeTripId && !sameJson(next, budgetContentOf({ totalBudget: appState.trip.totalBudget, expenses: appState.expenses }))) {
+    isApplyingRemoteBudget = true;
+    try {
+      appState.trip.totalBudget = next.totalBudget;
+      appState.expenses = JSON.parse(JSON.stringify(next.expenses));
+      const active = getActiveTripObject();
+      if (active) { active.trip.totalBudget = next.totalBudget; active.expenses = JSON.parse(JSON.stringify(next.expenses)); }
+      saveAllTripsToLocalStorage();
+      renderAll();
+    } finally {
+      isApplyingRemoteBudget = false;
+    }
+  }
+  if (needsPush) pushMyBudget(tid);
+}
+
+function pushMyBudget(tid) {
+  const t = allTrips.find(x => x.id === tid);
+  if (!isTripInCloud(t)) return Promise.resolve(false);
+  const prev = budgetPushQueue.get(tid) || Promise.resolve();
+  const next = prev.catch(() => {}).then(() => pushMyBudgetNow(tid));
+  budgetPushQueue.set(tid, next);
+  next.finally(() => { if (budgetPushQueue.get(tid) === next) budgetPushQueue.delete(tid); });
+  return next;
+}
+
+async function pushMyBudgetNow(tid) {
+  if (!isCloudReady()) { pendingBudgetPushes.add(tid); updateSyncStatus(); return false; }
+  const uid = currentUser.uid;
+  const ref = doc(db, "trips", tid, "budgets", uid);
+  syncInFlight++;
+  updateSyncStatus();
+  try {
+    let result = null;
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(ref);
+      const entry = personalBudgetsByTrip[tid] || {};
+      const local = budgetContentOf(entry);
+      let content = local;
+      if (snap.exists()) {
+        const remote = budgetContentOf(snap.data());
+        const base = entry._base || null;
+        if (base && !sameJson(remote, base)) {
+          content = {
+            totalBudget: local.totalBudget !== base.totalBudget ? local.totalBudget : remote.totalBudget,
+            expenses: mergeItemList(base.expenses, local.expenses, remote.expenses)
+          };
+        }
+      }
+      tx.set(ref, {
+        uid,
+        name: String(userProfile.displayName || "Reisende").slice(0, 60),
+        totalBudget: content.totalBudget,
+        expenses: content.expenses.slice(0, 500),
+        updatedAt: new Date().toISOString()
+      });
+      result = { content, local };
+    });
+    pendingBudgetPushes.delete(tid);
+    lastSyncFailed = false;
+    const entry = personalBudgetsByTrip[tid] || {};
+    entry._base = result.content;
+    if (!sameJson(result.content, result.local)) {
+      const current = budgetContentOf(entry);
+      const merged = sameJson(current, result.local) ? result.content : {
+        totalBudget: current.totalBudget !== result.local.totalBudget ? current.totalBudget : result.content.totalBudget,
+        expenses: mergeItemList(result.local.expenses, current.expenses, result.content.expenses)
+      };
+      Object.assign(entry, merged);
+      if (tid === activeTripId) {
+        isApplyingRemoteBudget = true;
+        try {
+          appState.trip.totalBudget = merged.totalBudget;
+          appState.expenses = JSON.parse(JSON.stringify(merged.expenses));
+          renderAll();
+        } finally { isApplyingRemoteBudget = false; }
+      }
+    }
+    personalBudgetsByTrip[tid] = entry;
+    savePersonalBudgetsToStorage();
+    return true;
+  } catch (e) {
+    console.warn("Kunne ikke lagre budsjett:", e);
+    pendingBudgetPushes.add(tid);
+    lastSyncFailed = true;
+    return false;
+  } finally {
+    syncInFlight = Math.max(0, syncInFlight - 1);
+    updateSyncStatus();
+  }
+}
+
+// --- Felles utgifter -------------------------------------------------------
+function tripParticipants(trip) {
+  const t = trip || getActiveTripObject();
+  const list = [];
+  const seen = new Set();
+  (t && Array.isArray(t.members) ? t.members : []).forEach(m => {
+    const id = String(m.uid || m.id || "");
+    if (!id || seen.has(id)) return;
+    seen.add(id);
+    // Bruk oppdatert navn fra profilen når vi har det
+    const fresh = id === myUidOrLocal() ? userProfile : ((userProfile.friends || []).find(f => f.uid === id) || getAllKnownTravelers().find(x => x.uid === id));
+    list.push({
+      id,
+      name: (fresh && fresh.displayName) || m.name || "Reisende",
+      hasAccount: m.role === "owner" || isRealUid(id),
+      avatarColor: (fresh && fresh.avatarColor) || m.avatarColor
+    });
+  });
+  const me = myUidOrLocal();
+  if (!seen.has(me)) list.unshift({ id: me, name: userProfile.displayName || "Meg", hasAccount: true, avatarColor: userProfile.avatarColor });
+  return list;
+}
+
+function sharedExpensesFor(tid) {
+  const map = new Map((sharedExpensesByTrip[tid] || []).map(e => [e.id, e]));
+  sharedOutbox.filter(o => o.tripId === tid).forEach(o => {
+    if (o.op === "delete") map.delete(o.id);
+    else map.set(o.id, { ...o.data, _pending: true });
+  });
+  return [...map.values()].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")) || String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+}
+
+const toCents = (n) => Math.round((Number(n) || 0) * 100);
+
+// Hvor mye hver person har betalt og skylder. Positivt = skal ha penger tilbake.
+export function computeSharedBalances(expenses, participants) {
+  const bal = {};
+  participants.forEach(p => { bal[p.id] = 0; });
+  expenses.forEach(e => {
+    const amount = toCents(e.amount);
+    const split = (Array.isArray(e.split) ? e.split : []).filter(Boolean);
+    if (!amount || split.length === 0) return;
+    if (!(e.paidBy in bal)) bal[e.paidBy] = 0;
+    bal[e.paidBy] += amount;
+    const each = Math.floor(amount / split.length);
+    let rest = amount - each * split.length;
+    split.forEach(id => {
+      if (!(id in bal)) bal[id] = 0;
+      bal[id] -= each + (rest > 0 ? 1 : 0);
+      if (rest > 0) rest--;
+    });
+  });
+  return bal;
+}
+
+// Færrest mulig overføringer for å gjøre opp
+export function computeSettlementTransfers(balances) {
+  const creditors = [];
+  const debtors = [];
+  Object.entries(balances).forEach(([id, c]) => {
+    if (c > 0) creditors.push({ id, c });
+    else if (c < 0) debtors.push({ id, c: -c });
+  });
+  creditors.sort((a, b) => b.c - a.c);
+  debtors.sort((a, b) => b.c - a.c);
+  const out = [];
+  let i = 0, j = 0;
+  while (i < debtors.length && j < creditors.length) {
+    const amt = Math.min(debtors[i].c, creditors[j].c);
+    if (amt > 0) out.push({ from: debtors[i].id, to: creditors[j].id, cents: amt });
+    debtors[i].c -= amt;
+    creditors[j].c -= amt;
+    if (debtors[i].c === 0) i++;
+    if (creditors[j].c === 0) j++;
+  }
+  return out;
+}
+
+function myShareOfShared(tid, personId) {
+  let cents = 0;
+  const byCat = {};
+  sharedExpensesFor(tid).forEach(e => {
+    if (e.kind !== "expense") return;
+    const split = Array.isArray(e.split) ? e.split : [];
+    const idx = split.indexOf(personId);
+    if (idx === -1) return;
+    const amount = toCents(e.amount);
+    const each = Math.floor(amount / split.length);
+    const share = each + (idx < amount - each * split.length ? 1 : 0);
+    cents += share;
+    const cat = e.category || "Mat";
+    byCat[cat] = (byCat[cat] || 0) + share;
+  });
+  return { cents, byCat };
+}
+
+function queueSharedOp(op) {
+  sharedOutbox = sharedOutbox.filter(o => !(o.tripId === op.tripId && o.id === op.id));
+  sharedOutbox.push(op);
+  saveSharedOutbox();
+  renderBudget();
+  flushSharedOutbox();
+}
+
+let sharedFlushRunning = false;
+async function flushSharedOutbox() {
+  if (sharedFlushRunning || !isCloudReady() || sharedOutbox.length === 0) { updateSyncStatus(); return; }
+  sharedFlushRunning = true;
+  syncInFlight++;
+  updateSyncStatus();
+  try {
+    for (const op of [...sharedOutbox]) {
+      try {
+        const ref = doc(db, "trips", op.tripId, "sharedExpenses", op.id);
+        if (op.op === "delete") await deleteDoc(ref);
+        else await setDoc(ref, op.data);
+        sharedOutbox = sharedOutbox.filter(o => o !== op);
+        // Vis skrivingen med en gang, før lytteren melder fra
+        const list = sharedExpensesByTrip[op.tripId] || [];
+        sharedExpensesByTrip[op.tripId] = op.op === "delete" ? list.filter(e => e.id !== op.id) : [...list.filter(e => e.id !== op.id), { ...op.data }];
+      } catch (e) {
+        if (e && e.code === "permission-denied") {
+          sharedOutbox = sharedOutbox.filter(o => o !== op);
+          showToast("Ikke lagret", "Du har ikke lenger tilgang til denne reisen.", "alert-triangle");
+        } else {
+          lastSyncFailed = true;
+          break;
+        }
+      }
+    }
+    saveSharedOutbox();
+  } finally {
+    sharedFlushRunning = false;
+    syncInFlight = Math.max(0, syncInFlight - 1);
+    updateSyncStatus();
+    if (budgetListenTripId === activeTripId) renderBudget();
+  }
+}
+
+export function switchBudgetView(mode) {
+  budgetViewMode = mode === "shared" ? "shared" : "personal";
+  renderBudget();
+}
+
+export function selectBudgetPerson(uid) {
+  budgetViewUid = uid;
+  budgetViewMode = "personal";
+  renderBudget();
+}
+
+export function openSharedExpenseModal(expenseId = null) {
+  const active = getActiveTripObject();
+  if (!isTripInCloud(active)) {
+    showToast("Ikke tilgjengelig her", "Felles utgifter kan brukes på reiser som er lagret på kontoen din.", "info");
+    return;
+  }
+  const people = tripParticipants(active);
+  const existing = expenseId ? sharedExpensesFor(active.id).find(e => e.id === expenseId) : null;
+  const me = myUidOrLocal();
+  if (existing && existing.createdBy !== me && !isTripOwnedByCurrentUser(active)) {
+    showToast("Kan ikke endres", "Bare den som la inn utgiften, eller eieren av reisen, kan endre den.", "lock");
+    return;
+  }
+  document.getElementById("shared-expense-id").value = existing ? existing.id : "";
+  document.getElementById("shared-expense-modal-title").textContent = existing ? "Endre felles utgift" : "Ny felles utgift";
+  document.getElementById("shared-expense-title").value = existing ? existing.title : "";
+  document.getElementById("shared-expense-amount").value = existing ? existing.amount : "";
+  document.getElementById("shared-expense-category").value = existing && existing.category ? existing.category : "Mat";
+  document.getElementById("shared-expense-date").value = existing ? existing.date : new Date().toISOString().slice(0, 10);
+  const payer = document.getElementById("shared-expense-paid-by");
+  payer.innerHTML = people.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.id === me ? `${p.name} (deg)` : p.name)}</option>`).join("");
+  payer.value = existing ? existing.paidBy : me;
+  const split = existing ? existing.split : people.map(p => p.id);
+  document.getElementById("shared-expense-split").innerHTML = people.map(p => `
+    <label class="flex items-center gap-2.5 py-1.5 text-sm text-slate-700 cursor-pointer">
+      <input type="checkbox" value="${escapeHtml(p.id)}" ${split.includes(p.id) ? "checked" : ""} class="w-4 h-4 rounded border-slate-300 text-brand-600 focus:ring-brand-600/30">
+      <span>${escapeHtml(p.id === me ? `${p.name} (deg)` : p.name)}</span>
+    </label>`).join("");
+  document.getElementById("shared-expense-error").classList.add("hidden");
+  openModal("modal-shared-expense");
+}
+
+export function handleSaveSharedExpense(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  const active = getActiveTripObject();
+  if (!isTripInCloud(active)) return;
+  const err = document.getElementById("shared-expense-error");
+  const id = document.getElementById("shared-expense-id").value || ("sx_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8));
+  const title = document.getElementById("shared-expense-title").value.trim().slice(0, 80);
+  const amount = Math.round((parseFloat(String(document.getElementById("shared-expense-amount").value).replace(",", ".")) || 0) * 100) / 100;
+  const split = [...document.querySelectorAll("#shared-expense-split input:checked")].map(i => i.value);
+  const paidBy = document.getElementById("shared-expense-paid-by").value;
+  if (!title || !(amount > 0) || amount > 1000000 || split.length === 0) {
+    err.textContent = !title ? "Skriv hva utgiften gjelder." : !(amount > 0) || amount > 1000000 ? "Skriv inn et gyldig beløp." : "Velg minst én person utgiften skal deles på.";
+    err.classList.remove("hidden");
+    return;
+  }
+  const people = tripParticipants(active);
+  const names = {};
+  people.forEach(p => { if (split.includes(p.id) || p.id === paidBy) names[p.id] = String(p.name).slice(0, 60); });
+  const existing = sharedExpensesFor(active.id).find(x => x.id === id);
+  const now = new Date().toISOString();
+  queueSharedOp({
+    tripId: active.id, id, op: "set",
+    data: {
+      id, kind: "expense", title,
+      category: document.getElementById("shared-expense-category").value || "Mat",
+      amount, date: (document.getElementById("shared-expense-date").value || now.slice(0, 10)).slice(0, 10),
+      paidBy, split, names,
+      createdBy: existing ? existing.createdBy : currentUser.uid,
+      createdAt: existing ? existing.createdAt : now,
+      updatedAt: now
+    }
+  });
+  closeModal("modal-shared-expense");
+  showToast(existing ? "Utgiften er oppdatert" : "Felles utgift lagt til", `${title} · ${formatMoney(amount)}`, "receipt");
+}
+
+export async function deleteSharedExpense(id) {
+  const active = getActiveTripObject();
+  if (!active) return;
+  const e = sharedExpensesFor(active.id).find(x => x.id === id);
+  if (!e) return;
+  const ok = await showAppDialog({
+    title: e.kind === "payment" ? "Angre registrert betaling?" : `Slette «${e.title}»?`,
+    message: "Oppgjøret regnes ut på nytt for alle i reisefølget.",
+    confirmLabel: e.kind === "payment" ? "Angre betaling" : "Slett utgift",
+    danger: true
+  });
+  if (!ok) return;
+  queueSharedOp({ tripId: active.id, id, op: "delete" });
+}
+
+export async function registerSettlementPayment(fromId, toId, cents) {
+  const active = getActiveTripObject();
+  if (!isTripInCloud(active)) return;
+  const people = tripParticipants(active);
+  const nameOf = (id) => (people.find(p => p.id === id) || {}).name || "Reisende";
+  const amount = Math.round(Number(cents)) / 100;
+  const ok = await showAppDialog({
+    title: "Registrere betaling?",
+    message: `${nameOf(fromId)} har betalt ${formatMoney(amount)} til ${nameOf(toId)}.`,
+    confirmLabel: "Registrer betalt"
+  });
+  if (!ok) return;
+  const id = "pay_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const now = new Date().toISOString();
+  queueSharedOp({
+    tripId: active.id, id, op: "set",
+    data: {
+      id, kind: "payment", title: `${nameOf(fromId)} betalte ${nameOf(toId)}`.slice(0, 80),
+      amount, date: now.slice(0, 10), paidBy: fromId, split: [toId],
+      names: { [fromId]: nameOf(fromId).slice(0, 60), [toId]: nameOf(toId).slice(0, 60) },
+      createdBy: currentUser.uid, createdAt: now, updatedAt: now
+    }
+  });
+}
+
+function formatMoney(n) {
+  const v = Math.round((Number(n) || 0) * 100) / 100;
+  return `${v.toLocaleString("nb-NO", { minimumFractionDigits: v % 1 ? 2 : 0, maximumFractionDigits: 2 })} kr`;
+}
+
 export function renderBudget() {
-  const totalBudget = appState.trip.totalBudget || 22000;
-  const totalSpent = appState.expenses.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
-  const remaining = totalBudget - totalSpent;
-  const spentPct = Math.round((totalSpent / totalBudget) * 100);
+  const active = getActiveTripObject();
+  if (!active) return;
+  const tid = active.id;
+  const me = myUidOrLocal();
+  const inCloud = isTripInCloud(active);
+  const people = tripParticipants(active);
+  const accountPeople = people.filter(p => p.hasAccount);
+  const budgets = tripBudgets[tid] || {};
+  if (!budgetViewUid || !accountPeople.some(p => p.id === budgetViewUid)) budgetViewUid = me;
+  const viewingMe = budgetViewUid === me;
+  const viewed = accountPeople.find(p => p.id === budgetViewUid) || { id: me, name: userProfile.displayName || "Meg" };
 
-  const budgetTotalEl = document.getElementById("budget-total-val");
-  if (budgetTotalEl) budgetTotalEl.textContent = `${formatNumber(totalBudget)} kr`;
+  // Hvem sitt budsjett vises
+  let totalBudget, expenses;
+  if (viewingMe) {
+    totalBudget = Math.max(0, Number(appState.trip.totalBudget) || 0);
+    expenses = Array.isArray(appState.expenses) ? appState.expenses : [];
+  } else {
+    const b = budgets[budgetViewUid];
+    totalBudget = b ? Math.max(0, Number(b.totalBudget) || 0) : 0;
+    expenses = b && Array.isArray(b.expenses) ? b.expenses : [];
+  }
+  const share = myShareOfShared(tid, budgetViewUid);
+  // Sidemenyen viser hvor mye du har igjen
+  const sideBadge = document.getElementById("sidebar-budget-badge");
+  if (sideBadge) {
+    const myTotal = Math.max(0, Number(appState.trip.totalBudget) || 0);
+    const mySpent = (appState.expenses || []).reduce((a, e) => a + toCents(e.amount), 0) + myShareOfShared(tid, me).cents;
+    sideBadge.textContent = myTotal > 0 ? `${Math.max(0, Math.round((myTotal * 100 - mySpent) / 100)).toLocaleString("nb-NO")} kr igjen` : "";
+  }
+  const personalCents = expenses.reduce((acc, e) => acc + toCents(e.amount), 0);
+  const spentCents = personalCents + share.cents;
+  const spent = spentCents / 100;
+  const set = (id, fn) => { const el = document.getElementById(id); if (el) fn(el); };
 
-  const budgetSpentEl = document.getElementById("budget-spent-val");
-  if (budgetSpentEl) budgetSpentEl.textContent = `${formatNumber(totalSpent)} kr`;
+  // Faner og personvelger
+  const sharedList = sharedExpensesFor(tid);
+  set("budget-view-btn-personal", el => { const on = budgetViewMode === "personal"; el.classList.toggle("bg-white", on); el.classList.toggle("shadow-sm", on); el.classList.toggle("text-slate-900", on); el.classList.toggle("text-slate-500", !on); el.setAttribute("aria-selected", on); });
+  set("budget-view-btn-shared", el => { const on = budgetViewMode === "shared"; el.classList.toggle("bg-white", on); el.classList.toggle("shadow-sm", on); el.classList.toggle("text-slate-900", on); el.classList.toggle("text-slate-500", !on); el.setAttribute("aria-selected", on); });
+  set("budget-shared-count", el => { const n = sharedList.filter(e => e.kind === "expense").length; el.textContent = n ? String(n) : ""; el.classList.toggle("hidden", !n); });
+  set("budget-panel-personal", el => el.classList.toggle("hidden", budgetViewMode !== "personal"));
+  set("budget-panel-shared", el => el.classList.toggle("hidden", budgetViewMode !== "shared"));
+  set("budget-subtitle", el => {
+    el.textContent = !inCloud ? "Budsjettet lagres på denne enheten til reisen er lagret på kontoen."
+      : accountPeople.length > 1 ? "Alle i reisefølget kan se hverandres budsjett. Bare du kan endre ditt."
+      : "Ditt budsjett for reisen. Deler du reisen, kan reisefølget se det.";
+  });
+  set("budget-person-picker", el => {
+    el.classList.toggle("hidden", !(inCloud && accountPeople.length > 1) || budgetViewMode !== "personal");
+    el.innerHTML = accountPeople.map(p => {
+      const on = p.id === budgetViewUid;
+      return `<button type="button" onclick="selectBudgetPerson(${jsArg(p.id)})" class="shrink-0 inline-flex items-center gap-2 pl-1 pr-3 py-1 rounded-full border text-sm transition ${on ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}">
+        ${socialAvatarHtml({ displayName: p.name, avatarColor: p.avatarColor, photo: p.id === me ? userProfile.photo : ((userProfile.friends || []).find(f => f.uid === p.id) || {}).photo }, "w-6 h-6 text-[10px]", "#0d9488")}
+        <span>${escapeHtml(p.id === me ? "Meg" : p.name)}</span></button>`;
+    }).join("");
+  });
+  set("budget-readonly-note", el => {
+    el.classList.toggle("hidden", viewingMe);
+    el.textContent = viewingMe ? "" : (budgets[budgetViewUid] ? `Du ser ${viewed.name} sitt budsjett. Bare ${viewed.name} kan endre det.` : `${viewed.name} har ikke satt opp et budsjett ennå.`);
+  });
+  document.querySelectorAll("[data-budget-own-only]").forEach(el => el.classList.toggle("hidden", !viewingMe));
 
-  const budgetSpentPct = document.getElementById("budget-spent-pct");
-  if (budgetSpentPct) budgetSpentPct.textContent = `${spentPct}% av budsjettet brukt`;
-
-  const budgetRemEl = document.getElementById("budget-remaining-val");
-  if (budgetRemEl) budgetRemEl.textContent = `${formatNumber(remaining)} kr`;
-
-  let durationDays = 22;
+  // Oppsummering
+  set("budget-total-label", el => { el.textContent = viewingMe ? "Mitt budsjett" : `${viewed.name} sitt budsjett`; });
+  set("budget-total-val", el => { el.textContent = totalBudget > 0 ? formatMoney(totalBudget) : "Ikke satt"; });
+  set("budget-spent-val", el => { el.textContent = formatMoney(spent); });
+  set("budget-spent-pct", el => {
+    el.textContent = share.cents > 0 ? `Inkl. ${formatMoney(share.cents / 100)} i felles utgifter` : (totalBudget > 0 ? `${Math.round(spent / totalBudget * 100)} % av budsjettet` : "Personlige utgifter");
+  });
+  set("budget-remaining-val", el => {
+    el.textContent = totalBudget > 0 ? formatMoney(totalBudget - spent) : "–";
+    el.classList.toggle("text-rose-600", totalBudget > 0 && spent > totalBudget);
+    el.classList.toggle("text-emerald-700", !(totalBudget > 0 && spent > totalBudget));
+  });
+  let durationDays = 1;
   if (appState.trip.startDate && appState.trip.endDate) {
-    const start = new Date(appState.trip.startDate);
-    const end = new Date(appState.trip.endDate);
-    const diff = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+    const diff = Math.ceil((new Date(appState.trip.endDate) - new Date(appState.trip.startDate)) / 86400000);
     if (diff > 0) durationDays = diff;
   }
-  const dailyAvg = Math.round(totalSpent / durationDays);
-  const dailyAvgEl = document.getElementById("budget-daily-avg");
-  if (dailyAvgEl) dailyAvgEl.textContent = `${formatNumber(dailyAvg)} kr / dag`;
+  set("budget-daily-avg", el => { el.textContent = `${formatMoney(Math.round(spent / durationDays))} / dag`; });
+  set("budget-daily-days-sub", el => { el.textContent = `Over ${durationDays} dager`; });
+  set("budget-remaining-sub", el => { el.textContent = totalBudget > 0 && spent > totalBudget ? "Over budsjett" : "Igjen å bruke"; });
 
-  const categories = [
-    { name: "Overnatting", icon: "bed", color: "from-blue-500 to-indigo-600", bgLight: "bg-blue-50 text-blue-700" },
-    { name: "Transport", icon: "train", color: "from-teal-500 to-emerald-600", bgLight: "bg-teal-50 text-teal-700" },
-    { name: "Mat", icon: "utensils", color: "from-amber-500 to-orange-600", bgLight: "bg-amber-50 text-amber-700" },
-    { name: "Aktiviteter", icon: "ticket", color: "from-rose-500 to-pink-600", bgLight: "bg-rose-50 text-rose-700" }
-  ];
-
-  const catContainer = document.getElementById("budget-categories-container");
-  if (catContainer) {
-    catContainer.innerHTML = categories.map(cat => {
-      const catSum = appState.expenses
-        .filter(e => e.category === cat.name)
-        .reduce((sum, e) => sum + Number(e.amount || 0), 0);
-      const catPct = totalSpent > 0 ? Math.round((catSum / totalSpent) * 100) : 0;
-
+  // Kategorier
+  set("budget-categories-container", el => {
+    el.innerHTML = EXPENSE_CATEGORIES.map(cat => {
+      const own = expenses.filter(e => (e.category || "Annet") === cat.name || (cat.name === "Mat" && e.category === "Mat & Drikke")).reduce((a, e) => a + toCents(e.amount), 0);
+      const sum = own + (share.byCat[cat.name] || 0);
+      const pct = spentCents > 0 ? Math.round(sum / spentCents * 100) : 0;
       return `
-        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200/70 space-y-2">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-slate-700 flex items-center gap-2">
-              <span class="w-6 h-6 rounded-lg ${cat.bgLight} flex items-center justify-center">
-                <i data-lucide="${cat.icon}" class="w-3.5 h-3.5"></i>
-              </span>
-              ${cat.name}
-            </span>
-            <span class="text-xs font-extrabold text-slate-900">${formatNumber(catSum)} kr (${catPct}%)</span>
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between text-sm">
+            <span class="flex items-center gap-2 text-slate-700"><i data-lucide="${cat.icon}" class="w-4 h-4 text-slate-400"></i>${cat.name}</span>
+            <span class="font-medium text-slate-900">${formatMoney(sum / 100)} <span class="text-slate-400 font-normal">· ${pct} %</span></span>
           </div>
-          <div class="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
-            <div class="bg-gradient-to-r ${cat.color} h-2 rounded-full" style="width: ${catPct}%"></div>
-          </div>
-        </div>
-      `;
+          <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden"><div class="bg-slate-900 h-1.5 rounded-full" style="width: ${pct}%"></div></div>
+        </div>`;
     }).join("");
-  }
+  });
 
-  const tbody = document.getElementById("expenses-table-body");
-  const mobileList = document.getElementById("expenses-mobile-list");
-  const countBadge = document.getElementById("expenses-count-badge");
-  if (countBadge) countBadge.textContent = `${appState.expenses.length} poster`;
+  // Personlige utgifter
+  const sorted = [...expenses].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
+  set("expenses-count-badge", el => { el.textContent = `${expenses.length} ${expenses.length === 1 ? "utgift" : "utgifter"}`; });
+  set("expenses-list", el => {
+    if (sorted.length === 0) {
+      el.innerHTML = `<div class="px-5 py-10 text-center">
+        <p class="text-sm font-medium text-slate-900">${viewingMe ? "Ingen utgifter ennå" : "Ingen utgifter registrert"}</p>
+        <p class="text-sm text-slate-500 mt-1">${viewingMe ? "Legg inn det du bruker underveis, så ser du hvor mye du har igjen." : ""}</p>
+      </div>`;
+      return;
+    }
+    el.innerHTML = sorted.map(exp => `
+      <div class="px-5 py-3 flex items-center justify-between gap-3">
+        <div class="min-w-0">
+          <p class="text-sm font-medium text-slate-900 truncate">${escapeHtml(exp.title || "Utgift")}</p>
+          <p class="text-xs text-slate-500 mt-0.5">${escapeHtml(exp.category === "Mat & Drikke" ? "Mat" : (exp.category || "Annet"))} · ${escapeHtml(formatDate(exp.date))}</p>
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <span class="text-sm font-semibold text-slate-900 tabular-nums">${formatMoney(exp.amount)}</span>
+          ${viewingMe ? `<button type="button" onclick="deleteExpense(${jsArg(exp.id)})" class="w-8 h-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition" aria-label="Slett ${escapeHtml(exp.title || "utgift")}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ""}
+        </div>
+      </div>`).join("");
+  });
+  set("budget-shared-share-row", el => {
+    el.classList.toggle("hidden", share.cents === 0);
+    el.innerHTML = share.cents === 0 ? "" : `<button type="button" onclick="switchBudgetView('shared')" class="w-full px-5 py-3 flex items-center justify-between gap-3 text-left hover:bg-slate-50 transition">
+        <span class="min-w-0"><span class="block text-sm font-medium text-slate-900">Andel av felles utgifter</span><span class="block text-xs text-slate-500 mt-0.5">Se felles utgifter og oppgjør</span></span>
+        <span class="text-sm font-semibold text-slate-900 tabular-nums">${formatMoney(share.cents / 100)}</span></button>`;
+  });
 
-  if (mobileList) {
-    if (appState.expenses.length === 0) {
-      mobileList.innerHTML = `<div class="p-6 text-center text-xs text-slate-400">Ingen personlige utgifter registrert ennå.</div>`;
-    } else {
-      mobileList.innerHTML = appState.expenses.map(exp => {
-        return `
-          <div class="p-3.5 flex items-center justify-between gap-3">
-            <div class="min-w-0 flex-1 space-y-1">
-              <p class="font-bold text-slate-900 text-xs truncate">${escapeHtml(exp.title)}</p>
-              <div class="flex items-center flex-wrap gap-1.5 text-[11px]">
-                <span class="px-2 py-0.5 rounded-full font-semibold bg-slate-100 text-slate-700">${escapeHtml(exp.category)}</span>
-                <span class="text-slate-400">${formatDate(exp.date)}</span>
-              </div>
-            </div>
-            <div class="flex items-center gap-2 shrink-0">
-              <span class="font-extrabold text-slate-900 text-sm">${formatNumber(exp.amount)} kr</span>
-              <button onclick="deleteExpense(${jsArg(exp.id)})" class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg bg-slate-50 transition" title="Slett utgift">
-                <i data-lucide="trash-2" class="w-4 h-4"></i>
-              </button>
-            </div>
+  // Felles utgifter og oppgjør
+  const nameOf = (e, id) => {
+    const p = people.find(x => x.id === id);
+    if (p) return id === me ? "deg" : p.name;
+    return (e && e.names && e.names[id]) || "Tidligere medlem";
+  };
+  const isOwner = isTripOwnedByCurrentUser(active);
+  set("shared-unavailable-note", el => el.classList.toggle("hidden", inCloud));
+  set("shared-expenses-content", el => el.classList.toggle("hidden", !inCloud));
+  set("shared-expenses-list", el => {
+    const items = sharedList;
+    if (items.length === 0) {
+      el.innerHTML = `<div class="px-5 py-10 text-center">
+        <p class="text-sm font-medium text-slate-900">Ingen felles utgifter ennå</p>
+        <p class="text-sm text-slate-500 mt-1 max-w-sm mx-auto">Har noen lagt ut for middag eller billetter? Legg det inn her, så regner RailSync ut hvem som skylder hvem.</p>
+      </div>`;
+      return;
+    }
+    el.innerHTML = items.map(e => {
+      const canChange = e.createdBy === me || isOwner;
+      if (e.kind === "payment") {
+        return `<div class="px-5 py-3 flex items-center justify-between gap-3 bg-emerald-50/40">
+          <div class="min-w-0 flex items-center gap-2.5">
+            <span class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0"><i data-lucide="check" class="w-4 h-4"></i></span>
+            <div class="min-w-0"><p class="text-sm text-slate-900 truncate">${escapeHtml(nameOf(e, e.paidBy) === "deg" ? "Du" : nameOf(e, e.paidBy))} betalte ${escapeHtml(nameOf(e, e.split[0]))}</p>
+            <p class="text-xs text-slate-500">Oppgjør · ${escapeHtml(formatDate(e.date))}${e._pending ? " · venter på lagring" : ""}</p></div>
           </div>
-        `;
-      }).join("");
-    }
-  }
+          <div class="flex items-center gap-1.5 shrink-0">
+            <span class="text-sm font-semibold text-emerald-700 tabular-nums">${formatMoney(e.amount)}</span>
+            ${canChange ? `<button type="button" onclick="deleteSharedExpense(${jsArg(e.id)})" class="w-8 h-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition" aria-label="Angre betaling"><i data-lucide="undo-2" class="w-4 h-4"></i></button>` : ""}
+          </div></div>`;
+      }
+      const split = Array.isArray(e.split) ? e.split : [];
+      const splitText = split.length === people.length && people.every(p => split.includes(p.id)) ? "alle" : split.map(id => nameOf(e, id)).join(", ");
+      return `<div class="px-5 py-3 flex items-center justify-between gap-3">
+        <button type="button" ${canChange ? `onclick="openSharedExpenseModal(${jsArg(e.id)})"` : "disabled"} class="min-w-0 text-left ${canChange ? "" : "cursor-default"}">
+          <p class="text-sm font-medium text-slate-900 truncate">${escapeHtml(e.title || "Utgift")}</p>
+          <p class="text-xs text-slate-500 mt-0.5 truncate">${escapeHtml(nameOf(e, e.paidBy) === "deg" ? "Du" : nameOf(e, e.paidBy))} betalte · delt på ${escapeHtml(splitText)} · ${escapeHtml(formatDate(e.date))}${e._pending ? " · venter på lagring" : ""}</p>
+        </button>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <span class="text-sm font-semibold text-slate-900 tabular-nums">${formatMoney(e.amount)}</span>
+          ${canChange ? `<button type="button" onclick="deleteSharedExpense(${jsArg(e.id)})" class="w-8 h-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition" aria-label="Slett ${escapeHtml(e.title || "utgift")}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ""}
+        </div></div>`;
+    }).join("");
+  });
 
-  if (tbody) {
-    if (appState.expenses.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-slate-400">Ingen personlige utgifter registrert.</td></tr>`;
-    } else {
-      tbody.innerHTML = appState.expenses.map(exp => {
-        return `
-        <tr class="hover:bg-slate-50/80 transition">
-          <td class="py-3 px-4 sm:px-6 font-semibold text-slate-900">${escapeHtml(exp.title)}</td>
-          <td class="py-3 px-4">
-            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">
-              ${escapeHtml(exp.category)}
-            </span>
-          </td>
-          <td class="py-3 px-4 text-slate-500 text-xs">${formatDate(exp.date)}</td>
-          <td class="py-3 px-4 text-right font-extrabold text-slate-900">${formatNumber(exp.amount)} kr</td>
-          <td class="py-3 px-4 text-right">
-            <button onclick="deleteExpense(${jsArg(exp.id)})" class="text-slate-400 hover:text-rose-600 p-1 rounded transition" title="Slett utgift">
-              <i data-lucide="trash-2" class="w-4 h-4"></i>
-            </button>
-          </td>
-        </tr>
-      `;
-      }).join("");
+  const balances = computeSharedBalances(sharedList, people);
+  const transfers = computeSettlementTransfers(balances);
+  const totalShared = sharedList.filter(e => e.kind === "expense").reduce((a, e) => a + toCents(e.amount), 0);
+  set("shared-total-val", el => { el.textContent = formatMoney(totalShared / 100); });
+  set("settlement-balances", el => {
+    el.innerHTML = Object.keys(balances).filter(id => people.some(p => p.id === id) || balances[id] !== 0).map(id => {
+      const c = balances[id];
+      const label = id === me ? "Du" : nameOf(null, id);
+      return `<li class="flex items-center justify-between gap-3 py-2 text-sm">
+        <span class="text-slate-700 truncate">${escapeHtml(label)}</span>
+        <span class="font-medium tabular-nums ${c > 0 ? "text-emerald-700" : c < 0 ? "text-rose-600" : "text-slate-400"}">${c > 0 ? "Skal ha " + formatMoney(c / 100) : c < 0 ? "Skylder " + formatMoney(-c / 100) : "Gjort opp"}</span>
+      </li>`;
+    }).join("");
+  });
+  set("settlement-transfers", el => {
+    if (transfers.length === 0) {
+      el.innerHTML = `<p class="text-sm text-slate-500">${totalShared > 0 ? "Alt er gjort opp." : "Oppgjøret vises her når dere har lagt inn felles utgifter."}</p>`;
+      return;
     }
-  }
+    el.innerHTML = transfers.map(t => `
+      <div class="flex items-center justify-between gap-3 py-2.5">
+        <p class="text-sm text-slate-700 min-w-0"><span class="font-medium text-slate-900">${escapeHtml(t.from === me ? "Du" : nameOf(null, t.from))}</span> betaler <span class="font-medium text-slate-900">${escapeHtml(t.to === me ? "deg" : nameOf(null, t.to))}</span><br><span class="font-semibold text-slate-900 tabular-nums">${formatMoney(t.cents / 100)}</span></p>
+        <button type="button" onclick="registerSettlementPayment(${jsArg(t.from)}, ${jsArg(t.to)}, ${Number(t.cents)})" class="shrink-0 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition">Registrer betalt</button>
+      </div>`).join("");
+  });
 
   if (window.lucide) lucide.createIcons();
 }
@@ -5651,12 +6195,20 @@ async function removeTripFromCloud(tripObj, ownsTrip) {
     const ref = doc(db, "trips", tripObj.id);
     if (ownsTrip) {
       if (!tripObj._cloudCreated) return;
+      // Rydd budsjetter og felles utgifter før selve reisen slettes
+      for (const sub of ["budgets", "sharedExpenses"]) {
+        try {
+          const snap = await getDocs(collection(db, "trips", tripObj.id, sub));
+          await Promise.all(snap.docs.map(d => deleteDoc(doc(db, "trips", tripObj.id, sub, d.id)).catch(() => {})));
+        } catch (e) { /* ignorer */ }
+      }
       await deleteDoc(ref);
       if (tripObj._shareCodeSynced) {
         try { await deleteDoc(doc(db, "shareCodes", tripObj._shareCodeSynced)); } catch (e) {}
       }
     } else {
       const uid = currentUser.uid;
+      try { await deleteDoc(doc(db, "trips", tripObj.id, "budgets", uid)); } catch (e) { /* ignorer */ }
       const remaining = (tripObj.members || []).filter(m => (m.uid || m.id) !== uid);
       await updateDoc(ref, {
         memberUids: arrayRemove(uid),
@@ -6026,7 +6578,7 @@ export function savePersonalBudgetStateOnly() {
 export function openEditPersonalBudgetPrompt() {
   const input = document.getElementById("personal-budget-input");
   if (input) {
-    input.value = appState.trip.totalBudget || 20000;
+    input.value = appState.trip.totalBudget > 0 ? appState.trip.totalBudget : "";
   }
   openModal("modal-edit-budget");
 }
@@ -6034,12 +6586,12 @@ export function openEditPersonalBudgetPrompt() {
 export function handleSavePersonalBudget(e) {
   if (e && e.preventDefault) e.preventDefault();
   const input = document.getElementById("personal-budget-input");
-  const newVal = input ? parseFloat(input.value) : 20000;
-  appState.trip.totalBudget = !isNaN(newVal) && newVal >= 0 ? newVal : 20000;
+  const newVal = input ? parseFloat(input.value) : 0;
+  appState.trip.totalBudget = !isNaN(newVal) && newVal >= 0 ? Math.round(newVal) : 0;
   savePersonalBudgetStateOnly();
   renderAll();
   closeModal("modal-edit-budget");
-  showToast("Mitt budsjett oppdatert", `Personlig totalbudsjett satt til ${formatNumber(appState.trip.totalBudget)} kr.`, "wallet");
+  showToast("Budsjettet er oppdatert", appState.trip.totalBudget > 0 ? `Rammen er ${formatMoney(appState.trip.totalBudget)}.` : "Du har ikke satt noen ramme.", "wallet");
 }
 
 export function handleSaveExpense(e) {
@@ -6062,7 +6614,7 @@ export function handleSaveExpense(e) {
   renderAll();
   closeModal('modal-add-expense');
   document.getElementById("form-add-expense").reset();
-  showToast("Utgift lagret", `Lagt til i ditt personlige budsjett (${formatNumber(amount)} kr).`, "wallet");
+  showToast("Utgift lagret", `${title} · ${formatMoney(amount)}`, "wallet");
 }
 
 export function deleteExpense(id) {
@@ -7354,6 +7906,12 @@ window.setTripMemberRole = setTripMemberRole;
 window.confirmRemoveTripMember = confirmRemoveTripMember;
 window.applyEditMode = applyEditMode;
 window.updateSyncStatus = updateSyncStatus;
+window.switchBudgetView = switchBudgetView;
+window.selectBudgetPerson = selectBudgetPerson;
+window.openSharedExpenseModal = openSharedExpenseModal;
+window.handleSaveSharedExpense = handleSaveSharedExpense;
+window.deleteSharedExpense = deleteSharedExpense;
+window.registerSettlementPayment = registerSettlementPayment;
 window.newTripFromPage = newTripFromPage;
 window.switchTripManagerTab = switchTripManagerTab;
 window.syncAllUserTripsWithCloud = syncAllUserTripsWithCloud;

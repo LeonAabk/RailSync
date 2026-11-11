@@ -332,7 +332,7 @@
       <button onclick="switchTab('budget')" id="nav-btn-budget" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all duration-150 text-slate-400 hover:text-white hover:bg-slate-900">
         <i data-lucide="wallet" class="w-4 h-4 text-slate-400"></i>
         <span>Budsjett</span>
-        <span id="sidebar-budget-badge" class="ml-auto text-[11px] font-semibold text-slate-500">Privat</span>
+        <span id="sidebar-budget-badge" class="ml-auto text-[11px] font-semibold text-slate-500 tabular-nums"></span>
       </button>
 
       <button onclick="switchTab('packing')" id="nav-btn-packing" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all duration-150 text-slate-400 hover:text-white hover:bg-slate-900">
@@ -800,101 +800,99 @@
       <!-- ===================================================================== -->
       <!-- TAB 3: BUDSJETT                                                       -->
       <!-- ===================================================================== -->
-      <section id="tab-budget" class="tab-content hidden space-y-6">
+      <section id="tab-budget" class="tab-content hidden w-full max-w-6xl mx-auto space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div class="min-w-0">
+            <h2 class="text-xl sm:text-2xl font-semibold tracking-tight text-slate-900">Budsjett</h2>
+            <p id="budget-subtitle" class="text-sm text-slate-500 mt-1">Ditt budsjett for reisen.</p>
+          </div>
+          <div class="inline-flex p-1 rounded-xl bg-slate-100 self-start sm:self-auto" role="tablist">
+            <button type="button" id="budget-view-btn-personal" onclick="switchBudgetView('personal')" role="tab" class="whitespace-nowrap px-3.5 py-1.5 rounded-lg text-sm font-medium transition">Budsjett</button>
+            <button type="button" id="budget-view-btn-shared" onclick="switchBudgetView('shared')" role="tab" class="whitespace-nowrap px-3.5 py-1.5 rounded-lg text-sm font-medium transition inline-flex items-center gap-1.5">Felles utgifter <span id="budget-shared-count" class="hidden text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-slate-200 text-slate-700"></span></button>
+          </div>
+        </div>
 
-        <!-- Personal Budget Privacy Banner -->
-        <div class="bg-white border border-slate-200/90 rounded-2xl px-5 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
-          <div class="flex items-center gap-3 text-xs sm:text-sm text-slate-900 font-semibold">
-            <span class="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
-              <i data-lucide="lock" class="w-4 h-4"></i>
-            </span>
-            <div>
-              <span>Personlig reisebudsjett</span>
-              <span class="text-slate-500 font-normal block sm:inline sm:ml-1.5">— Dine budsjettrammer og utgifter er private og deles ikke med reisefølget.</span>
+        <div id="budget-person-picker" class="hidden flex items-center gap-2 overflow-x-auto pb-1 -mx-1 px-1"></div>
+
+        <!-- Personlig budsjett -->
+        <div id="budget-panel-personal" class="space-y-5">
+          <p id="budget-readonly-note" class="hidden text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3"></p>
+
+          <div class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-slate-100 overflow-hidden">
+            <div class="p-4 sm:p-5 min-w-0">
+              <div class="flex items-center justify-between gap-2">
+                <p id="budget-total-label" class="text-xs text-slate-500 truncate">Mitt budsjett</p>
+                <button type="button" data-budget-own-only onclick="openEditPersonalBudgetPrompt()" class="text-xs font-medium text-slate-900 underline underline-offset-2 shrink-0">Endre</button>
+              </div>
+              <p id="budget-total-val" class="text-lg sm:text-2xl font-semibold text-slate-900 mt-1 truncate tabular-nums">Ikke satt</p>
+            </div>
+            <div class="p-4 sm:p-5 min-w-0">
+              <p class="text-xs text-slate-500">Brukt</p>
+              <p id="budget-spent-val" class="text-lg sm:text-2xl font-semibold text-slate-900 mt-1 truncate tabular-nums">0 kr</p>
+              <p id="budget-spent-pct" class="text-xs text-slate-500 mt-0.5 truncate"></p>
+            </div>
+            <div class="p-4 sm:p-5 min-w-0">
+              <p class="text-xs text-slate-500">Gjenstår</p>
+              <p id="budget-remaining-val" class="text-lg sm:text-2xl font-semibold text-emerald-700 mt-1 truncate tabular-nums">–</p>
+              <p id="budget-remaining-sub" class="text-xs text-slate-500 mt-0.5 truncate">Igjen å bruke</p>
+            </div>
+            <div class="p-4 sm:p-5 min-w-0">
+              <p class="text-xs text-slate-500">Snitt per dag</p>
+              <p id="budget-daily-avg" class="text-lg sm:text-2xl font-semibold text-slate-900 mt-1 truncate tabular-nums">0 kr / dag</p>
+              <p id="budget-daily-days-sub" class="text-xs text-slate-500 mt-0.5 truncate"></p>
             </div>
           </div>
-          <button onclick="openEditPersonalBudgetPrompt()" class="text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3.5 py-1.5 rounded-lg transition self-start sm:self-auto shrink-0">
-            Endre totalbudsjett
-          </button>
-        </div>
-        
-        <!-- Budget Overview Summary Bar (Clean Hairline Divided Bar) -->
-        <div class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 divide-x divide-slate-100 overflow-hidden">
-          <div class="p-4 sm:p-5 min-w-0">
-            <div class="flex items-center justify-between gap-1">
-              <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider truncate">Mitt budsjett</p>
-              <button onclick="openEditPersonalBudgetPrompt()" class="text-[11px] text-brand-600 hover:underline font-semibold shrink-0">Endre</button>
+
+          <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px] items-start">
+            <div class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden min-w-0">
+              <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
+                <div>
+                  <h3 class="text-sm font-semibold text-slate-900">Utgifter</h3>
+                  <p id="expenses-count-badge" class="text-xs text-slate-500">0 utgifter</p>
+                </div>
+                <button type="button" data-budget-own-only onclick="openAddExpenseModal()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold transition">
+                  <i data-lucide="plus" class="w-4 h-4"></i><span>Ny utgift</span>
+                </button>
+              </div>
+              <div id="budget-shared-share-row" class="hidden border-b border-slate-100"></div>
+              <div id="expenses-list" class="divide-y divide-slate-100"></div>
             </div>
-            <h3 id="budget-total-val" class="text-lg sm:text-2xl font-bold text-slate-900 mt-1.5 truncate">22 000 kr</h3>
-            <p class="text-xs text-slate-500 mt-0.5 truncate">Personlig ramme</p>
-          </div>
-          <div class="p-4 sm:p-5 min-w-0">
-            <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider truncate">Brukt hittil</p>
-            <h3 id="budget-spent-val" class="text-lg sm:text-2xl font-bold text-slate-900 mt-1.5 truncate">13 670 kr</h3>
-            <p id="budget-spent-pct" class="text-xs text-slate-500 mt-0.5 truncate">62% av budsjettet</p>
-          </div>
-          <div class="p-4 sm:p-5 min-w-0">
-            <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider truncate">Gjenstår</p>
-            <h3 id="budget-remaining-val" class="text-lg sm:text-2xl font-bold text-emerald-700 mt-1.5 truncate">8 330 kr</h3>
-            <p class="text-xs text-slate-500 mt-0.5 truncate">Disponibelt</p>
-          </div>
-          <div class="p-4 sm:p-5 min-w-0">
-            <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider truncate">Snitt per dag</p>
-            <h3 id="budget-daily-avg" class="text-lg sm:text-2xl font-bold text-slate-900 mt-1.5 truncate">378 kr / dag</h3>
-            <p id="budget-daily-days-sub" class="text-xs text-slate-500 mt-0.5 truncate">For planlagte dager</p>
-          </div>
-        </div>
-
-        <!-- Budget Visual Category Breakdown & Action Button -->
-        <div class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-6 space-y-5">
-          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-            <div>
-              <h2 class="text-base font-bold text-slate-900">Utgiftsfordeling per kategori</h2>
-              <p class="text-xs text-slate-500">Fordeling mellom transport, overnatting, mat og aktiviteter</p>
+            <div class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 space-y-4">
+              <h3 class="text-sm font-semibold text-slate-900">Fordeling</h3>
+              <div id="budget-categories-container" class="space-y-3.5"></div>
             </div>
-            <button onclick="openAddExpenseModal()" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs sm:text-sm transition">
-              <i data-lucide="plus" class="w-4 h-4"></i>
-              <span>Registrer utgift</span>
-            </button>
-          </div>
-
-          <!-- Category Progress Bars -->
-          <div id="budget-categories-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <!-- Dynamically populated by renderBudget() in app.js -->
           </div>
         </div>
 
-        <!-- Expenses Transaction Table & Mobile Card List -->
-        <div class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
-          <div class="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
-            <h3 class="font-bold text-slate-900 text-sm sm:text-base">Registrerte utgifter</h3>
-            <span id="expenses-count-badge" class="text-xs font-semibold px-2.5 py-1 rounded-md bg-slate-100 text-slate-700">9 poster</span>
-          </div>
-
-          <!-- Mobile Expense Cards (< 640px) -->
-          <div id="expenses-mobile-list" class="sm:hidden divide-y divide-slate-100">
-            <!-- Dynamically populated by renderBudget() in app.js -->
-          </div>
-
-          <!-- Desktop Expenses Table (>= 640px) -->
-          <div class="hidden sm:block overflow-x-auto">
-            <table class="w-full text-left text-xs sm:text-sm">
-              <thead class="bg-slate-50/75 border-b border-slate-100 text-slate-500 font-semibold uppercase text-[11px] tracking-wider">
-                <tr>
-                  <th class="py-3 px-4 sm:px-6">Beskrivelse</th>
-                  <th class="py-3 px-4">Kategori</th>
-                  <th class="py-3 px-4">Dato</th>
-                  <th class="py-3 px-4 text-right">Beløp</th>
-                  <th class="py-3 px-4 text-right">Handling</th>
-                </tr>
-              </thead>
-              <tbody id="expenses-table-body" class="divide-y divide-slate-100 text-slate-700 font-medium">
-                <!-- Dynamically populated by renderBudget() in app.js -->
-              </tbody>
-            </table>
+        <!-- Felles utgifter -->
+        <div id="budget-panel-shared" class="hidden space-y-5">
+          <p id="shared-unavailable-note" class="hidden text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">Felles utgifter kan brukes når reisen er lagret på kontoen din.</p>
+          <div id="shared-expenses-content" class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px] items-start">
+            <div class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden min-w-0">
+              <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
+                <div>
+                  <h3 class="text-sm font-semibold text-slate-900">Felles utgifter</h3>
+                  <p class="text-xs text-slate-500">Totalt <span id="shared-total-val" class="tabular-nums">0 kr</span></p>
+                </div>
+                <button type="button" onclick="openSharedExpenseModal()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold transition">
+                  <i data-lucide="plus" class="w-4 h-4"></i><span>Legg til</span>
+                </button>
+              </div>
+              <div id="shared-expenses-list" class="divide-y divide-slate-100"></div>
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 space-y-4">
+              <div>
+                <h3 class="text-sm font-semibold text-slate-900">Oppgjør</h3>
+                <p class="text-xs text-slate-500 mt-0.5">Færrest mulig overføringer for å gjøre opp.</p>
+              </div>
+              <div id="settlement-transfers" class="divide-y divide-slate-100"></div>
+              <div class="pt-3 border-t border-slate-100">
+                <p class="text-xs text-slate-500 mb-1">Status per person</p>
+                <ul id="settlement-balances" class="divide-y divide-slate-100"></ul>
+              </div>
+            </div>
           </div>
         </div>
-
       </section>
 
       <!-- ===================================================================== -->
@@ -1458,7 +1456,7 @@
             <div class="rounded-2xl border border-slate-200/90 bg-slate-50 p-5 text-xs text-slate-600 space-y-2.5 leading-relaxed">
               <h3 class="text-sm font-semibold text-slate-900">Slik fungerer delte reiser</h3>
               <p>Alle i reisefølget ser de samme stoppene, togene og pakkelisten. Endringer vises hos de andre med en gang.</p>
-              <p>Budsjettet ditt er alltid privat, også på delte reiser.</p>
+              <p>Alle har sitt eget budsjett. Reisefølget kan se hverandres, men bare endre sitt eget. Felles utgifter gjøres opp under Budsjett.</p>
               <p>Eieren bestemmer om andre kan redigere eller bare se. Du kan alltid lage din egen kopi.</p>
             </div>
             <p id="trip-manager-sync-status" class="text-xs text-slate-400 px-1">Reisene lagres på kontoen din.</p>
@@ -1949,6 +1947,56 @@
   <!-- ========================================================================= -->
   <!-- MODAL: LEGG TIL UTGIFT                                                    -->
   <!-- ========================================================================= -->
+  <div id="modal-shared-expense" class="fixed inset-0 z-50 hidden bg-slate-900/50 flex items-center justify-center p-4">
+    <form id="form-shared-expense" onsubmit="handleSaveSharedExpense(event)" class="bg-white rounded-2xl max-w-md w-full shadow-xl border border-slate-200 max-h-[92vh] flex flex-col" role="dialog" aria-modal="true" aria-labelledby="shared-expense-modal-title">
+      <div class="px-5 sm:px-6 pt-5 pb-4 border-b border-slate-100 flex items-start justify-between gap-4">
+        <div>
+          <h3 id="shared-expense-modal-title" class="text-base font-semibold text-slate-900">Ny felles utgift</h3>
+          <p class="text-sm text-slate-500 mt-0.5">Noen la ut, og flere skal dele på det.</p>
+        </div>
+        <button type="button" onclick="closeModal('modal-shared-expense')" class="w-8 h-8 -mr-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition shrink-0" aria-label="Lukk"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+      <div class="px-5 sm:px-6 py-5 space-y-4 overflow-y-auto">
+        <input type="hidden" id="shared-expense-id">
+        <div>
+          <label for="shared-expense-title" class="field-label">Hva gjelder det?</label>
+          <input type="text" id="shared-expense-title" maxlength="80" required placeholder="For eksempel middag i Praha" class="field-input">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="shared-expense-amount" class="field-label">Beløp (kr)</label>
+            <input type="number" id="shared-expense-amount" min="0.01" max="1000000" step="0.01" inputmode="decimal" required class="field-input tabular-nums">
+          </div>
+          <div>
+            <label for="shared-expense-date" class="field-label">Dato</label>
+            <input type="date" id="shared-expense-date" class="field-input">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="shared-expense-paid-by" class="field-label">Betalt av</label>
+            <select id="shared-expense-paid-by" class="field-input"></select>
+          </div>
+          <div>
+            <label for="shared-expense-category" class="field-label">Kategori</label>
+            <select id="shared-expense-category" class="field-input">
+              <option value="Mat">Mat</option><option value="Overnatting">Overnatting</option><option value="Transport">Transport</option><option value="Aktiviteter">Aktiviteter</option><option value="Annet">Annet</option>
+            </select>
+          </div>
+        </div>
+        <fieldset>
+          <legend class="field-label">Deles likt på</legend>
+          <div id="shared-expense-split" class="rounded-xl border border-slate-200 px-3.5 py-1.5 divide-y divide-slate-100"></div>
+        </fieldset>
+        <p id="shared-expense-error" class="hidden text-sm text-rose-600"></p>
+      </div>
+      <div class="px-5 sm:px-6 py-3.5 bg-slate-50 border-t border-slate-100 rounded-b-2xl flex justify-end gap-2">
+        <button type="button" onclick="closeModal('modal-shared-expense')" class="px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 transition">Avbryt</button>
+        <button type="submit" class="px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold transition">Lagre</button>
+      </div>
+    </form>
+  </div>
+
   <div id="modal-add-expense" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4" role="dialog" aria-modal="true" aria-labelledby="modal-expense-title">
       <div class="flex items-center justify-between pb-3 border-b border-slate-100">
@@ -1958,7 +2006,7 @@
           </div>
           <div>
             <h3 id="modal-expense-title" class="font-bold text-slate-900 text-base">Legg til personlig utgift</h3>
-            <p class="text-xs text-slate-500">Kun synlig i ditt eget budsjett</p>
+            <p class="text-xs text-slate-500">Reisefølget kan se det, bare du kan endre det</p>
           </div>
         </div>
         <button onclick="closeModal('modal-add-expense')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
@@ -1978,8 +2026,9 @@
             <select id="expense-category" required class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
               <option value="Overnatting">Overnatting</option>
               <option value="Transport">Transport</option>
-              <option value="Mat">Mat & Drikke</option>
+              <option value="Mat">Mat</option>
               <option value="Aktiviteter">Aktiviteter</option>
+              <option value="Annet">Annet</option>
             </select>
           </div>
           <div>
@@ -2253,7 +2302,7 @@
   <!-- ========================================================================= -->
   <!-- MODULAR JAVASCRIPT ENTRYPOINT                                             -->
   <!-- ========================================================================= -->
-  <script type="module" src="./app.js?v=20261111-12"></script>
+  <script type="module" src="./app.js?v=20261111-13"></script>
 
 </body>
 </html>
