@@ -162,121 +162,17 @@ export function getPlaceThumbnailUrl(city = "", country = "") {
   return "https://images.unsplash.com/photo-1474487548417-781cb71495f3?auto=format&fit=crop&w=300&q=80";
 }
 
-export const DEFAULT_COMMUNITY_TRAVELERS = [
-  {
-    uid: "traveler_sander",
-    displayName: "Sander Lindqvist",
-    username: "@sander_rail",
-    avatarColor: "#2563eb",
-    homeStation: "Oslo S",
-    defaultPassType: "Global Pass 10 dager (Ungdom)",
-    bio: "Alperuter, nattog gjennom Sentral-Europa og kystbyer langs Middelhavet.",
-    visitedCountries: ["Norge", "Sverige", "Danmark", "Tyskland", "Østerrike", "Tsjekkia", "Italia"],
-    visitedPlaces: [
-      { id: "svp1", city: "Innsbruck", country: "Østerrike", note: "2025 – Spektakulær utsikt rett fra togstasjonen" },
-      { id: "svp2", city: "Praha", country: "Tsjekkia", note: "2024 – Rimelig mat og historisk gamleby" },
-      { id: "svp3", city: "Firenze", country: "Italia", note: "2025 – Kunst og solnedgang fra Piazzale Michelangelo" }
-    ],
-    wishlistPlaces: [
-      { id: "swl1", city: "Zermatt & Glacier Express", country: "Sveits", tag: "Klassisk togrute" },
-      { id: "swl2", city: "Bled-sjøen", country: "Slovenia", tag: "Alper & Natur" },
-      { id: "swl3", city: "Amalfikysten", country: "Italia", tag: "Prioritert reisemål" }
-    ],
-    isCommunityProfile: true
-  },
-  {
-    uid: "traveler_nora",
-    displayName: "Nora Berg",
-    username: "@nora.europa",
-    avatarColor: "#7c3aed",
-    homeStation: "Bergen stasjon",
-    defaultPassType: "Global Pass 7 dager (Ungdom)",
-    bio: "Arkitektur, foto og hurtigtog. Planlegger sommerens rundreise til Sør-Europa.",
-    visitedCountries: ["Norge", "Danmark", "Nederland", "Belgia", "Frankrike", "Spania"],
-    visitedPlaces: [
-      { id: "nvp1", city: "Amsterdam", country: "Nederland", note: "2024 – Kanaler og sykkelturer" },
-      { id: "nvp2", city: "Paris", country: "Frankrike", note: "2025 – Eurostar fra Brussel på 1t 22m" },
-      { id: "nvp3", city: "Barcelona", country: "Spania", note: "2025 – Tapas og kystlinje" }
-    ],
-    wishlistPlaces: [
-      { id: "nwl1", city: "Cinque Terre & Roma", country: "Italia", tag: "Prioritert reisemål" },
-      { id: "nwl2", city: "Porto & Lisboa", country: "Portugal", tag: "Kyst & Middelhav" },
-      { id: "nwl3", city: "Interlaken", country: "Sveits", tag: "Alper & Natur" }
-    ],
-    isCommunityProfile: true
-  },
-  {
-    uid: "traveler_emil",
-    displayName: "Emil Solberg",
-    username: "@emil_tog",
-    avatarColor: "#f97316",
-    homeStation: "Trondheim S",
-    defaultPassType: "Global Pass 15 dager (Ungdom)",
-    bio: "Togentusiast fra Trondheim. Mål om å utforske alle 33 Interrail-land innen 2027.",
-    visitedCountries: ["Norge", "Sverige", "Tyskland", "Polen", "Ungarn", "Kroatia", "Slovenia"],
-    visitedPlaces: [
-      { id: "evp1", city: "Budapest", country: "Ungarn", note: "2025 – Termiske bad og Donau" },
-      { id: "evp2", city: "Split", country: "Kroatia", note: "2024 – Adriaterhavskysten" },
-      { id: "evp3", city: "Ljubljana", country: "Slovenia", note: "2024 – Europas grønneste hovedstad" }
-    ],
-    wishlistPlaces: [
-      { id: "ewl1", city: "Bernina Express til Tirano", country: "Sveits", tag: "Klassisk togrute" },
-      { id: "ewl2", city: "Athen & Meteora", country: "Hellas", tag: "Prioritert reisemål" },
-      { id: "ewl3", city: "Roma & Napoli", country: "Italia", tag: "Kultur & Storby" }
-    ],
-    isCommunityProfile: true
-  },
-  {
-    uid: "traveler_sofie",
-    displayName: "Sofie Holm",
-    username: "@sofie_vagabond",
-    avatarColor: "#e11d48",
-    homeStation: "Stavanger stasjon",
-    defaultPassType: "Global Pass 7 dager (Ungdom)",
-    bio: "Reiser lett med kun håndbagasje. Alltid klar for spontane togturer til nye byer.",
-    visitedCountries: ["Norge", "Danmark", "Tyskland", "Sveits", "Italia"],
-    visitedPlaces: [
-      { id: "sfvp1", city: "Luzern", country: "Sveits", note: "2025 – Krystallklart vann og fjelltopper" },
-      { id: "sfvp2", city: "Venezia", country: "Italia", note: "2025 – Ankomst Santa Lucia over lagunen" }
-    ],
-    wishlistPlaces: [
-      { id: "sfwl1", city: "Wien & Salzburg", country: "Østerrike", tag: "Kultur & Storby" },
-      { id: "sfwl2", city: "Nice & Côte d'Azur", country: "Frankrike", tag: "Kyst & Middelhav" },
-      { id: "sfwl3", city: "Bled-sjøen", country: "Slovenia", tag: "Alper & Natur" }
-    ],
-    isCommunityProfile: true
-  },
-  {
-    uid: "traveler_kasper",
-    displayName: "Kasper Nygård",
-    username: "@kasper_alper",
-    avatarColor: "#059669",
-    homeStation: "Oslo S",
-    defaultPassType: "Global Pass 10 dager (Ungdom)",
-    bio: "Toppturer, alpepass og panoramatog i Sveits og Østerrike.",
-    visitedCountries: ["Norge", "Sverige", "Tyskland", "Sveits", "Østerrike"],
-    visitedPlaces: [
-      { id: "kvp1", city: "Zermatt", country: "Sveits", note: "2025 – Matterhorn i soloppgang" },
-      { id: "kvp2", city: "Salzburg", country: "Østerrike", note: "2024 – Stopp mellom München og Wien" }
-    ],
-    wishlistPlaces: [
-      { id: "kwl1", city: "Dolomittene & Bolzano", country: "Italia", tag: "Alper & Natur" },
-      { id: "kwl2", city: "Chamonix", country: "Frankrike", tag: "Prioritert reisemål" }
-    ],
-    isCommunityProfile: true
-  }
-];
+// Eksempelprofiler er fjernet – bare ekte kontoer vises
+export const DEFAULT_COMMUNITY_TRAVELERS = [];
 
-// Rich User Profile (persisted in localStorage, private part in Firestore users/{uid},
-// public part in Firestore publicProfiles/{uid})
 export let userProfile = {
   uid: "local_user",
   displayName: "Reisende",
   username: "@reisende",
   avatarColor: "#0d9488",
-  homeStation: "Oslo S",
-  defaultPassType: "Global Pass 7 dager (Ungdom)",
-  bio: "Klar for Interrail gjennom Europa!",
+  homeStation: "",
+  defaultPassType: "",
+  bio: "",
   visitedCountries: [],
   visitedPlaces: [],
   wishlistPlaces: [],
@@ -285,8 +181,20 @@ export let userProfile = {
   outgoingFriendRequests: []
 };
 
+// Eldre versjoner fylte profilen med standardtekst. Er bio-en fortsatt standard, er profilen aldri fylt ut.
+function cleanLegacyProfileDefaults(prof) {
+  if (!prof || typeof prof !== "object") return prof;
+  if (prof.bio === "Klar for Interrail gjennom Europa!") {
+    prof.bio = "";
+    if (prof.homeStation === "Oslo S") prof.homeStation = "";
+    if (prof.defaultPassType === "Global Pass 7 dager (Ungdom)") prof.defaultPassType = "";
+  }
+  return prof;
+}
+
 export function ensureSocialProfileFields(prof) {
   if (!prof || typeof prof !== "object") return prof;
+  cleanLegacyProfileDefaults(prof);
   if (!Array.isArray(prof.visitedCountries)) prof.visitedCountries = [];
   if (!Array.isArray(prof.visitedPlaces)) prof.visitedPlaces = [];
   if (!Array.isArray(prof.wishlistPlaces)) {
@@ -769,7 +677,7 @@ let tripListenersReady = { owned: false, member: false };
 
 function afterRemoteTripChanges() {
   saveAllTripsToLocalStorage();
-  if (!allTrips.some(t => t.id === activeTripId) && allTrips.length > 0) activeTripId = allTrips[0].id;
+  if (!allTrips.some(t => t.id === activeTripId)) activeTripId = allTrips.length ? allTrips[0].id : null;
   syncActiveTripToState();
   renderAll();
   updateMapLayers();
@@ -796,11 +704,7 @@ function removeLocalTrip(id, notify) {
   const t = allTrips.find(x => x.id === id);
   if (!t) return;
   allTrips = allTrips.filter(x => x.id !== id);
-  if (allTrips.length === 0) {
-    createNewTrip();
-  } else if (activeTripId === id) {
-    activeTripId = allTrips[0].id;
-  }
+  if (activeTripId === id) activeTripId = allTrips.length ? allTrips[0].id : null;
   saveAllTripsToLocalStorage();
   syncActiveTripToState();
   renderAll();
@@ -1155,7 +1059,9 @@ export async function handleLogout() {
 // =============================================================================
 // 2. APPLICATION STATE
 // =============================================================================
-const defaultTripState = {
+// Innholdet i den gamle eksempelreisen. Brukes bare til å kjenne igjen urørte eksempelreiser
+// og som forslag til pakkeliste.
+export const LEGACY_EXAMPLE_TRIP_STATE = {
   trip: {
     title: "Eksempelreise: Europaturné 2026",
     startDate: "2026-07-01",
@@ -1378,28 +1284,39 @@ export function ensureTripCollaborationFields(tripObj) {
   return tripObj;
 }
 
-// Starter Proposal: Single clean sample proposal
-const starterProposal = ensureTripCollaborationFields({
-  id: "eksempel-1",
-  title: "Eksempelreise: Europaturné 2026",
-  createdAt: new Date().toISOString(),
-  visibility: "private",
-  sharePermission: "edit",
-  trip: JSON.parse(JSON.stringify(defaultTripState.trip)),
-  stops: JSON.parse(JSON.stringify(defaultTripState.stops)),
-  trains: JSON.parse(JSON.stringify(defaultTripState.trains)),
-  expenses: JSON.parse(JSON.stringify(defaultTripState.expenses)),
-  packingList: JSON.parse(JSON.stringify(defaultTripState.packingList))
-});
+// Tom reise – brukes når brukeren ikke har noen reiser ennå
+const emptyTripState = {
+  trip: { title: "", startDate: "", endDate: "", totalPassDays: 0, totalBudget: 0, currency: "NOK" },
+  stops: [],
+  trains: [],
+  expenses: [],
+  packingList: []
+};
 
-export let allTrips = [starterProposal];
-export let activeTripId = "eksempel-1";
+// Forslag til pakkeliste (legges bare til når brukeren ber om det)
+export const PACKING_SUGGESTIONS = LEGACY_EXAMPLE_TRIP_STATE.packingList.map(p => ({ ...p, checked: false }));
+
+export let allTrips = [];
+export let activeTripId = null;
 export let currentTripManagerTab = "all";
 let activeTripUnsubscribe = null;
 let isApplyingRemoteSnapshot = false;
 
 // Deep clone active state container
-export const appState = JSON.parse(JSON.stringify(defaultTripState));
+export const appState = JSON.parse(JSON.stringify(emptyTripState));
+
+function isUntouchedExampleTrip(t) {
+  if (!t || t.id !== "eksempel-1") return false;
+  const ex = LEGACY_EXAMPLE_TRIP_STATE;
+  const strip = (arr) => JSON.stringify((arr || []).map(x => ({ ...x })));
+  return String(t.title || (t.trip && t.trip.title) || "") === ex.trip.title
+    && strip(t.stops) === strip(ex.stops)
+    && strip(t.trains) === strip(ex.trains);
+}
+
+export function hasActiveTrip() {
+  return Boolean(activeTripId && allTrips.some(t => t.id === activeTripId));
+}
 
 export function getActiveTripObject() {
   let active = allTrips.find(t => t.id === activeTripId);
@@ -1462,7 +1379,10 @@ function requireEditPermission() {
 
 function syncUrlWithActiveTrip() {
   const active = getActiveTripObject();
-  if (!active) return;
+  if (!active) {
+    if (window.location.search.includes("trip=")) window.history.replaceState({}, "", `${window.location.origin}${window.location.pathname}`);
+    return;
+  }
   const baseUrl = `${window.location.origin}${window.location.pathname}`;
   if (active.visibility === "shared" && active.id !== "eksempel-1") {
     const shareUrl = `${baseUrl}?trip=${active.id}`;
@@ -1526,13 +1446,8 @@ export function getPersonalBudgetForTrip(tripObj) {
   }
 
   // Nytt budsjett starter tomt – brukeren setter rammen selv
-  let initialBudget = 0;
-  let initialExpenses = [];
-
-  if (tripObj.id === "eksempel-1") {
-    initialBudget = defaultTripState.trip.totalBudget || 22000;
-    initialExpenses = JSON.parse(JSON.stringify(defaultTripState.expenses));
-  }
+  const initialBudget = 0;
+  const initialExpenses = [];
 
   personalBudgetsByTrip[tripObj.id] = {
     totalBudget: initialBudget,
@@ -1562,11 +1477,21 @@ export function updatePersonalBudgetForTrip(tripId, totalBudget, expenses) {
 
 export function syncActiveTripToState() {
   const active = getActiveTripObject();
-  if (!active) return;
+  if (!active) {
+    activeTripId = null;
+    const empty = JSON.parse(JSON.stringify(emptyTripState));
+    appState.trip = empty.trip;
+    appState.stops = empty.stops;
+    appState.trains = empty.trains;
+    appState.expenses = empty.expenses;
+    appState.packingList = empty.packingList;
+    stopBudgetListeners();
+    return;
+  }
 
   const myBudget = getPersonalBudgetForTrip(active);
 
-  appState.trip = JSON.parse(JSON.stringify(active.trip || defaultTripState.trip));
+  appState.trip = JSON.parse(JSON.stringify(active.trip || emptyTripState.trip));
   appState.trip.totalBudget = myBudget.totalBudget;
   appState.stops = JSON.parse(JSON.stringify(active.stops || []));
   appState.trains = JSON.parse(JSON.stringify(active.trains || []));
@@ -1583,15 +1508,11 @@ export function syncActiveTripToState() {
 export function syncStateToActiveTrip(activityText = "") {
   let active = allTrips.find(t => t.id === activeTripId);
   if (!active) {
-    active = ensureTripCollaborationFields({
-      id: activeTripId || newTripId(),
-      title: appState.trip.title || "Min Reise",
-      trip: {}, stops: [], trains: [], expenses: [], packingList: []
-    });
-    allTrips.push(active);
-  } else {
-    ensureTripCollaborationFields(active);
+    // Ingen reise valgt – ingenting å lagre
+    saveAllTripsToLocalStorage();
+    return;
   }
+  ensureTripCollaborationFields(active);
 
   updatePersonalBudgetForTrip(active.id, appState.trip.totalBudget, appState.expenses);
 
@@ -1686,12 +1607,13 @@ if (typeof window !== "undefined") {
     else retryDirtyTrips();
   });
   window.addEventListener("offline", () => updateSyncStatus());
+  // Alt lagres i nettleseren med en gang det endres, så det trengs ingen lagring når siden lukkes
+  // (det kunne overskrive nyere data fra en annen fane).
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden") saveAllTripsToLocalStorage();
-    else if (currentUser && !cloudBootstrapOk && !isLoggingOut && navigator.onLine !== false) syncUserProfileWithCloud(currentUser);
+    if (document.visibilityState !== "visible") return;
+    if (currentUser && !cloudBootstrapOk && !isLoggingOut && navigator.onLine !== false) syncUserProfileWithCloud(currentUser);
     else retryDirtyTrips();
   });
-  window.addEventListener("pagehide", () => saveAllTripsToLocalStorage());
   setInterval(retryDirtyTrips, 15000);
 }
 
@@ -2189,8 +2111,7 @@ export async function syncAllUserTripsWithCloud(silent = false) {
         allTrips = allTrips.filter(x => x.id !== t.id);
       }
     }
-    if (allTrips.length === 0) createNewTrip();
-    if (!allTrips.some(t => t.id === activeTripId)) activeTripId = allTrips[0].id;
+    if (!allTrips.some(t => t.id === activeTripId)) activeTripId = allTrips.length ? allTrips[0].id : null;
 
     saveAllTripsToLocalStorage();
     syncActiveTripToState();
@@ -2263,10 +2184,24 @@ export async function loadAppState() {
     if (joined) return;
   }
 
-  if (!allTrips || allTrips.length === 0) {
-    allTrips = [starterProposal];
-    activeTripId = "eksempel-1";
+  // Eksempelreisen er fjernet: urørt slettes, endret beholdes som brukerens egen reise
+  const example = allTrips.find(t => t.id === "eksempel-1");
+  let migrated = false;
+  if (example) {
+    migrated = true;
+    if (isUntouchedExampleTrip(example)) {
+      allTrips = allTrips.filter(t => t !== example);
+      delete personalBudgetsByTrip["eksempel-1"];
+      savePersonalBudgetsToStorage();
+      if (activeTripId === "eksempel-1") activeTripId = null;
+    } else {
+      const wasActive = activeTripId === "eksempel-1";
+      reassignTripId(example);
+      if (wasActive) activeTripId = example.id;
+    }
   }
+  if (!allTrips.some(t => t.id === activeTripId)) activeTripId = allTrips.length ? allTrips[0].id : null;
+  if (migrated) saveAllTripsToLocalStorage();
   syncActiveTripToState();
 }
 
@@ -2784,7 +2719,170 @@ export function centerMapOnStop(lat, lng) {
 // =============================================================================
 // 5. NAVIGATION & TAB SWITCHING
 // =============================================================================
+// ---------------------------------------------------------------------------
+// Velkomst og ny reise
+// ---------------------------------------------------------------------------
+const TRIP_TABS = ["overview", "trains", "budget", "packing"];
+let welcomeMode = "welcome";
+export let currentTab = "overview";
+
+export function openNewTripPage() {
+  welcomeMode = hasActiveTrip() ? "new" : "welcome";
+  switchTab("welcome");
+}
+
+function renderWelcome() {
+  const first = String(userProfile.displayName || "").trim().split(/\s+/)[0];
+  const isNew = welcomeMode === "new" && allTrips.length > 0;
+  const set = (id, fn) => { const el = document.getElementById(id); if (el) fn(el); };
+  set("welcome-eyebrow", el => { el.textContent = isNew ? "Reiser" : "Velkommen til RailSync"; });
+  set("welcome-title", el => { el.textContent = isNew ? "Ny reise" : (first ? `Hei, ${first}! La oss planlegge reisen din.` : "La oss planlegge reisen din."); });
+  set("welcome-lead", el => { el.textContent = isNew ? "Fyll inn det du vet nå. Alt kan endres senere." : "Lag en reise, legg inn stoppene dine og finn tog. Du kan planlegge alene eller sammen med venner."; });
+  set("new-trip-cancel", el => el.classList.toggle("hidden", !isNew));
+  set("welcome-steps", el => el.classList.toggle("hidden", isNew));
+  set("new-trip-start-station", el => { if (!el.value && userProfile.homeStation) el.value = userProfile.homeStation; });
+  set("new-trip-station-list", el => {
+    if (el.childElementCount) return;
+    el.innerHTML = EUROPEAN_RAIL_STATIONS.map(st => `<option value="${escapeHtml(st.name)}"></option>`).join("");
+  });
+}
+
+function findStationByName(value) {
+  const q = String(value || "").trim().toLowerCase();
+  if (!q) return null;
+  return EUROPEAN_RAIL_STATIONS.find(st => st.name.toLowerCase() === q)
+    || EUROPEAN_RAIL_STATIONS.find(st => st.city.toLowerCase() === q)
+    || null;
+}
+
+export function handleCreateTripFromForm(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  const err = document.getElementById("new-trip-error");
+  const val = (id) => (document.getElementById(id) || {}).value || "";
+  const title = val("new-trip-title").trim();
+  const start = val("new-trip-start");
+  const end = val("new-trip-end");
+  const stationText = val("new-trip-start-station").trim();
+  const passDays = parseInt(val("new-trip-pass-days"), 10) || 0;
+  const fail = (msg, focusId) => {
+    if (err) { err.textContent = msg; err.classList.remove("hidden"); }
+    const f = document.getElementById(focusId);
+    if (f) f.focus();
+  };
+  if (err) err.classList.add("hidden");
+  if (!title) return fail("Gi reisen et navn.", "new-trip-title");
+  if (start && end && end < start) return fail("Sluttdatoen kan ikke være før startdatoen.", "new-trip-end");
+  const station = stationText ? findStationByName(stationText) : null;
+  if (stationText && !station) return fail("Fant ikke stasjonen. Velg en fra listen, eller la feltet stå tomt.", "new-trip-start-station");
+
+  createNewTrip({ title, startDate: start, endDate: end, passDays, startStation: station });
+  persistState(`Opprettet «${title}»`);
+  const form = document.getElementById("form-new-trip");
+  if (form) form.reset();
+  switchTab("overview");
+  showToast("Reisen er opprettet", "Neste steg: legg til stoppene dine.", "check");
+}
+
+export async function joinFromWelcome(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  const input = document.getElementById("welcome-join-code");
+  const err = document.getElementById("welcome-join-error");
+  if (!input || !input.value.trim()) return;
+  if (err) err.classList.add("hidden");
+  const ok = await fetchAndJoinSharedTrip(input.value.trim(), false);
+  if (ok) {
+    input.value = "";
+    switchTab("overview");
+  } else if (err) {
+    err.textContent = "Fant ingen reise med den koden. Sjekk koden og prøv igjen.";
+    err.classList.remove("hidden");
+  }
+}
+
+// Kom i gang-listen på oversikten
+function onboardingKey(id) { return "railsync_onboarding_done_" + id; }
+
+export function dismissOnboarding() {
+  const active = getActiveTripObject();
+  if (!active) return;
+  try { localStorage.setItem(onboardingKey(active.id), "1"); } catch (e) {}
+  renderOnboarding();
+}
+
+export function addPackingSuggestions() {
+  if (!requireEditPermission()) return;
+  const existing = new Set(appState.packingList.map(p => String(p.title || p.name || "").toLowerCase()));
+  const toAdd = PACKING_SUGGESTIONS
+    .filter(p => !existing.has(String(p.title || p.name || "").toLowerCase()))
+    .map((p, i) => ({ ...p, id: "pack-" + Date.now().toString(36) + "-" + i, checked: false }));
+  appState.packingList.push(...toAdd);
+  persistState("La til forslag til pakkeliste");
+  renderAll();
+  showToast("Forslag lagt til", `${toAdd.length} ting er lagt til. Fjern det du ikke trenger.`, "check");
+}
+
+function renderOnboarding() {
+  const card = document.getElementById("getting-started-card");
+  if (!card) return;
+  const active = getActiveTripObject();
+  let dismissed = false;
+  try { dismissed = active ? localStorage.getItem(onboardingKey(active.id)) === "1" : true; } catch (e) {}
+  const owned = active && isTripOwnedByCurrentUser(active);
+  const steps = active ? [
+    { done: appState.stops.length >= 2, label: "Legg til stoppene dine", action: "openAddStopModal()", edit: true },
+    { done: appState.trains.length > 0, label: "Finn og legg til tog", action: "switchTab('trains')", edit: true },
+    { done: Number(appState.trip.totalBudget) > 0 || appState.expenses.length > 0, label: "Sett et budsjett", action: "switchTab('budget')" },
+    { done: (active.members || []).length > 1 || !owned, label: "Inviter reisefølget", action: "handleSaveAndShareTrip()" },
+    { done: Boolean(userProfile.homeStation || userProfile.bio || userProfile.photo), label: "Fyll ut profilen din", action: "openUserProfileModal()" }
+  ] : [];
+  const doneCount = steps.filter(s => s.done).length;
+  const show = active && !dismissed && doneCount < steps.length;
+  card.classList.toggle("hidden", !show);
+  if (!show) return;
+  card.innerHTML = `
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <h3 class="text-sm font-semibold text-slate-900">Kom i gang</h3>
+        <p class="text-xs text-slate-500 mt-0.5">${doneCount} av ${steps.length} er gjort</p>
+      </div>
+      <button type="button" onclick="dismissOnboarding()" class="text-xs font-medium text-slate-500 hover:text-slate-900 transition">Skjul</button>
+    </div>
+    <div class="mt-3 w-full bg-slate-100 rounded-full h-1.5 overflow-hidden"><div class="bg-slate-900 h-1.5 rounded-full" style="width:${Math.round(doneCount / steps.length * 100)}%"></div></div>
+    <ol class="mt-3 grid gap-1 sm:grid-cols-2 lg:grid-cols-5">
+      ${steps.map(st => `
+        <li>
+          <button type="button" ${st.done ? "disabled" : `onclick="${st.action}"`} class="w-full flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition ${st.done ? "text-slate-400" : "text-slate-800 hover:bg-slate-50"}">
+            <span class="w-5 h-5 rounded-full shrink-0 flex items-center justify-center ${st.done ? "bg-emerald-500 text-white" : "border border-slate-300"}">${st.done ? '<i data-lucide="check" class="w-3 h-3"></i>' : ""}</span>
+            <span class="${st.done ? "line-through" : ""}">${st.label}</span>
+          </button>
+        </li>`).join("")}
+    </ol>`;
+}
+
+// Elementer som bare gir mening når en reise er valgt
+const NEEDS_TRIP = /\b(handleSaveAndShareTrip|openTripSettingsModal)\(/;
+function applyTripPresence() {
+  const has = hasActiveTrip();
+  document.body.dataset.hasTrip = has ? "true" : "false";
+  document.querySelectorAll("[onclick]").forEach(el => {
+    if (NEEDS_TRIP.test(el.getAttribute("onclick") || "") && !el.closest("#tab-welcome")) el.setAttribute("data-needs-trip", "");
+  });
+  if (!has) {
+    const title = document.getElementById("header-trip-title");
+    if (title) title.textContent = "RailSync";
+    const dates = document.getElementById("header-trip-dates");
+    if (dates) dates.textContent = allTrips.length ? "Velg en reise" : "Ingen reiser ennå";
+  }
+}
+
 export function switchTab(tabId) {
+  // Uten reise: planleggingssidene viser velkomst i stedet
+  if (TRIP_TABS.includes(tabId) && !hasActiveTrip()) {
+    welcomeMode = "welcome";
+    tabId = "welcome";
+  }
+  currentTab = tabId;
+  if (tabId === "welcome") renderWelcome();
   document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden"));
 
   const target = document.getElementById(`tab-${tabId}`);
@@ -2848,29 +2946,27 @@ export function switchTab(tabId) {
 export function renderOverview() {
   const trip = appState.trip;
   const titleEl = document.getElementById("header-trip-title");
-  if (titleEl) titleEl.textContent = trip.title;
+  if (titleEl) titleEl.textContent = trip.title || "Uten navn";
   
-  let durationDays = 22;
-  if (trip.startDate && trip.endDate) {
-    const start = new Date(trip.startDate);
-    const end = new Date(trip.endDate);
-    const diff = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+  let durationDays = 0;
+  const hasDates = Boolean(trip.startDate && trip.endDate);
+  if (hasDates) {
+    const diff = Math.ceil((new Date(trip.endDate) - new Date(trip.startDate)) / (1000 * 60 * 60 * 24));
     if (diff > 0) durationDays = diff;
   }
-  
+
   const datesEl = document.getElementById("header-trip-dates");
   if (datesEl) {
-    datesEl.textContent = `${formatDate(trip.startDate)} – ${formatDate(trip.endDate)} • ${durationDays} dager på skinner`;
+    datesEl.textContent = hasDates
+      ? `${formatDate(trip.startDate)} – ${formatDate(trip.endDate)} · ${durationDays} dager`
+      : "Datoer ikke satt";
   }
-  
+
   const totalDaysStat = document.getElementById("stat-total-days");
-  if (totalDaysStat) totalDaysStat.textContent = `${durationDays} dager`;
+  if (totalDaysStat) totalDaysStat.textContent = hasDates ? `${durationDays} dager` : "–";
 
   const totalDaysSub = document.getElementById("stat-total-days-sub");
-  if (totalDaysSub) totalDaysSub.textContent = `${formatDate(trip.startDate)} – ${formatDate(trip.endDate)}`;
-
-  const dailySub = document.getElementById("budget-daily-days-sub");
-  if (dailySub) dailySub.textContent = `For de ${durationDays} planlagte dagene`;
+  if (totalDaysSub) totalDaysSub.textContent = hasDates ? `${formatDate(trip.startDate)} – ${formatDate(trip.endDate)}` : "Datoer ikke satt";
 
   // Unique countries
   const uniqueCountries = new Set(appState.stops.map(s => String(s.country || "").trim()).filter(Boolean));
@@ -2885,26 +2981,26 @@ export function renderOverview() {
 
   // Pass days
   const usedPassDays = appState.trains.filter(t => t.isTravelDay).length;
-  const totalPassDays = appState.trip.totalPassDays || 7;
-  const passPct = Math.min(100, Math.round((usedPassDays / totalPassDays) * 100));
+  const totalPassDays = Number(appState.trip.totalPassDays) || 0;
+  const passPct = totalPassDays > 0 ? Math.min(100, Math.round((usedPassDays / totalPassDays) * 100)) : 0;
 
   const statPassDays = document.getElementById("stat-pass-days");
-  if (statPassDays) statPassDays.textContent = `${usedPassDays} / ${totalPassDays} dager`;
+  if (statPassDays) statPassDays.textContent = totalPassDays > 0 ? `${usedPassDays} / ${totalPassDays} dager` : "Ikke satt";
 
   const statPassBar = document.getElementById("stat-pass-bar");
   if (statPassBar) statPassBar.style.width = `${passPct}%`;
 
   const sidebarPassText = document.getElementById("sidebar-pass-days-text");
-  if (sidebarPassText) sidebarPassText.textContent = `${usedPassDays} av ${totalPassDays}`;
+  if (sidebarPassText) sidebarPassText.textContent = totalPassDays > 0 ? `${usedPassDays} av ${totalPassDays}` : "Ikke satt";
 
   const sidebarPassBar = document.getElementById("sidebar-pass-progress-bar");
   if (sidebarPassBar) sidebarPassBar.style.width = `${passPct}%`;
 
   const sidebarPassRemaining = document.getElementById("sidebar-pass-remaining");
-  if (sidebarPassRemaining) sidebarPassRemaining.textContent = `${Math.max(0, totalPassDays - usedPassDays)} dager`;
+  if (sidebarPassRemaining) sidebarPassRemaining.textContent = totalPassDays > 0 ? `${Math.max(0, totalPassDays - usedPassDays)} dager` : "–";
 
   const mobilePassEl = document.getElementById("mobile-subbar-pass");
-  if (mobilePassEl) mobilePassEl.textContent = `${usedPassDays}/${totalPassDays} dgr`;
+  if (mobilePassEl) mobilePassEl.textContent = totalPassDays > 0 ? `${usedPassDays}/${totalPassDays} dgr` : "Pass";
 
   // Budget
   const totalSpent = appState.expenses.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
@@ -3892,6 +3988,19 @@ export function renderPacking() {
   const container = document.getElementById("packing-groups-container");
   if (!container) return;
 
+  if (items.length === 0) {
+    container.innerHTML = `
+      <div class="md:col-span-2 rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
+        <p class="text-sm font-semibold text-slate-900">Pakkelisten er tom</p>
+        <p class="text-sm text-slate-500 mt-1 max-w-sm mx-auto">Legg til det du skal ha med, eller start med en liste over det de fleste trenger på Interrail.</p>
+        <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
+          <button type="button" onclick="addPackingSuggestions()" class="px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold transition">Bruk forslag</button>
+          <button type="button" onclick="openAddPackingItemModal()" class="px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">Legg til selv</button>
+        </div>
+      </div>`;
+    return;
+  }
+
   container.innerHTML = Object.keys(groups).map(categoryName => {
     const catItems = groups[categoryName] || [];
     const catPacked = catItems.filter(i => i.checked).length;
@@ -4027,8 +4136,12 @@ export function renderAll() {
   renderPacking();
   renderTripManagerList();
   renderSocialHub();
+  renderOnboarding();
   updateAuthUI(currentUser);
   applyEditMode();
+  applyTripPresence();
+  if (currentTab === "welcome") renderWelcome();
+  else if (TRIP_TABS.includes(currentTab) && !hasActiveTrip()) switchTab(currentTab);
   if (window.lucide) lucide.createIcons();
 }
 
@@ -4172,22 +4285,8 @@ export function openTripFromList(tripId) {
   switchTab("overview");
 }
 
-export async function newTripFromPage() {
-  const name = await showAppDialog({
-    title: "Ny reise",
-    message: "Gi reisen et navn. Du kan endre datoer og passdager etterpå.",
-    confirmLabel: "Opprett reise",
-    input: { label: "Navn på reisen", value: "", maxLength: 80 }
-  });
-  if (!name) return;
-  createNewTrip();
-  const clean = name.trim().slice(0, 80);
-  if (clean) {
-    appState.trip.title = clean;
-    persistState(`Opprettet «${clean}»`);
-    renderAll();
-  }
-  switchTab("overview");
+export function newTripFromPage() {
+  openNewTripPage();
 }
 
 export function shareTripFromList(tripId) {
@@ -4312,7 +4411,7 @@ export function renderTripManagerList() {
       editable ? `<button type="button" role="menuitem" onclick="renameTripInManager(${jsArg(id)})" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50"><i data-lucide="pencil" class="w-4 h-4 text-slate-400"></i><span>Endre navn</span></button>` : "",
       owned ? `<button type="button" role="menuitem" onclick="shareTripFromList(${jsArg(id)})" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50"><i data-lucide="share-2" class="w-4 h-4 text-slate-400"></i><span>Del og tilgang</span></button>` : "",
       `<button type="button" role="menuitem" onclick="closeTripCardMenus(); duplicateTrip(${jsArg(id)})" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50"><i data-lucide="copy" class="w-4 h-4 text-slate-400"></i><span>Lag en kopi</span></button>`,
-      allTrips.length > 1 ? `<div class="my-1 border-t border-slate-100"></div><button type="button" role="menuitem" onclick="deleteTrip(${jsArg(id)})" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-rose-600 hover:bg-rose-50"><i data-lucide="${owned ? "trash-2" : "log-out"}" class="w-4 h-4"></i><span>${owned ? "Slett reise" : "Forlat reise"}</span></button>` : ""
+      `<div class="my-1 border-t border-slate-100"></div><button type="button" role="menuitem" onclick="deleteTrip(${jsArg(id)})" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-rose-600 hover:bg-rose-50"><i data-lucide="${owned ? "trash-2" : "log-out"}" class="w-4 h-4"></i><span>${owned ? "Slett reise" : "Forlat reise"}</span></button>`
     ].join("");
 
     return `
@@ -5367,6 +5466,10 @@ export async function removeFriend(targetUid) {
 
 export async function shareActiveTripWithFriend(friendUid, role = "editor") {
   let active = getActiveTripObject();
+  if (!active) {
+    showToast("Ingen reise valgt", "Lag eller velg en reise først, så kan du dele den.", "info");
+    return;
+  }
   if (!active) return;
 
   const allKnown = getAllKnownTravelers();
@@ -5533,7 +5636,7 @@ export function renderSocialHub() {
 
   const name = userProfile.displayName || "Reisende";
   const username = userProfile.username || "@reisende";
-  const station = userProfile.homeStation || "Oslo S";
+  const station = userProfile.homeStation || "Ingen hjemstasjon valgt";
   const active = getActiveTripObject();
 
   // 1. Identitet (venstre kort + høyre topp + detaljgrid)
@@ -5550,8 +5653,10 @@ export function renderSocialHub() {
   setText("social-hero-username", username);
   setText("spec-username", username);
   setText("spec-home-station", station);
-  setText("social-hero-bio", userProfile.bio || "Planlegger togreiser gjennom Europa.");
-  setText("social-hero-pass", userProfile.defaultPassType || "Global Pass 7 dager");
+  setText("social-hero-bio", userProfile.bio || "");
+  const bioEl = document.getElementById("social-hero-bio");
+  if (bioEl) bioEl.classList.toggle("hidden", !userProfile.bio);
+  setText("social-hero-pass", userProfile.defaultPassType || "Ikke valgt");
   setText("spec-active-trip", active ? (active.title || "Min reise") : "Ingen aktiv reise");
 
   const heroStatus = document.getElementById("social-hero-status");
@@ -5779,7 +5884,6 @@ export function renderSocialDiscoverGrid() {
 
   const q = (socialDiscoverSearchQuery || "").toLowerCase();
   const filtered = getAllKnownTravelers().filter(t => {
-    if (socialDiscoverFilter === "cloud" && t.isCommunityProfile) return false;
     const { sharedDreams, sharedVisited } = getCommonCountriesWithUser(t);
     if (socialDiscoverFilter === "match" && sharedDreams.length === 0 && sharedVisited.length === 0) return false;
     if (!q) return true;
@@ -6048,110 +6152,59 @@ export function duplicateTrip(tripId) {
   showToast("Kopi laget", `«${newTitle}» er nå den aktive reisen.`, "check");
 }
 
-export function createNewTrip() {
+export function createNewTrip(options = {}) {
   syncStateToActiveTrip();
   const newId = newTripId();
-  const proposalNumber = allTrips.length + 1;
-  const newTitle = `Forslag ${proposalNumber} for Europaturné`;
-  const passMatch = (userProfile.defaultPassType || "").match(/(\d+)\s*dager/i);
-  const passDays = passMatch ? parseInt(passMatch[1], 10) : 7;
-  const homeStation = userProfile.homeStation || "Oslo S";
-  const matchedHub = EUROPEAN_RAIL_STATIONS.find(
-    st => st.name.toLowerCase() === homeStation.toLowerCase() || st.city.toLowerCase() === homeStation.toLowerCase()
-  );
-  const homeCity = matchedHub ? matchedHub.city : (homeStation.replace(/\s+(S|H|Hbf|stasjon|Centralstation)$/i, "").trim() || "Oslo");
-  const homeCountry = matchedHub ? matchedHub.country : "Norge";
-  const homeLat = matchedHub ? matchedHub.lat : 59.9139;
-  const homeLng = matchedHub ? matchedHub.lng : 10.7522;
-
+  const title = String(options.title || "Ny reise").slice(0, 80);
+  const stops = [];
+  if (options.startStation) {
+    const st = options.startStation;
+    stops.push({
+      id: "stop-" + Date.now().toString(36),
+      city: st.city,
+      country: st.country,
+      arrival: options.startDate || "",
+      departure: options.startDate || "",
+      accommodationStatus: "Hjemme / Start",
+      accommodationNote: `Starter fra ${st.name}`,
+      lat: st.lat,
+      lng: st.lng,
+      order: 1
+    });
+  }
   const newTrip = ensureTripCollaborationFields({
     id: newId,
-    title: newTitle,
+    title,
     visibility: "private",
     sharePermission: "edit",
     shareCode: generateShareCode(),
     createdAt: new Date().toISOString(),
     trip: {
-      title: newTitle,
-      startDate: "2026-07-01",
-      endDate: "2026-07-15",
-      totalPassDays: passDays,
-      totalBudget: 20000,
-      currency: "NOK",
+      title,
+      startDate: options.startDate || "",
+      endDate: options.endDate || "",
+      totalPassDays: Math.max(0, Math.min(90, Number(options.passDays) || 0)),
+      totalBudget: 0,
+      currency: "NOK"
     },
-    stops: [
-      {
-        id: "stop-new-1",
-        city: homeCity,
-        country: homeCountry,
-        arrival: "2026-07-01",
-        departure: "2026-07-02",
-        accommodationStatus: "Hjemme / Start",
-        accommodationNote: `Startreise fra ${homeStation}`,
-        lat: homeLat,
-        lng: homeLng,
-        order: 1
-      },
-      {
-        id: "stop-new-2",
-        city: "København",
-        country: "Danmark",
-        arrival: "2026-07-02",
-        departure: "2026-07-05",
-        accommodationStatus: "Ser etter hotell",
-        accommodationNote: "Nær Hovedbanegården",
-        lat: 55.6761,
-        lng: 12.5683,
-        order: 2
-      }
-    ],
-    trains: [
-      {
-        id: "tr-new-1",
-        fromCity: homeStation,
-        toCity: "København H",
-        date: "2026-07-02",
-        departureTime: "07:30",
-        arrivalTime: "15:20",
-        trainType: "Vy Regional / SJ",
-        trainNumber: "SJ 381",
-        reservationStatus: "required",
-        reservationPrice: 65,
-        duration: "7t 50m",
-        isTravelDay: true
-      }
-    ],
-    expenses: [
-      {
-        id: "exp-new-1",
-        title: `Interrail Global Pass ${passDays} dager`,
-        category: "Transport",
-        amount: 3900,
-        date: "2026-06-01",
-        paidBy: userProfile.displayName || "Meg"
-      }
-    ],
-    packingList: JSON.parse(JSON.stringify(defaultTripState.packingList))
+    stops,
+    trains: [],
+    expenses: [],
+    packingList: []
   });
-
   allTrips.push(newTrip);
   activeTripId = newId;
   syncActiveTripToState();
-  syncUrlWithActiveTrip();
-  persistState();
-  subscribeToActiveSharedTrip();
+  saveAllTripsToLocalStorage();
+  if (isCloudReady()) pushTripToFirestore(newTrip);
   renderAll();
   updateMapLayers();
-  renderTripManagerList();
-  showToast("Ny reise opprettet", `Gjør deg klar til å planlegge "${newTitle}"`);
+  syncUrlWithActiveTrip();
+  return newTrip;
 }
 
 export async function deleteTrip(tripId) {
   closeTripCardMenus();
-  if (allTrips.length <= 1) {
-    showToast("Kunne ikke slette", "Du må ha minst én lagret reise.");
-    return;
-  }
 
   const target = allTrips.find(t => t.id === tripId);
   const targetTitle = target ? target.title : "denne reisen";
@@ -6179,11 +6232,11 @@ export async function deleteTrip(tripId) {
 
   allTrips = allTrips.filter(t => t.id !== tripId);
   if (activeTripId === tripId) {
-    activeTripId = allTrips[0].id;
+    activeTripId = allTrips.length ? allTrips[0].id : null;
   }
   syncActiveTripToState();
   syncUrlWithActiveTrip();
-  persistState();
+  saveAllTripsToLocalStorage();
   renderAll();
   updateMapLayers();
   renderTripManagerList();
@@ -7906,6 +7959,11 @@ window.setTripMemberRole = setTripMemberRole;
 window.confirmRemoveTripMember = confirmRemoveTripMember;
 window.applyEditMode = applyEditMode;
 window.updateSyncStatus = updateSyncStatus;
+window.openNewTripPage = openNewTripPage;
+window.handleCreateTripFromForm = handleCreateTripFromForm;
+window.joinFromWelcome = joinFromWelcome;
+window.dismissOnboarding = dismissOnboarding;
+window.addPackingSuggestions = addPackingSuggestions;
 window.switchBudgetView = switchBudgetView;
 window.selectBudgetPerson = selectBudgetPerson;
 window.openSharedExpenseModal = openSharedExpenseModal;
