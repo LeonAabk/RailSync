@@ -3764,7 +3764,7 @@ export function renderShareAndCollabModal() {
             ${socialAvatarHtml(person, "w-8 h-8 text-[11px]", "#0d9488")}
             <span class="min-w-0">
               <span class="block text-sm font-medium text-slate-900 truncate">${escapeHtml(person.displayName || "Reisende")}${isMe ? ` <span class="font-normal text-slate-400">(deg)</span>` : ""}</span>
-              <span class="block text-xs text-slate-500 truncate">${escapeHtml(person.username || roleText)}</span>
+              ${person.username ? `<span class="block text-xs text-slate-500 truncate">${escapeHtml(person.username)}</span>` : ""}
             </span>
           </div>
           ${control}
