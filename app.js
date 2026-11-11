@@ -3174,7 +3174,7 @@ export function renderTripManagerList() {
   if (displayList.length === 0) {
     const shared = currentTripManagerTab === "shared";
     container.innerHTML = `
-      <div class="md:col-span-2 rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
+      <div class="col-span-full rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
         <div class="mx-auto w-10 h-10 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center mb-3">
           <i data-lucide="${shared ? "users" : "map"}" class="w-5 h-5"></i>
         </div>
