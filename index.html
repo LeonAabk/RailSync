@@ -185,9 +185,110 @@
       -ms-overflow-style: none;
       scrollbar-width: none;
     }
+
+    /* Innlogging kreves: skjul appen til brukeren er logget inn */
+    body[data-auth="pending"] > aside, body[data-auth="pending"] > main, body[data-auth="pending"] > nav,
+    body[data-auth="out"] > aside, body[data-auth="out"] > main, body[data-auth="out"] > nav { display: none !important; }
+    body:not([data-auth="out"]) #auth-screen { display: none !important; }
+    body:not([data-auth="pending"]) #auth-splash { display: none !important; }
+    .auth-input { width: 100%; border-radius: 0.5rem; border: 1px solid rgb(226 232 240); background: #fff; padding: 0.625rem 0.875rem; font-size: 0.9375rem; color: rgb(15 23 42); transition: border-color .15s, box-shadow .15s; }
+    .auth-input:focus { outline: none; border-color: rgb(13 148 136); box-shadow: 0 0 0 3px rgb(13 148 136 / 0.15); }
+    .field-label { display: block; font-size: 0.8125rem; font-weight: 500; color: rgb(51 65 85); margin-bottom: 0.375rem; }
+    .field-input { width: 100%; border-radius: 0.5rem; border: 1px solid rgb(226 232 240); background: #fff; padding: 0.5rem 0.75rem; font-size: 0.875rem; color: rgb(15 23 42); transition: border-color .15s, box-shadow .15s; }
+    .field-input:focus { outline: none; border-color: rgb(13 148 136); box-shadow: 0 0 0 3px rgb(13 148 136 / 0.15); }
   </style>
 </head>
-<body class="min-h-screen md:h-full text-slate-800 antialiased bg-slate-50 flex flex-col md:flex-row w-full max-w-full overflow-x-hidden">
+<body data-auth="pending" class="min-h-screen md:h-full text-slate-800 antialiased bg-slate-50 flex flex-col md:flex-row w-full max-w-full overflow-x-hidden">
+
+  <!-- ========================================================================= -->
+  <!-- INNLOGGING (appen krever konto)                                           -->
+  <!-- ========================================================================= -->
+  <div id="auth-splash" class="fixed inset-0 z-[70] bg-white flex items-center justify-center" aria-live="polite">
+    <div class="flex items-center gap-3 text-sm text-slate-500">
+      <span class="w-9 h-9 rounded-lg bg-slate-900 text-white flex items-center justify-center"><i data-lucide="train" class="w-4 h-4"></i></span>
+      <span>Laster RailSync …</span>
+    </div>
+  </div>
+
+  <div id="auth-screen" class="fixed inset-0 z-[70] bg-white overflow-y-auto">
+    <div class="min-h-full grid lg:grid-cols-2">
+      <!-- Bildepanel (desktop) -->
+      <div class="relative hidden lg:block bg-slate-900 min-h-screen">
+        <img src="https://images.unsplash.com/photo-1474487548417-781cb71495f3?auto=format&fit=crop&w=1600&q=80" alt="" class="absolute inset-0 w-full h-full object-cover opacity-80">
+        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/25 to-slate-950/40"></div>
+        <div class="relative h-full min-h-screen flex flex-col justify-between p-10 xl:p-14 text-white">
+          <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-lg bg-white/15 backdrop-blur flex items-center justify-center"><i data-lucide="train" class="w-4 h-4"></i></span>
+            <span class="font-semibold tracking-tight">RailSync</span>
+          </div>
+          <div class="max-w-md space-y-3">
+            <p class="text-3xl xl:text-4xl font-semibold leading-tight tracking-tight">Planlegg Interrail-reisen sammen med reisefølget ditt.</p>
+            <p class="text-sm text-white/75 leading-relaxed">Ruter, togtider, budsjett og pakkeliste på ett sted – oppdatert i sanntid for alle som er med.</p>
+          </div>
+          <p class="text-xs text-white/50">Et prosjekt fra Aabak Studio</p>
+        </div>
+      </div>
+
+      <!-- Skjema -->
+      <div class="flex items-center justify-center px-6 py-12 sm:px-10">
+        <div class="w-full max-w-sm space-y-7">
+          <div class="lg:hidden flex items-center gap-3">
+            <span class="w-9 h-9 rounded-lg bg-slate-900 text-white flex items-center justify-center"><i data-lucide="train" class="w-4 h-4"></i></span>
+            <span class="font-semibold tracking-tight text-slate-900">RailSync</span>
+          </div>
+
+          <div class="space-y-1.5">
+            <h1 id="auth-title" class="text-2xl font-semibold tracking-tight text-slate-900">Logg inn</h1>
+            <p id="auth-subtitle" class="text-sm text-slate-500">Velkommen tilbake. Logg inn for å se reisene dine.</p>
+          </div>
+
+          <div id="auth-notice" class="hidden rounded-lg border border-brand-200 bg-brand-50 px-3.5 py-3 text-sm text-brand-900"></div>
+
+          <div class="grid grid-cols-2 p-1 rounded-lg bg-slate-100 text-sm" role="tablist" aria-label="Velg innlogging eller ny konto">
+            <button type="button" id="auth-mode-login" role="tab" aria-selected="true" onclick="setAuthMode('login')" class="py-2 rounded-md font-semibold bg-white text-slate-900 shadow-sm transition">Logg inn</button>
+            <button type="button" id="auth-mode-signup" role="tab" aria-selected="false" onclick="setAuthMode('signup')" class="py-2 rounded-md font-medium text-slate-500 hover:text-slate-800 transition">Opprett konto</button>
+          </div>
+
+          <button type="button" id="btn-google-auth" onclick="handleGoogleSignIn()" class="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-lg bg-white hover:bg-slate-50 border border-slate-300 text-sm font-semibold text-slate-800 transition">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+            </svg>
+            <span>Fortsett med Google</span>
+          </button>
+
+          <div class="flex items-center gap-3">
+            <div class="flex-1 h-px bg-slate-200"></div>
+            <span class="text-xs text-slate-400">eller med brukernavn</span>
+            <div class="flex-1 h-px bg-slate-200"></div>
+          </div>
+
+          <form id="form-auth" onsubmit="handleUsernameAuth(event)" class="space-y-4" novalidate>
+            <input type="checkbox" id="auth-is-new-user" class="hidden" tabindex="-1" aria-hidden="true">
+            <div>
+              <label for="auth-username" class="field-label">Brukernavn</label>
+              <input type="text" id="auth-username" required autocomplete="username" autocapitalize="none" spellcheck="false" class="auth-input" placeholder="f.eks. leonaabak">
+            </div>
+            <div>
+              <div class="flex items-center justify-between">
+                <label for="auth-password" class="field-label">Passord</label>
+                <button type="button" onclick="togglePasswordVisibility()" id="btn-toggle-password" class="text-xs font-medium text-slate-500 hover:text-slate-800 mb-1.5">Vis</button>
+              </div>
+              <input type="password" id="auth-password" required minlength="6" autocomplete="current-password" class="auth-input">
+              <p id="auth-password-hint" class="hidden text-xs text-slate-500 mt-1.5">Minst 6 tegn.</p>
+            </div>
+            <p id="auth-error" role="alert" class="hidden text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3.5 py-2.5"></p>
+            <button type="submit" id="btn-auth-submit" class="w-full py-2.5 px-4 rounded-lg bg-slate-900 hover:bg-slate-800 disabled:opacity-60 text-white text-sm font-semibold transition">Logg inn</button>
+          </form>
+
+          <p class="text-xs text-slate-400 leading-relaxed">Brukernavn-kontoer har ikke e-post, så passordet kan ikke tilbakestilles. Bruk Google-innlogging hvis du vil være sikker på å ikke miste tilgangen.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
 
   <!-- ========================================================================= -->
   <!-- DESKTOP SIDEBAR NAVIGATION                                                -->
@@ -276,7 +377,7 @@
           <span id="sidebar-user-avatar" class="w-7 h-7 rounded-full bg-brand-600 text-white text-xs font-bold flex items-center justify-center shrink-0">R</span>
           <span class="flex flex-col min-w-0 text-left">
             <span id="sidebar-user-label" class="text-xs font-semibold text-slate-200 truncate">Min profil</span>
-            <span id="sidebar-user-sublabel" class="text-[10px] text-slate-500 truncate">Lokal profil</span>
+            <span id="sidebar-user-sublabel" class="text-[10px] text-slate-500 truncate"></span>
           </span>
         </div>
         <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500 shrink-0"></i>
@@ -330,15 +431,28 @@
 
         <!-- Right: Action buttons (Profile, Settings, Save & Share) -->
         <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          <div id="auth-header-container" class="shrink-0 flex items-center gap-1.5">
-            <button id="user-profile-pill" onclick="switchTab('social')" class="flex items-center gap-2 p-1 sm:pl-1.5 sm:pr-3 sm:py-1 rounded-full bg-slate-100 hover:bg-slate-200/70 text-slate-800 text-xs font-semibold transition shrink-0" title="Min profil og kontakter">
-              <span id="header-user-avatar" class="w-6 h-6 rounded-full bg-brand-600 text-white text-[11px] font-bold flex items-center justify-center">R</span>
-              <span id="user-display-name" class="hidden sm:inline truncate max-w-[110px]">Min profil</span>
+          <div id="auth-header-container" class="relative shrink-0">
+            <button id="user-profile-pill" type="button" onclick="toggleAccountMenu(event)" aria-haspopup="menu" aria-expanded="false" aria-controls="account-menu" class="flex items-center gap-2 p-1 sm:pl-1 sm:pr-2.5 rounded-full hover:bg-slate-100 text-slate-800 text-xs font-semibold transition">
+              <span id="header-user-avatar" class="w-7 h-7 rounded-full bg-brand-600 text-white text-[11px] font-semibold flex items-center justify-center overflow-hidden">R</span>
+              <span id="user-display-name" class="hidden sm:inline truncate max-w-[120px]">Min profil</span>
+              <i data-lucide="chevron-down" class="hidden sm:block w-3.5 h-3.5 text-slate-400"></i>
             </button>
-            <button id="btn-open-login" onclick="openAuthModal()" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs border border-slate-200 transition" title="Logg inn">
-              <i data-lucide="user" class="w-3.5 h-3.5 text-slate-500"></i>
-              <span class="hidden lg:inline">Logg inn</span>
-            </button>
+            <div id="account-menu" role="menu" class="hidden absolute right-0 mt-2 w-60 bg-white rounded-xl border border-slate-200 shadow-lg py-1.5 z-50">
+              <div class="px-3.5 py-2.5 border-b border-slate-100">
+                <p id="account-menu-name" class="text-sm font-semibold text-slate-900 truncate">Min profil</p>
+                <p id="account-menu-handle" class="text-xs text-slate-500 truncate"></p>
+              </div>
+              <button type="button" role="menuitem" onclick="closeAccountMenu(); switchTab('social')" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                <i data-lucide="user" class="w-4 h-4 text-slate-400"></i><span>Profil og kontakter</span>
+              </button>
+              <button type="button" role="menuitem" onclick="closeAccountMenu(); openUserProfileModal()" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                <i data-lucide="settings" class="w-4 h-4 text-slate-400"></i><span>Kontoinnstillinger</span>
+              </button>
+              <div class="my-1 border-t border-slate-100"></div>
+              <button type="button" role="menuitem" onclick="closeAccountMenu(); handleLogout()" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                <i data-lucide="log-out" class="w-4 h-4 text-slate-400"></i><span>Logg ut</span>
+              </button>
+            </div>
           </div>
 
           <button onclick="openTripSettingsModal()" class="hidden sm:flex p-2 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition shrink-0" title="Reiseinnstillinger">
@@ -973,7 +1087,7 @@
                   <div class="flex items-center gap-2.5">
                     <span id="social-hero-username" class="text-xs font-semibold text-brand-600">@reisende</span>
                     <span class="text-slate-300">•</span>
-                    <span id="social-hero-status" class="text-xs font-medium text-slate-500">Lokal profil</span>
+                    <span id="social-hero-status" class="text-xs font-medium text-slate-500">Synlig for andre reisende</span>
                   </div>
                   <p id="social-hero-bio" class="text-xs sm:text-sm text-slate-600 pt-1.5 max-w-2xl leading-relaxed">
                     Planlegger togreiser gjennom Europa.
@@ -1285,6 +1399,116 @@
 
         </div>
 
+      </section>
+
+      <!-- ================================================================= -->
+      <!-- KONTO OG PROFIL                                                   -->
+      <!-- ================================================================= -->
+      <section id="tab-account" class="tab-content hidden w-full max-w-3xl mx-auto space-y-6">
+        <div>
+          <h2 class="text-xl sm:text-2xl font-semibold tracking-tight text-slate-900">Konto og profil</h2>
+          <p class="text-sm text-slate-500 mt-1">Det andre reisende ser om deg, og standardvalgene for reisene dine.</p>
+        </div>
+
+        <form id="form-user-profile" onsubmit="handleSaveUserProfile(event)" class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs divide-y divide-slate-100">
+          <div class="p-5 sm:p-7 grid gap-6 md:grid-cols-3">
+            <div>
+              <h3 class="text-sm font-semibold text-slate-900">Offentlig profil</h3>
+              <p class="text-xs text-slate-500 mt-1 leading-relaxed">Vises for andre innloggede reisende og på reiser du deler.</p>
+            </div>
+            <div class="md:col-span-2 space-y-5">
+              <div class="flex items-center gap-4">
+                <div id="profile-modal-avatar-preview" class="w-16 h-16 rounded-full bg-brand-600 text-white flex items-center justify-center text-xl font-semibold shrink-0 overflow-hidden">R</div>
+                <div>
+                  <p class="text-xs font-medium text-slate-600 mb-2">Farge på profilmerket</p>
+                  <input type="hidden" id="profile-avatar-color" value="#0d9488">
+                  <div class="flex items-center gap-2 flex-wrap">
+                      <button type="button" data-profile-color="#0d9488" onclick="selectProfileColor('#0d9488')" class="w-6 h-6 rounded-full transition" style="background-color: #0d9488" aria-label="Velg farge #0d9488"></button>
+                      <button type="button" data-profile-color="#2563eb" onclick="selectProfileColor('#2563eb')" class="w-6 h-6 rounded-full transition" style="background-color: #2563eb" aria-label="Velg farge #2563eb"></button>
+                      <button type="button" data-profile-color="#7c3aed" onclick="selectProfileColor('#7c3aed')" class="w-6 h-6 rounded-full transition" style="background-color: #7c3aed" aria-label="Velg farge #7c3aed"></button>
+                      <button type="button" data-profile-color="#e11d48" onclick="selectProfileColor('#e11d48')" class="w-6 h-6 rounded-full transition" style="background-color: #e11d48" aria-label="Velg farge #e11d48"></button>
+                      <button type="button" data-profile-color="#f97316" onclick="selectProfileColor('#f97316')" class="w-6 h-6 rounded-full transition" style="background-color: #f97316" aria-label="Velg farge #f97316"></button>
+                      <button type="button" data-profile-color="#059669" onclick="selectProfileColor('#059669')" class="w-6 h-6 rounded-full transition" style="background-color: #059669" aria-label="Velg farge #059669"></button>
+                      <button type="button" data-profile-color="#0f172a" onclick="selectProfileColor('#0f172a')" class="w-6 h-6 rounded-full transition" style="background-color: #0f172a" aria-label="Velg farge #0f172a"></button>
+                  </div>
+                </div>
+              </div>
+              <div class="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label for="profile-display-name" class="field-label">Navn</label>
+                  <input type="text" id="profile-display-name" required maxlength="60" autocomplete="name" class="field-input">
+                </div>
+                <div>
+                  <label for="profile-username" class="field-label">Brukernavn</label>
+                  <div class="flex items-center rounded-lg border border-slate-200 bg-white focus-within:border-brand-600 focus-within:ring-[3px] focus-within:ring-brand-600/15 transition">
+                    <span class="pl-3 text-sm text-slate-400 select-none">@</span>
+                    <input type="text" id="profile-username" maxlength="29" autocapitalize="none" spellcheck="false" class="flex-1 min-w-0 bg-transparent border-0 py-2 pl-0.5 pr-3 text-sm text-slate-900 focus:outline-none focus:ring-0">
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label for="profile-home-station" class="field-label">Hjemstasjon</label>
+                <input type="text" id="profile-home-station" maxlength="80" placeholder="f.eks. Oslo S" class="field-input">
+              </div>
+              <div>
+                <div class="flex items-center justify-between">
+                  <label for="profile-bio" class="field-label">Om meg</label>
+                  <span id="profile-bio-count" class="text-xs text-slate-400 mb-1.5">0 / 300</span>
+                </div>
+                <textarea id="profile-bio" rows="3" maxlength="300" oninput="updateBioCounter()" placeholder="Hvor drømmer du om å reise?" class="field-input resize-none"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="p-5 sm:p-7 grid gap-6 md:grid-cols-3">
+            <div>
+              <h3 class="text-sm font-semibold text-slate-900">Reisepreferanser</h3>
+              <p class="text-xs text-slate-500 mt-1 leading-relaxed">Brukes som standard når du lager nye reiser.</p>
+            </div>
+            <div class="md:col-span-2">
+              <label for="profile-pass-type" class="field-label">Interrail-pass</label>
+              <select id="profile-pass-type" class="field-input">
+                  <option value="Global Pass 5 dager (Ungdom)">Global Pass 5 dager (ungdom)</option>
+                  <option value="Global Pass 7 dager (Ungdom)">Global Pass 7 dager (ungdom)</option>
+                  <option value="Global Pass 10 dager (Ungdom)">Global Pass 10 dager (ungdom)</option>
+                  <option value="Global Pass 15 dager (Ungdom)">Global Pass 15 dager (ungdom)</option>
+                  <option value="Global Pass 7 dager (Voksen)">Global Pass 7 dager (voksen)</option>
+                  <option value="Global Pass 10 dager (Voksen)">Global Pass 10 dager (voksen)</option>
+                  <option value="Enkeltbilletter / Point-to-Point">Enkeltbilletter (uten pass)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="px-5 sm:px-7 py-4 flex items-center justify-end gap-3 bg-slate-50/70 rounded-b-2xl">
+            <span id="profile-save-status" class="text-xs text-slate-500 mr-auto" aria-live="polite"></span>
+            <button type="button" onclick="renderUserProfileModal()" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition">Tilbakestill</button>
+            <button type="submit" class="px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold transition">Lagre endringer</button>
+          </div>
+        </form>
+
+        <div class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-7 grid gap-6 md:grid-cols-3">
+          <div>
+            <h3 class="text-sm font-semibold text-slate-900">Konto</h3>
+            <p class="text-xs text-slate-500 mt-1 leading-relaxed">Innlogging og økt på denne enheten.</p>
+          </div>
+          <div class="md:col-span-2 space-y-4">
+            <dl class="text-sm divide-y divide-slate-100 border-y border-slate-100">
+              <div class="flex items-center justify-between gap-4 py-2.5">
+                <dt class="text-slate-500">Logget inn som</dt>
+                <dd id="account-login-id" class="font-medium text-slate-900 truncate">–</dd>
+              </div>
+              <div class="flex items-center justify-between gap-4 py-2.5">
+                <dt class="text-slate-500">Innloggingsmetode</dt>
+                <dd id="account-login-method" class="font-medium text-slate-900">–</dd>
+              </div>
+            </dl>
+            <button type="button" onclick="handleLogout()" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">
+              <i data-lucide="log-out" class="w-4 h-4"></i>
+              <span>Logg ut</span>
+            </button>
+            <p class="text-xs text-slate-400">Når du logger ut, fjernes reisene og profilen fra denne nettleseren. De ligger trygt på kontoen din.</p>
+          </div>
+        </div>
       </section>
 
     </div>
@@ -1839,7 +2063,7 @@
           </button>
           <button onclick="syncAllUserTripsWithCloud(false)" class="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold text-xs border border-emerald-200 transition">
             <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-emerald-600"></i>
-            <span>Synk med skyen</span>
+            <span>Oppdater</span>
           </button>
         </div>
 
@@ -1905,7 +2129,7 @@
       <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
         <p id="trip-manager-sync-status" class="text-[11px] text-slate-500 font-medium flex items-center gap-1.5">
           <i data-lucide="cloud" class="w-3.5 h-3.5 text-brand-500"></i>
-          <span>Lagres lokalt og i skyen for delte reiser</span>
+          <span>Reisene lagres på kontoen din</span>
         </p>
         <button onclick="closeModal('modal-trip-manager')" class="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition">
           Lukk
@@ -1955,7 +2179,7 @@
           <div>
             <label for="share-visibility-select" class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Synlighet</label>
             <select id="share-visibility-select" onchange="handleUpdateTripSharingSettings()" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none">
-              <option value="shared">Delt med reisefølge (Sky-synk)</option>
+              <option value="shared">Delt med reisefølget</option>
               <option value="private">Privat (Kun på min profil)</option>
             </select>
           </div>
@@ -2108,224 +2332,12 @@
   </div>
 
   <!-- ========================================================================= -->
-  <!-- MODAL: MIN PROFIL & REISEPREFERANSER                                      -->
-  <!-- ========================================================================= -->
-  <div id="modal-user-profile" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-slate-100 space-y-5 max-h-[92vh] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modal-profile-title">
-      
-      <!-- Modal Header -->
-      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-        <div class="flex items-center gap-3">
-          <div id="profile-modal-avatar-preview" class="w-12 h-12 rounded-2xl bg-brand-600 text-white flex items-center justify-center font-extrabold text-lg shadow-md">
-            R
-          </div>
-          <div>
-            <div class="flex items-center gap-2">
-              <h3 id="modal-profile-title" class="font-bold text-slate-900 text-lg">Min Profil</h3>
-              <span id="profile-cloud-status-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">Lokal profil</span>
-            </div>
-            <p id="profile-modal-subtitle" class="text-xs text-slate-500">Tilpass profilen din, hjemstasjon og Interrail-preferanser</p>
-          </div>
-        </div>
-        <button onclick="closeModal('modal-user-profile')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-
-      <!-- Personal Travel Stats Grid -->
-      <div class="grid grid-cols-4 gap-2 text-center bg-slate-50 p-3 rounded-2xl border border-slate-200/80">
-        <div>
-          <p id="profile-stat-trips" class="text-base sm:text-lg font-extrabold text-slate-900">1</p>
-          <p class="text-[10px] font-semibold text-slate-500">Egne reiser</p>
-        </div>
-        <div>
-          <p id="profile-stat-shared" class="text-base sm:text-lg font-extrabold text-brand-600">0</p>
-          <p class="text-[10px] font-semibold text-slate-500">Delte reiser</p>
-        </div>
-        <div>
-          <p id="profile-stat-countries" class="text-base sm:text-lg font-extrabold text-emerald-600">4</p>
-          <p class="text-[10px] font-semibold text-slate-500">Land</p>
-        </div>
-        <div>
-          <p id="profile-stat-trains" class="text-base sm:text-lg font-extrabold text-rail-accent">3</p>
-          <p class="text-[10px] font-semibold text-slate-500">Tog-etapper</p>
-        </div>
-      </div>
-
-      <!-- Profile Form -->
-      <form id="form-user-profile" onsubmit="handleSaveUserProfile(event)" class="space-y-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label for="profile-display-name" class="block text-xs font-semibold text-slate-700 mb-1">Visningsnavn *</label>
-            <input type="text" id="profile-display-name" required placeholder="f.eks. Leon Aabak" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3.5 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
-          </div>
-          <div>
-            <label for="profile-username" class="block text-xs font-semibold text-slate-700 mb-1">Brukernavn / Kallenavn</label>
-            <input type="text" id="profile-username" placeholder="f.eks. @leon" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3.5 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label for="profile-home-station" class="block text-xs font-semibold text-slate-700 mb-1">Fast hjemstasjon (Standard ved søk)</label>
-            <input type="text" id="profile-home-station" placeholder="f.eks. Oslo S" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3.5 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
-          </div>
-          <div>
-            <label for="profile-pass-type" class="block text-xs font-semibold text-slate-700 mb-1">Standard Interrail-pass</label>
-            <select id="profile-pass-type" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
-              <option value="Global Pass 7 dager (Ungdom)">Global Pass 7 dager (Ungdom)</option>
-              <option value="Global Pass 5 dager (Ungdom)">Global Pass 5 dager (Ungdom)</option>
-              <option value="Global Pass 10 dager (Ungdom)">Global Pass 10 dager (Ungdom)</option>
-              <option value="Global Pass 15 dager (Ungdom)">Global Pass 15 dager (Ungdom)</option>
-              <option value="Global Pass 7 dager (Voksen)">Global Pass 7 dager (Voksen)</option>
-              <option value="Global Pass 10 dager (Voksen)">Global Pass 10 dager (Voksen)</option>
-              <option value="Enkeltbilletter / Point-to-Point">Enkeltbilletter (Uten pass)</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Avatar Color & Badge Picker -->
-        <div>
-          <label class="block text-xs font-semibold text-slate-700 mb-1.5">Profilfarge (vises på delte reiser og utgifter)</label>
-          <input type="hidden" id="profile-avatar-color" value="#0d9488">
-          <div class="flex items-center gap-2.5 flex-wrap">
-            <button type="button" data-profile-color="#0d9488" onclick="selectProfileColor('#0d9488')" class="w-7 h-7 rounded-full bg-[#0d9488] ring-2 ring-offset-2 ring-slate-800 hover:scale-110 transition"></button>
-            <button type="button" data-profile-color="#f97316" onclick="selectProfileColor('#f97316')" class="w-7 h-7 rounded-full bg-[#f97316] hover:scale-110 transition"></button>
-            <button type="button" data-profile-color="#2563eb" onclick="selectProfileColor('#2563eb')" class="w-7 h-7 rounded-full bg-[#2563eb] hover:scale-110 transition"></button>
-            <button type="button" data-profile-color="#7c3aed" onclick="selectProfileColor('#7c3aed')" class="w-7 h-7 rounded-full bg-[#7c3aed] hover:scale-110 transition"></button>
-            <button type="button" data-profile-color="#e11d48" onclick="selectProfileColor('#e11d48')" class="w-7 h-7 rounded-full bg-[#e11d48] hover:scale-110 transition"></button>
-            <button type="button" data-profile-color="#059669" onclick="selectProfileColor('#059669')" class="w-7 h-7 rounded-full bg-[#059669] hover:scale-110 transition"></button>
-            <button type="button" data-profile-color="#0f172a" onclick="selectProfileColor('#0f172a')" class="w-7 h-7 rounded-full bg-[#0f172a] hover:scale-110 transition"></button>
-          </div>
-        </div>
-
-        <div>
-          <label for="profile-bio" class="block text-xs font-semibold text-slate-700 mb-1">Reise-notat / Favorittdestinasjon</label>
-          <input type="text" id="profile-bio" placeholder="f.eks. Klar for sommerens Interrail gjennom Sentral-Europa og Italia!" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3.5 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
-        </div>
-
-        <div class="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
-          <div id="profile-auth-actions">
-            <!-- Populated dynamically by renderUserProfileModal() -->
-          </div>
-          <div class="flex items-center gap-2 ml-auto">
-            <button type="button" onclick="closeModal('modal-user-profile')" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-semibold text-xs sm:text-sm transition">
-              Lukk
-            </button>
-            <button type="submit" class="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs sm:text-sm shadow-sm transition">
-              Lagre profil
-            </button>
-          </div>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- ========================================================================= -->
   <!-- MODAL: SE ANNEN REISENDES PROFIL (OFFENTLIG PROFIL & REISEPASS)           -->
   <!-- ========================================================================= -->
   <div id="modal-traveler-profile" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl max-w-xl w-full overflow-hidden shadow-2xl border border-slate-100 max-h-[92vh] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="traveler-modal-name">
       <div id="traveler-profile-modal-content">
         <!-- Populated dynamically by openTravelerProfileModal(uid) in app.js -->
-      </div>
-    </div>
-  </div>
-
-  <!-- ========================================================================= -->
-  <!-- MODAL: INNLOGGING & BRUKERKONTO (FIREBASE AUTH)                          -->
-  <!-- ========================================================================= -->
-  <div id="modal-auth" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-5" role="dialog" aria-modal="true" aria-labelledby="modal-auth-title">
-      
-      <!-- Modal Header -->
-      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center font-bold">
-            <i data-lucide="user-check" class="w-5 h-5"></i>
-          </div>
-          <div>
-            <h3 id="modal-auth-title" class="font-bold text-slate-900 text-lg">Logg inn på RailSync</h3>
-            <p class="text-xs text-slate-500">Lagre reiser på din konto og få tilgang overalt</p>
-          </div>
-        </div>
-        <button onclick="closeModal('modal-auth')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-
-      <!-- Option A: Google (Primary) -->
-      <div class="space-y-2">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-bold text-slate-700 uppercase tracking-wider">Alternativ 1: Google</span>
-          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">1-klikk • Anbefalt</span>
-        </div>
-        <button id="btn-google-auth" onclick="handleGoogleSignIn()" class="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 font-bold text-xs sm:text-sm text-slate-700 shadow-2xs hover:border-slate-400 active:scale-[0.99] transition">
-          <svg class="w-4.5 h-4.5" viewBox="0 0 24 24">
-            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-          </svg>
-          <span>Fortsett med Google</span>
-        </button>
-        <p class="text-[11px] text-slate-400 text-center">Logger deg inn automatisk med din Google-bruker</p>
-      </div>
-
-      <div class="flex items-center gap-3 my-1">
-        <div class="flex-1 h-px bg-slate-200"></div>
-        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Eller eget brukernavn</span>
-        <div class="flex-1 h-px bg-slate-200"></div>
-      </div>
-
-      <!-- Option B: Brukernavn & Passord Form -->
-      <form id="form-auth" onsubmit="handleUsernameAuth(event)" class="space-y-3">
-        <div>
-          <label for="auth-username" class="block text-xs font-semibold text-slate-700 mb-1">Brukernavn *</label>
-          <input 
-            type="text" 
-            id="auth-username" 
-            required 
-            placeholder="f.eks. togreisende eller interrailer26" 
-            autocomplete="username"
-            class="w-full bg-slate-50 border border-slate-200 text-base sm:text-sm rounded-xl px-3.5 py-2.5 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none"
-          >
-          <p class="text-[10px] text-slate-400 mt-1">Velg et kallenavn eller brukernavn (trenger ikke e-post)</p>
-        </div>
-
-        <div>
-          <label for="auth-password" class="block text-xs font-semibold text-slate-700 mb-1">Passord *</label>
-          <input 
-            type="password" 
-            id="auth-password" 
-            required 
-            minlength="6" 
-            placeholder="Minst 6 tegn" 
-            autocomplete="current-password"
-            class="w-full bg-slate-50 border border-slate-200 text-base sm:text-sm rounded-xl px-3.5 py-2.5 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none"
-          >
-        </div>
-
-        <div class="flex items-center justify-between text-xs pt-1">
-          <label class="flex items-center gap-2 cursor-pointer select-none">
-            <input type="checkbox" id="auth-is-new-user" class="w-4 h-4 rounded text-brand-600 focus:ring-brand-500 border-slate-300">
-            <span class="font-semibold text-slate-700">Jeg vil opprette en ny bruker</span>
-          </label>
-        </div>
-
-        <div class="pt-1">
-          <button type="submit" id="btn-auth-submit" class="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white font-semibold text-sm shadow-sm transition">
-            Logg inn med brukernavn
-          </button>
-        </div>
-      </form>
-
-      <!-- Modal Footer -->
-      <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-        <span class="text-slate-400">Trenger du ikke konto nå?</span>
-        <button onclick="closeModal('modal-auth')" class="text-brand-600 font-bold hover:underline">
-          Fortsett som gjest
-        </button>
       </div>
     </div>
   </div>
@@ -2346,7 +2358,7 @@
   <!-- ========================================================================= -->
   <!-- MODULAR JAVASCRIPT ENTRYPOINT                                             -->
   <!-- ========================================================================= -->
-  <script type="module" src="./app.js?v=20261111-3"></script>
+  <script type="module" src="./app.js?v=20261111-4"></script>
 
 </body>
 </html>

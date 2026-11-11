@@ -577,8 +577,32 @@ if (isFirebaseConfigured()) {
 
     // Listen to authentication state changes
     onAuthStateChanged(auth, async (user) => {
+      authStateResolved = true;
       currentUser = user;
+      if (!user) {
+        await syncUserProfileWithCloud(null);
+        showAuthScreen();
+        return;
+      }
+
+      // Ny konto i denne nettleseren: fjern forrige brukers data før noe vises
+      const previousUid = safeLocalGet("railsync_account_uid");
+      if (previousUid && previousUid !== user.uid) {
+        clearLocalAppData();
+        safeLocalSet("railsync_account_uid", user.uid);
+        location.reload();
+        return;
+      }
+      safeLocalSet("railsync_account_uid", user.uid);
+
+      setAuthState("in");
       await syncUserProfileWithCloud(user);
+      if (map) {
+        setTimeout(() => {
+          map.invalidateSize();
+          resetMapView();
+        }, 150);
+      }
     });
   } catch (err) {
     console.warn("Kunne ikke koble til Firebase:", err);
@@ -590,106 +614,226 @@ if (isFirebaseConfigured()) {
 // =============================================================================
 // AUTHENTICATION UTILITIES & HANDLERS
 // =============================================================================
-export function updateAuthUI(user) {
-  const loginBtn = document.getElementById("btn-open-login");
-  const displayNameEl = document.getElementById("user-display-name");
-  const headerAvatarEl = document.getElementById("header-user-avatar");
-  const sidebarAvatarEl = document.getElementById("sidebar-user-avatar");
-  const sidebarLabelEl = document.getElementById("sidebar-user-label");
-  const sidebarSublabelEl = document.getElementById("sidebar-user-sublabel");
+let authStateResolved = false;
+let authMode = "login";
 
-  const activeName = user
-    ? (userProfile.displayName || user.displayName || (user.email ? user.email.split("@")[0] : "Bruker"))
-    : (userProfile.displayName || "Min profil");
+function safeLocalGet(key) {
+  try { return localStorage.getItem(key); } catch (e) { return null; }
+}
+function safeLocalSet(key, value) {
+  try { localStorage.setItem(key, value); } catch (e) {}
+}
 
-  const initials = getInitials(activeName);
-  const bgColor = userProfile.avatarColor || "#0d9488";
+// Fjerner alt RailSync har lagret i nettleseren (brukes ved utlogging og kontobytte)
+function clearLocalAppData() {
+  try {
+    Object.keys(localStorage).filter(k => k.toLowerCase().startsWith("railsync")).forEach(k => localStorage.removeItem(k));
+  } catch (e) {}
+}
 
-  if (displayNameEl) displayNameEl.textContent = activeName;
-  if (headerAvatarEl) {
-    headerAvatarEl.textContent = initials;
-    headerAvatarEl.style.backgroundColor = bgColor;
-  }
-  if (sidebarAvatarEl) {
-    sidebarAvatarEl.textContent = initials;
-    sidebarAvatarEl.style.backgroundColor = bgColor;
-  }
-  if (sidebarLabelEl) {
-    sidebarLabelEl.textContent = activeName;
-  }
-  if (sidebarSublabelEl) {
-    sidebarSublabelEl.textContent = user ? `${userProfile.username || '@konto'} · Skykonto` : `${userProfile.username || '@profil'} · Lokal profil`;
-  }
+function setAuthState(state) {
+  document.body.dataset.auth = state;
+}
 
-  if (user) {
-    if (loginBtn) loginBtn.classList.add("hidden");
+function showAuthScreen() {
+  setAuthState("out");
+  const notice = document.getElementById("auth-notice");
+  let pending = null;
+  try { pending = sessionStorage.getItem("railsync_pending_join"); } catch (e) {}
+  if (notice) {
+    if (pending) {
+      notice.textContent = "Logg inn for å åpne reisen som er delt med deg. Den åpnes automatisk etterpå.";
+      notice.classList.remove("hidden");
+    } else {
+      notice.classList.add("hidden");
+    }
+  }
+  if (window.lucide) lucide.createIcons();
+}
+
+// Vis innloggingssiden hvis innloggingen ikke er avklart etter noen sekunder (f.eks. uten nett)
+setTimeout(() => {
+  if (!authStateResolved && document.body.dataset.auth === "pending") {
+    showAuthScreen();
+    if (!auth) showAuthError("Innlogging er ikke tilgjengelig akkurat nå. Prøv å laste siden på nytt.");
+  }
+}, 8000);
+
+function showAuthError(message) {
+  const el = document.getElementById("auth-error");
+  if (!el) return;
+  if (message) {
+    el.textContent = message;
+    el.classList.remove("hidden");
   } else {
-    if (loginBtn) loginBtn.classList.remove("hidden");
+    el.textContent = "";
+    el.classList.add("hidden");
   }
+}
+
+export function setAuthMode(mode) {
+  authMode = mode === "signup" ? "signup" : "login";
+  const isSignup = authMode === "signup";
+  const checkbox = document.getElementById("auth-is-new-user");
+  if (checkbox) checkbox.checked = isSignup;
+
+  const loginTab = document.getElementById("auth-mode-login");
+  const signupTab = document.getElementById("auth-mode-signup");
+  const activeCls = "py-2 rounded-md font-semibold bg-white text-slate-900 shadow-sm transition";
+  const idleCls = "py-2 rounded-md font-medium text-slate-500 hover:text-slate-800 transition";
+  if (loginTab) { loginTab.className = isSignup ? idleCls : activeCls; loginTab.setAttribute("aria-selected", String(!isSignup)); }
+  if (signupTab) { signupTab.className = isSignup ? activeCls : idleCls; signupTab.setAttribute("aria-selected", String(isSignup)); }
+
+  const title = document.getElementById("auth-title");
+  const subtitle = document.getElementById("auth-subtitle");
+  const submit = document.getElementById("btn-auth-submit");
+  const pw = document.getElementById("auth-password");
+  const hint = document.getElementById("auth-password-hint");
+  if (title) title.textContent = isSignup ? "Opprett konto" : "Logg inn";
+  if (subtitle) subtitle.textContent = isSignup
+    ? "Lag en gratis konto for å planlegge og dele reiser."
+    : "Velkommen tilbake. Logg inn for å se reisene dine.";
+  if (submit) submit.textContent = isSignup ? "Opprett konto" : "Logg inn";
+  if (pw) pw.setAttribute("autocomplete", isSignup ? "new-password" : "current-password");
+  if (hint) hint.classList.toggle("hidden", !isSignup);
+  showAuthError("");
+}
+
+export function togglePasswordVisibility() {
+  const pw = document.getElementById("auth-password");
+  const btn = document.getElementById("btn-toggle-password");
+  if (!pw) return;
+  const show = pw.type === "password";
+  pw.type = show ? "text" : "password";
+  if (btn) btn.textContent = show ? "Skjul" : "Vis";
+}
+
+export function toggleAccountMenu(e) {
+  if (e) e.stopPropagation();
+  const menu = document.getElementById("account-menu");
+  const pill = document.getElementById("user-profile-pill");
+  if (!menu) return;
+  const open = menu.classList.contains("hidden");
+  menu.classList.toggle("hidden", !open);
+  if (pill) pill.setAttribute("aria-expanded", String(open));
+}
+
+export function closeAccountMenu() {
+  const menu = document.getElementById("account-menu");
+  const pill = document.getElementById("user-profile-pill");
+  if (menu) menu.classList.add("hidden");
+  if (pill) pill.setAttribute("aria-expanded", "false");
+}
+
+document.addEventListener("click", (e) => {
+  const container = document.getElementById("auth-header-container");
+  if (container && !container.contains(e.target)) closeAccountMenu();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeAccountMenu();
+});
+
+function describeLogin(user) {
+  if (!user) return { id: "–", method: "–" };
+  const providers = (user.providerData || []).map(p => p.providerId);
+  const email = user.email || "";
+  if (email.endsWith("@railsync.user")) {
+    return { id: "@" + email.split("@")[0], method: "Brukernavn og passord" };
+  }
+  return { id: email || user.displayName || "–", method: providers.includes("google.com") ? "Google" : "E-post og passord" };
+}
+
+export function updateAuthUI(user) {
+  const activeName = userProfile.displayName || (user && (user.displayName || (user.email ? user.email.split("@")[0] : ""))) || "Min profil";
+  const handle = userProfile.username || "";
+  const initials = getInitials(activeName);
+  const bgColor = safeColor(userProfile.avatarColor, "#0d9488");
+  const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+
+  setText("user-display-name", activeName);
+  setText("sidebar-user-label", activeName);
+  setText("sidebar-user-sublabel", handle);
+  setText("account-menu-name", activeName);
+  setText("account-menu-handle", handle);
+
+  ["header-user-avatar", "sidebar-user-avatar"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.textContent = initials;
+      el.style.backgroundColor = bgColor;
+    }
+  });
+
+  const login = describeLogin(user);
+  setText("account-login-id", login.id);
+  setText("account-login-method", login.method);
 }
 
 export function openAuthModal() {
-  openModal("modal-auth");
+  if (currentUser) return;
+  showAuthScreen();
+  const input = document.getElementById("auth-username");
+  if (input) setTimeout(() => input.focus(), 50);
 }
 
 export async function handleGoogleSignIn() {
+  showAuthError("");
   if (!auth) {
-    showToast("Firebase Auth ikke aktiv", "Sjekk at Firebase-nøklene i app.js er gyldige.", "alert-triangle");
+    showAuthError("Innlogging er ikke tilgjengelig akkurat nå. Prøv å laste siden på nytt.");
     return;
   }
   try {
     const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth, provider);
-    const user = result.user;
-    closeModal("modal-auth");
-    showToast("Velkommen!", `Logget inn som ${user.displayName || user.email}`);
+    await signInWithPopup(auth, provider);
   } catch (err) {
-    console.error("Google innlogging feilet:", err);
-    showToast("Innlogging feilet", err.message || "Kunne ikke logge inn med Google.", "alert-triangle");
+    if (err && (err.code === "auth/popup-closed-by-user" || err.code === "auth/cancelled-popup-request")) return;
+    console.error("Google-innlogging feilet:", err);
+    showAuthError(err && err.code === "auth/popup-blocked"
+      ? "Nettleseren blokkerte innloggingsvinduet. Tillat popup-vinduer for denne siden og prøv igjen."
+      : "Kunne ikke logge inn med Google. Prøv igjen.");
   }
 }
 
 export async function handleUsernameAuth(e) {
-  e.preventDefault();
+  if (e && e.preventDefault) e.preventDefault();
+  showAuthError("");
   if (!auth) {
-    showToast("Firebase Auth ikke aktiv", "Sjekk at Firebase-nøklene i app.js er gyldige.", "alert-triangle");
+    showAuthError("Innlogging er ikke tilgjengelig akkurat nå. Prøv å laste siden på nytt.");
     return;
   }
 
-  const rawInput = (document.getElementById("auth-username") || document.getElementById("auth-email")).value.trim();
-  const password = document.getElementById("auth-password").value;
-  const isNewUser = document.getElementById("auth-is-new-user").checked;
+  const usernameInput = document.getElementById("auth-username");
+  const passwordInput = document.getElementById("auth-password");
+  const rawInput = (usernameInput && usernameInput.value || "").trim().replace(/^@/, "");
+  const password = (passwordInput && passwordInput.value) || "";
+  const checkbox = document.getElementById("auth-is-new-user");
+  const isNewUser = checkbox ? checkbox.checked : authMode === "signup";
 
-  if (!rawInput) return;
-
-  // 1. SMART GMAIL DETECTION:
-  // If the user typed their gmail or googlemail address, advise them to click Google login!
-  if (rawInput.toLowerCase().includes("@gmail.") || rawInput.toLowerCase().includes("@googlemail.")) {
-    showToast(
-      "Bruk Google-knappen!", 
-      "For din Google-konto logger du inn direkte med 'Fortsett med Google'-knappen ovenfor uten passord.", 
-      "info"
-    );
-    const googleBtn = document.getElementById("btn-google-auth");
-    if (googleBtn) {
-      googleBtn.classList.add("ring-2", "ring-brand-500", "ring-offset-2");
-      setTimeout(() => googleBtn.classList.remove("ring-2", "ring-brand-500", "ring-offset-2"), 3000);
-    }
+  if (!rawInput) {
+    showAuthError("Skriv inn brukernavnet ditt.");
+    if (usernameInput) usernameInput.focus();
+    return;
+  }
+  if (/@(gmail|googlemail)\./i.test(rawInput)) {
+    showAuthError("Har du en Google-konto, bruker du «Fortsett med Google» i stedet.");
+    return;
+  }
+  if (password.length < 6) {
+    showAuthError("Passordet må ha minst 6 tegn.");
+    if (passwordInput) passwordInput.focus();
     return;
   }
 
-  // 2. Format username into internal email if no @ present
   let authEmail = rawInput;
   let username = rawInput;
-
   if (!rawInput.includes("@")) {
     const cleanUsername = rawInput.toLowerCase().replace(/[^a-z0-9._-]/g, "");
     if (cleanUsername.length < 3) {
-      showToast("For kort brukernavn", "Brukernavnet må ha minst 3 tegn.", "alert-triangle");
+      showAuthError("Brukernavnet må ha minst 3 tegn (bokstaver, tall, punktum, bindestrek eller understrek).");
       return;
     }
     authEmail = `${cleanUsername}@railsync.user`;
-    username = rawInput;
+    username = cleanUsername;
   } else {
     username = rawInput.split("@")[0];
   }
@@ -697,7 +841,7 @@ export async function handleUsernameAuth(e) {
   const btn = document.getElementById("btn-auth-submit");
   if (btn) {
     btn.disabled = true;
-    btn.textContent = isNewUser ? "Oppretter bruker..." : "Logger inn...";
+    btn.textContent = isNewUser ? "Oppretter konto …" : "Logger inn …";
   }
 
   try {
@@ -708,31 +852,32 @@ export async function handleUsernameAuth(e) {
       } catch (profErr) {
         console.warn("Kunne ikke sette visningsnavn:", profErr);
       }
-      showToast("Bruker opprettet!", `Velkommen, ${username}!`);
     } else {
-      const res = await signInWithEmailAndPassword(auth, authEmail, password);
-      showToast("Velkommen tilbake!", `Logget inn som ${res.user.displayName || username}`);
+      await signInWithEmailAndPassword(auth, authEmail, password);
     }
-    closeModal("modal-auth");
     const form = document.getElementById("form-auth");
     if (form) form.reset();
+    setAuthMode("login");
   } catch (err) {
     console.error("Innlogging feilet:", err);
-    let msg = "Kunne ikke gjennomføre innlogging.";
-    if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password") {
+    const code = err && err.code;
+    let msg = "Noe gikk galt. Prøv igjen.";
+    if (code === "auth/invalid-credential" || code === "auth/wrong-password" || code === "auth/user-not-found" || code === "auth/invalid-login-credentials") {
       msg = "Feil brukernavn eller passord.";
-    } else if (err.code === "auth/email-already-in-use") {
-      msg = `Brukernavnet "${username}" er allerede opptatt. Fjern haken for "ny konto" for å logge inn, eller velg et annet brukernavn.`;
-    } else if (err.code === "auth/weak-password") {
+    } else if (code === "auth/email-already-in-use") {
+      msg = `Brukernavnet «${username}» er allerede tatt. Velg et annet, eller logg inn.`;
+    } else if (code === "auth/weak-password") {
       msg = "Passordet må ha minst 6 tegn.";
-    } else if (err.code === "auth/user-not-found") {
-      msg = "Fant ingen bruker med dette brukernavnet. Huk av for 'Jeg vil opprette en ny bruker'.";
+    } else if (code === "auth/too-many-requests") {
+      msg = "For mange forsøk. Vent litt og prøv igjen.";
+    } else if (code === "auth/network-request-failed") {
+      msg = "Ingen nettforbindelse. Sjekk tilkoblingen og prøv igjen.";
     }
-    showToast("Innlogging feilet", msg, "alert-triangle");
+    showAuthError(msg);
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = isNewUser ? "Opprett ny bruker" : "Logg inn med brukernavn";
+      btn.textContent = authMode === "signup" ? "Opprett konto" : "Logg inn";
     }
   }
 }
@@ -740,18 +885,22 @@ export async function handleUsernameAuth(e) {
 export const handleEmailAuth = handleUsernameAuth;
 
 export async function handleLogout() {
-  if (!auth) return;
   try {
     stopCloudListeners();
     if (activeTripUnsubscribe) {
       activeTripUnsubscribe();
       activeTripUnsubscribe = null;
     }
-    await signOut(auth);
-    showToast("Logget ut", "Du er nå logget ut.");
+    if (auth) await signOut(auth);
   } catch (err) {
     console.error("Utlogging feilet:", err);
   }
+  // Fjern reiser, profil og budsjetter fra nettleseren – de ligger på kontoen
+  clearLocalAppData();
+  try {
+    Object.keys(sessionStorage).filter(k => k.toLowerCase().startsWith("railsync")).forEach(k => sessionStorage.removeItem(k));
+  } catch (e) {}
+  location.replace(location.pathname);
 }
 
 // =============================================================================
@@ -1381,7 +1530,7 @@ async function pushTripMembershipToFirestore(tripObj) {
 function requireCloudLogin(actionText) {
   if (isCloudReady()) return true;
   if (!isFirebaseConfigured()) {
-    showToast("Skyen er ikke tilgjengelig", "Deling krever skylagring, som ikke er aktiv akkurat nå.", "alert-triangle");
+    showToast("Ikke tilgjengelig", "Deling er ikke tilgjengelig akkurat nå. Prøv igjen senere.", "alert-triangle");
     return false;
   }
   showToast("Logg inn først", `Du må være logget inn for å ${actionText}.`, "log-in");
@@ -1485,7 +1634,7 @@ function mergeCloudTripDoc(docSnap) {
 
 export async function syncAllUserTripsWithCloud(silent = false) {
   if (!isCloudReady()) {
-    if (!silent) showToast("Lokal modus", "Reisene dine er lagret i nettleseren. Logg inn for å synkronisere med skyen.", "check");
+    if (!silent) showToast("Ikke logget inn", "Logg inn for å hente reisene dine.", "log-in");
     return;
   }
 
@@ -1515,12 +1664,12 @@ export async function syncAllUserTripsWithCloud(silent = false) {
     updateMapLayers();
 
     if (!silent) {
-      showToast("Synkronisert med skyen!", `Alle dine ${allTrips.length} reiser er oppdatert.`, "cloud");
+      showToast("Reisene er oppdatert", `${allTrips.length} reiser er hentet fra kontoen din.`, "check");
     }
   } catch (err) {
     console.warn("Sky-synkronisering feilet:", err);
     if (!silent) {
-      showToast("Synkroniseringsfeil", "Kunne ikke nå skyen akkurat nå. Endringer er lagret lokalt.", "alert-triangle");
+      showToast("Kunne ikke oppdatere", "Fikk ikke kontakt med serveren. Endringene dine er lagret og sendes når nettet er tilbake.", "alert-triangle");
     }
   }
 }
@@ -1608,8 +1757,7 @@ export async function fetchAndJoinSharedTrip(tripIdOrCode, fromUrlParam = false)
   if (!isCloudReady()) {
     if (isFirebaseConfigured()) {
       try { sessionStorage.setItem("railsync_pending_join", cleanInput); } catch (e) {}
-      showToast("Logg inn for å åpne reisen", "Delte reiser er beskyttet. Logg inn, så åpnes reisen automatisk.", "log-in");
-      openAuthModal();
+      if (authStateResolved) showAuthScreen();
     } else if (!fromUrlParam) {
       showToast("Fant ikke reisen", "Skylagring er ikke aktiv, så delte reiser kan ikke hentes.", "alert-circle");
     }
@@ -2130,6 +2278,10 @@ export function switchTab(tabId) {
   if (tabId === "social") {
     renderSocialHub();
     fetchCloudTravelerDirectory();
+  }
+
+  if (tabId === "account") {
+    renderUserProfileModal();
   }
 
   if (window.lucide) {
@@ -3206,96 +3358,48 @@ export function removeTripMember(idx) {
 // =============================================================================
 export function openUserProfileModal() {
   renderUserProfileModal();
-  openModal("modal-user-profile");
+  switchTab("account");
 }
 
 export function selectProfileColor(color) {
+  const safe = safeColor(color, "#0d9488");
   const colorInput = document.getElementById("profile-avatar-color");
   const preview = document.getElementById("profile-modal-avatar-preview");
-  if (colorInput) colorInput.value = color;
-  if (preview) preview.style.backgroundColor = color;
+  if (colorInput) colorInput.value = safe;
+  if (preview) preview.style.backgroundColor = safe;
   document.querySelectorAll("[data-profile-color]").forEach(btn => {
-    if (btn.getAttribute("data-profile-color") === color) {
-      btn.classList.add("ring-2", "ring-offset-2", "ring-slate-800");
-    } else {
-      btn.classList.remove("ring-2", "ring-offset-2", "ring-slate-800", "ring-slate-300");
-    }
+    const selected = btn.getAttribute("data-profile-color") === safe;
+    btn.classList.toggle("ring-2", selected);
+    btn.classList.toggle("ring-offset-2", selected);
+    btn.classList.toggle("ring-slate-900", selected);
+    btn.setAttribute("aria-pressed", String(selected));
   });
 }
 
+export function updateBioCounter() {
+  const bio = document.getElementById("profile-bio");
+  const counter = document.getElementById("profile-bio-count");
+  if (bio && counter) counter.textContent = `${bio.value.length} / 300`;
+}
+
 export function renderUserProfileModal() {
-  const nameInput = document.getElementById("profile-display-name");
-  const userInput = document.getElementById("profile-username");
-  const stationInput = document.getElementById("profile-home-station");
+  const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+  setVal("profile-display-name", userProfile.displayName || "");
+  setVal("profile-username", String(userProfile.username || "").replace(/^@/, ""));
+  setVal("profile-home-station", userProfile.homeStation || "");
+  setVal("profile-bio", userProfile.bio || "");
   const passSelect = document.getElementById("profile-pass-type");
-  const colorInput = document.getElementById("profile-avatar-color");
-  const bioInput = document.getElementById("profile-bio");
-  const preview = document.getElementById("profile-modal-avatar-preview");
-  const statusBadge = document.getElementById("profile-cloud-status-badge");
-  const authActions = document.getElementById("profile-auth-actions");
-
-  const activeColor = userProfile.avatarColor || "#0d9488";
-  if (nameInput) nameInput.value = userProfile.displayName || "Reisende";
-  if (userInput) userInput.value = userProfile.username || "@reisende";
-  if (stationInput) stationInput.value = userProfile.homeStation || "Oslo S";
   if (passSelect && userProfile.defaultPassType) passSelect.value = userProfile.defaultPassType;
-  if (colorInput) colorInput.value = activeColor;
-  if (bioInput) bioInput.value = userProfile.bio || "";
-  selectProfileColor(activeColor);
 
-  if (preview) {
-    preview.textContent = getInitials(userProfile.displayName || "Reisende");
-    preview.style.backgroundColor = userProfile.avatarColor || "#0d9488";
-  }
+  const color = safeColor(userProfile.avatarColor, "#0d9488");
+  selectProfileColor(color);
+  const preview = document.getElementById("profile-modal-avatar-preview");
+  if (preview) preview.textContent = getInitials(userProfile.displayName || "Reisende");
 
-  if (statusBadge) {
-    if (currentUser) {
-      statusBadge.className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800";
-      statusBadge.textContent = "☁️ Sky-konto aktiv";
-    } else {
-      statusBadge.className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600";
-      statusBadge.textContent = "Lokal profil";
-    }
-  }
-
-  // Compute personal statistics across all trips
-  const mineCount = allTrips.filter(t => isTripOwnedByCurrentUser(t)).length;
-  const sharedCount = allTrips.filter(t => t.visibility === "shared" || (Array.isArray(t.members) && t.members.length > 1)).length;
-  const allCountries = new Set();
-  let totalTrainLegs = 0;
-  allTrips.forEach(t => {
-    (t.stops || []).forEach(s => { if (s.country) allCountries.add(s.country.trim()); });
-    totalTrainLegs += (t.trains || []).length;
-  });
-
-  const statTrips = document.getElementById("profile-stat-trips");
-  const statShared = document.getElementById("profile-stat-shared");
-  const statCountries = document.getElementById("profile-stat-countries");
-  const statTrains = document.getElementById("profile-stat-trains");
-
-  if (statTrips) statTrips.textContent = mineCount;
-  if (statShared) statShared.textContent = sharedCount;
-  if (statCountries) statCountries.textContent = allCountries.size;
-  if (statTrains) statTrains.textContent = totalTrainLegs;
-
-  if (authActions) {
-    if (currentUser) {
-      authActions.innerHTML = `
-        <button type="button" onclick="closeModal('modal-user-profile'); handleLogout()" class="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs border border-rose-200 transition flex items-center gap-1.5">
-          <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
-          <span>Logg ut av skykonto</span>
-        </button>
-      `;
-    } else {
-      authActions.innerHTML = `
-        <button type="button" onclick="closeModal('modal-user-profile'); openAuthModal()" class="px-3 py-2 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-800 font-bold text-xs border border-brand-200 transition flex items-center gap-1.5">
-          <i data-lucide="cloud" class="w-3.5 h-3.5 text-brand-600"></i>
-          <span>Koble til Google / Skykonto</span>
-        </button>
-      `;
-    }
-  }
-
+  updateBioCounter();
+  const status = document.getElementById("profile-save-status");
+  if (status) status.textContent = "";
+  updateAuthUI(currentUser);
   if (window.lucide) lucide.createIcons();
 }
 
@@ -3309,16 +3413,17 @@ export async function handleSaveUserProfile(e) {
   const colorInput = document.getElementById("profile-avatar-color");
   const bioInput = document.getElementById("profile-bio");
 
-  const newName = (nameInput && nameInput.value.trim()) || "Reisende";
-  let newHandle = (userInput && userInput.value.trim()) || ("@" + newName.toLowerCase().replace(/[^a-z0-9_]/g, ""));
-  if (!newHandle.startsWith("@")) newHandle = "@" + newHandle;
+  const newName = ((nameInput && nameInput.value.trim()) || "Reisende").slice(0, 60);
+  let newHandle = ((userInput && userInput.value.trim()) || newName).toLowerCase().replace(/^@+/, "").replace(/[^a-z0-9._-]/g, "").slice(0, 29);
+  if (!newHandle) newHandle = "reisende";
+  newHandle = "@" + newHandle;
 
   userProfile.displayName = newName;
   userProfile.username = newHandle;
-  userProfile.homeStation = (stationInput && stationInput.value.trim()) || "Oslo S";
+  userProfile.homeStation = ((stationInput && stationInput.value.trim()) || "").slice(0, 80);
   userProfile.defaultPassType = passSelect ? passSelect.value : userProfile.defaultPassType;
-  userProfile.avatarColor = (colorInput && colorInput.value) || "#0d9488";
-  userProfile.bio = (bioInput && bioInput.value.trim()) || "";
+  userProfile.avatarColor = safeColor(colorInput && colorInput.value, "#0d9488");
+  userProfile.bio = ((bioInput && bioInput.value.trim()) || "").slice(0, 300);
 
   // Update owner/member entry on user's owned trips so their new name & avatar color show everywhere
   allTrips.forEach(t => {
@@ -3347,8 +3452,10 @@ export async function handleSaveUserProfile(e) {
   saveAllTripsToLocalStorage();
   updateAuthUI(currentUser);
   renderAll();
-  closeModal("modal-user-profile");
-  showToast("Profil lagret!", `Oppdatert profil for ${userProfile.displayName} (${userProfile.username}).`, "user-check");
+  renderUserProfileModal();
+  const status = document.getElementById("profile-save-status");
+  if (status) status.textContent = "Endringene er lagret.";
+  showToast("Profilen er lagret", "Endringene vises nå for reisefølget ditt.", "check");
 }
 
 // =============================================================================
@@ -3582,7 +3689,7 @@ export async function refreshCloudDirectorySearch() {
   if (!requireCloudLogin("søke etter andre reisende")) return;
   await saveUserProfileEverywhere();
   await fetchCloudTravelerDirectory();
-  showToast("Brukerkatalog oppdatert", "Hentet siste profiler fra RailSync-skyen.", "users");
+  showToast("Brukerkatalog oppdatert", "Profilene er oppdatert.", "users");
 }
 
 export function getAllKnownTravelers() {
@@ -3917,7 +4024,7 @@ export function renderSocialHub() {
 
   const heroStatus = document.getElementById("social-hero-status");
   if (heroStatus) {
-    heroStatus.textContent = currentUser ? "Skykonto · søkbar profil" : "Lokal profil";
+    heroStatus.textContent = "Synlig for andre reisende";
     heroStatus.className = currentUser ? "text-xs font-medium text-emerald-700" : "text-xs font-medium text-slate-500";
   }
 
@@ -6190,6 +6297,12 @@ window.addWishlistPlaceToActiveTrip = addWishlistPlaceToActiveTrip;
 window.fetchCloudTravelerDirectory = fetchCloudTravelerDirectory;
 window.refreshCloudDirectorySearch = refreshCloudDirectorySearch;
 window.handleSearchTravelersInput = handleSearchTravelersInput;
+window.setAuthMode = setAuthMode;
+window.togglePasswordVisibility = togglePasswordVisibility;
+window.toggleAccountMenu = toggleAccountMenu;
+window.closeAccountMenu = closeAccountMenu;
+window.updateBioCounter = updateBioCounter;
+window.renderUserProfileModal = renderUserProfileModal;
 window.handleTopBarTravelerSearch = handleTopBarTravelerSearch;
 window.setSocialDiscoverFilter = setSocialDiscoverFilter;
 window.addOrAcceptFriend = addOrAcceptFriend;
