@@ -334,6 +334,7 @@ function buildPublicProfilePayload(uid) {
     displayName,
     username,
     avatarColor: safeColor(userProfile.avatarColor, "#0d9488"),
+    photo: safePhoto(userProfile.photo),
     homeStation: str(userProfile.homeStation, 80),
     bio: str(userProfile.bio, 300),
     visitedCountries: (userProfile.visitedCountries || []).slice(0, 60).map(c => str(c, 60)),
@@ -350,6 +351,7 @@ function myPublicSnippet() {
     displayName: String(userProfile.displayName || "Reisende").slice(0, 60),
     username: String(userProfile.username || "@reisende").slice(0, 30),
     avatarColor: safeColor(userProfile.avatarColor, "#0d9488"),
+    photo: safePhoto(userProfile.photo),
     homeStation: String(userProfile.homeStation || "").slice(0, 80)
   };
 }
@@ -360,7 +362,7 @@ export async function saveUserProfileEverywhere() {
     localStorage.setItem("railsync_user_profile_v1", JSON.stringify(userProfile));
   } catch (e) {}
 
-  if (!isCloudReady()) return;
+  if (!isCloudReady()) return false;
   const uid = currentUser.uid;
   try {
     // Privat dokument: kun eieren kan lese/skrive (venneliste, passtype osv.)
@@ -376,8 +378,10 @@ export async function saveUserProfileEverywhere() {
   try {
     // Offentlig profil: det andre innloggede reisende kan se og søke på
     await setDoc(doc(db, "publicProfiles", uid), buildPublicProfilePayload(uid));
+    return true;
   } catch (e) {
     console.warn("Kunne ikke lagre offentlig profil til Firestore:", e);
+    return false;
   }
 }
 
@@ -443,6 +447,7 @@ export async function syncUserProfileWithCloud(user) {
       }
       await saveUserProfileEverywhere();
       savePersonalBudgetsToStorage();
+      await loadOwnCoverFromCloud(user.uid);
       startFriendRequestListeners(user.uid);
       startMemberTripsListener(user.uid);
     } catch (e) {
@@ -499,6 +504,7 @@ function startFriendRequestListeners(uid) {
           displayName: String(p.displayName || "Reisende"),
           username: String(p.username || ""),
           avatarColor: safeColor(p.avatarColor, "#f97316"),
+          photo: safePhoto(p.photo),
           homeStation: String(p.homeStation || ""),
           requestId: d.id
         });
@@ -521,6 +527,7 @@ function startFriendRequestListeners(uid) {
               displayName: String(p.displayName || "Reisende"),
               username: String(p.username || ""),
               avatarColor: safeColor(p.avatarColor, "#2563eb"),
+              photo: safePhoto(p.photo),
               homeStation: String(p.homeStation || ""),
               addedAt: new Date().toISOString()
             });
@@ -757,11 +764,7 @@ export function updateAuthUI(user) {
   setText("account-menu-handle", handle);
 
   ["header-user-avatar", "sidebar-user-avatar"].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.textContent = initials;
-      el.style.backgroundColor = bgColor;
-    }
+    paintAvatar(document.getElementById(id), { displayName: activeName, avatarColor: bgColor, photo: userProfile.photo });
   });
 
   const login = describeLogin(user);
@@ -3356,6 +3359,188 @@ export function removeTripMember(idx) {
 // =============================================================================
 // USER PROFILE MODAL HANDLERS
 // =============================================================================
+async function loadOwnCoverFromCloud(uid) {
+  if (!isCloudReady()) return;
+  try {
+    const snap = await getDoc(doc(db, "profileMedia", uid));
+    const cover = snap.exists() ? snap.data().cover : "";
+    userCover = isSafePhotoDataUrl(cover, MAX_COVER_CHARS) ? cover : "";
+    try {
+      if (userCover) localStorage.setItem("railsync_cover_v1", userCover);
+      else localStorage.removeItem("railsync_cover_v1");
+    } catch (e) {}
+  } catch (e) {
+    console.warn("Kunne ikke hente bakgrunnsbilde:", e);
+  }
+}
+
+async function fetchCoverForUser(uid) {
+  if (!uid || !isCloudReady() || isExampleTravelerUid(uid)) return "";
+  if (currentUser && uid === currentUser.uid) return userCover;
+  try {
+    const snap = await getDoc(doc(db, "profileMedia", uid));
+    const cover = snap.exists() ? snap.data().cover : "";
+    return isSafePhotoDataUrl(cover, MAX_COVER_CHARS) ? cover : "";
+  } catch (e) {
+    return "";
+  }
+}
+
+function loadImageFromFile(file) {
+  return new Promise((resolve, reject) => {
+    if (!file || !/^image\//.test(file.type || "")) return reject(new Error("type"));
+    if (file.size > 20 * 1024 * 1024) return reject(new Error("size"));
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => resolve({ img, release: () => URL.revokeObjectURL(url) });
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("decode")); };
+    img.src = url;
+  });
+}
+
+// Beskjærer midt i bildet til ønsket format og komprimerer til JPEG under maks størrelse
+function renderCroppedJpeg(img, outW, outH, maxChars) {
+  const srcW = img.naturalWidth || img.width;
+  const srcH = img.naturalHeight || img.height;
+  if (!srcW || !srcH) throw new Error("decode");
+  const ratio = outW / outH;
+  let sw = srcW, sh = srcH, sx = 0, sy = 0;
+  if (srcW / srcH > ratio) { sw = srcH * ratio; sx = (srcW - sw) / 2; }
+  else { sh = srcW / ratio; sy = (srcH - sh) / 2; }
+
+  let width = Math.max(1, Math.round(Math.min(outW, sw)));
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const height = Math.max(1, Math.round(width / ratio));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, width, height);
+    for (const q of [0.86, 0.78, 0.7, 0.6, 0.5]) {
+      const data = canvas.toDataURL("image/jpeg", q);
+      if (data.length <= maxChars) return data;
+    }
+    width = Math.round(width * 0.75);
+  }
+  throw new Error("too-big");
+}
+
+function setProfileMediaStatus(text) {
+  const el = document.getElementById("profile-media-status");
+  if (el) el.textContent = text || "";
+}
+
+export function triggerProfileImagePicker(kind) {
+  const input = document.getElementById(kind === "cover" ? "profile-cover-input" : "profile-photo-input");
+  if (input) input.click();
+}
+
+async function saveProfileCover(dataUrl) {
+  userCover = dataUrl || "";
+  try {
+    if (userCover) localStorage.setItem("railsync_cover_v1", userCover);
+    else localStorage.removeItem("railsync_cover_v1");
+  } catch (e) {}
+  if (!isCloudReady()) return false;
+  try {
+    await setDoc(doc(db, "profileMedia", currentUser.uid), { cover: userCover, updatedAt: new Date().toISOString() });
+    return true;
+  } catch (e) {
+    console.warn("Kunne ikke lagre bakgrunnsbilde:", e);
+    return false;
+  }
+}
+
+function refreshProfileMediaEverywhere() {
+  renderProfileMediaPreviews();
+  updateAuthUI(currentUser);
+  renderSocialHub();
+}
+
+export async function handleProfileImageSelected(kind, input) {
+  const file = input && input.files && input.files[0];
+  if (input) input.value = "";
+  if (!file) return;
+  const isCover = kind === "cover";
+  setProfileMediaStatus(isCover ? "Behandler bakgrunnsbildet …" : "Behandler profilbildet …");
+
+  let dataUrl;
+  try {
+    const { img, release } = await loadImageFromFile(file);
+    try {
+      dataUrl = isCover
+        ? renderCroppedJpeg(img, 1500, 500, MAX_COVER_CHARS)
+        : renderCroppedJpeg(img, 320, 320, MAX_PHOTO_CHARS);
+    } finally {
+      release();
+    }
+  } catch (err) {
+    const reason = err && err.message;
+    const msg = reason === "type" ? "Velg en bildefil, for eksempel JPG, PNG eller WebP."
+      : reason === "size" ? "Bildet er for stort. Velg et bilde under 20 MB."
+      : "Kunne ikke lese bildet. Prøv et annet bilde, for eksempel i JPG-format.";
+    setProfileMediaStatus("");
+    showToast("Bildet ble ikke lagt til", msg, "alert-triangle");
+    return;
+  }
+
+  let saved;
+  if (isCover) {
+    saved = await saveProfileCover(dataUrl);
+  } else {
+    userProfile.photo = dataUrl;
+    saved = await saveUserProfileEverywhere();
+  }
+  refreshProfileMediaEverywhere();
+  setProfileMediaStatus("");
+  if (saved) {
+    showToast(isCover ? "Bakgrunnsbildet er oppdatert" : "Profilbildet er oppdatert", "Endringen vises nå for andre reisende.", "check");
+  } else {
+    showToast("Kunne ikke lagre bildet", "Bildet vises her, men ble ikke lagret på kontoen. Prøv igjen om litt.", "alert-triangle");
+  }
+}
+
+export async function removeProfileImage(kind) {
+  let saved;
+  if (kind === "cover") {
+    saved = await saveProfileCover("");
+  } else {
+    userProfile.photo = "";
+    saved = await saveUserProfileEverywhere();
+  }
+  refreshProfileMediaEverywhere();
+  showToast(kind === "cover" ? "Bakgrunnsbildet er fjernet" : "Profilbildet er fjernet", saved ? "Profilen viser standardvisningen igjen." : "Endringen er ikke lagret på kontoen ennå.", saved ? "check" : "alert-triangle");
+}
+
+function renderProfileMediaPreviews() {
+  const preview = document.getElementById("profile-modal-avatar-preview");
+  const colorInput = document.getElementById("profile-avatar-color");
+  paintAvatar(preview, {
+    displayName: userProfile.displayName || "Reisende",
+    avatarColor: (colorInput && colorInput.value) || userProfile.avatarColor,
+    photo: userProfile.photo
+  });
+  const hasPhoto = Boolean(safePhoto(userProfile.photo));
+  const removePhoto = document.getElementById("btn-remove-profile-photo");
+  if (removePhoto) removePhoto.classList.toggle("hidden", !hasPhoto);
+  const colorRow = document.getElementById("profile-color-row");
+  if (colorRow) colorRow.classList.toggle("opacity-50", hasPhoto);
+
+  const coverImg = document.getElementById("profile-cover-preview");
+  const coverEmpty = document.getElementById("profile-cover-empty");
+  const removeCover = document.getElementById("btn-remove-profile-cover");
+  const hasCover = isSafePhotoDataUrl(userCover, MAX_COVER_CHARS);
+  if (coverImg) {
+    if (hasCover) coverImg.src = userCover;
+    coverImg.classList.toggle("hidden", !hasCover);
+  }
+  if (coverEmpty) coverEmpty.classList.toggle("hidden", hasCover);
+  if (removeCover) removeCover.classList.toggle("hidden", !hasCover);
+}
+
 export function openUserProfileModal() {
   renderUserProfileModal();
   switchTab("account");
@@ -3366,7 +3551,7 @@ export function selectProfileColor(color) {
   const colorInput = document.getElementById("profile-avatar-color");
   const preview = document.getElementById("profile-modal-avatar-preview");
   if (colorInput) colorInput.value = safe;
-  if (preview) preview.style.backgroundColor = safe;
+  if (preview && !safePhoto(userProfile.photo)) preview.style.backgroundColor = safe;
   document.querySelectorAll("[data-profile-color]").forEach(btn => {
     const selected = btn.getAttribute("data-profile-color") === safe;
     btn.classList.toggle("ring-2", selected);
@@ -3393,8 +3578,7 @@ export function renderUserProfileModal() {
 
   const color = safeColor(userProfile.avatarColor, "#0d9488");
   selectProfileColor(color);
-  const preview = document.getElementById("profile-modal-avatar-preview");
-  if (preview) preview.textContent = getInitials(userProfile.displayName || "Reisende");
+  renderProfileMediaPreviews();
 
   updateBioCounter();
   const status = document.getElementById("profile-save-status");
@@ -3674,6 +3858,7 @@ export async function fetchCloudTravelerDirectory() {
       fetched.push(ensureSocialProfileFields({
         ...data,
         avatarColor: safeColor(data.avatarColor, "#2563eb"),
+        photo: safePhoto(data.photo),
         uid,
         isCloudUser: true
       }));
@@ -3786,6 +3971,7 @@ export async function addOrAcceptFriend(targetUid) {
         displayName: target.displayName || "Reisende",
         username: target.username || "",
         avatarColor: safeColor(target.avatarColor, "#2563eb"),
+        photo: safePhoto(target.photo),
         homeStation: target.homeStation || "",
         addedAt: new Date().toISOString()
       });
@@ -3909,6 +4095,10 @@ export async function shareActiveTripWithFriend(friendUid, role = "editor") {
 // ---------------------------------------------------------------------------
 function socialAvatarHtml(person, sizeClass = "w-11 h-11 text-sm", fallback = "#2563eb") {
   const name = (person && person.displayName) || "Reisende";
+  const photo = safePhoto(person && person.photo);
+  if (photo) {
+    return `<div class="${sizeClass} rounded-full overflow-hidden shrink-0 bg-slate-100"><img src="${escapeHtml(photo)}" alt="" loading="lazy" class="w-full h-full object-cover"></div>`;
+  }
   return `<div class="${sizeClass} rounded-full text-white font-semibold flex items-center justify-center shrink-0" style="background-color: ${safeColor(person && person.avatarColor, fallback)}">${escapeHtml(getInitials(name))}</div>`;
 }
 
@@ -4006,10 +4196,11 @@ export function renderSocialHub() {
   const active = getActiveTripObject();
 
   // 1. Identitet (venstre kort + høyre topp + detaljgrid)
-  const heroAvatar = document.getElementById("social-hero-avatar");
-  if (heroAvatar) {
-    heroAvatar.textContent = getInitials(name);
-    heroAvatar.style.backgroundColor = safeColor(userProfile.avatarColor, "#0d9488");
+  paintAvatar(document.getElementById("social-hero-avatar"), userProfile, "#0d9488");
+  const heroCover = document.getElementById("social-hero-cover");
+  if (heroCover) {
+    const wanted = isSafePhotoDataUrl(userCover, MAX_COVER_CHARS) ? userCover : DEFAULT_COVER_URL;
+    if (heroCover.getAttribute("src") !== wanted) heroCover.setAttribute("src", wanted);
   }
   setText("social-hero-name", name);
   setText("social-detail-name", name);
@@ -4054,11 +4245,15 @@ export function renderSocialHub() {
     if (friendsCount === 0) {
       friendAvatars.innerHTML = `<button type="button" onclick="switchSocialSubTab('discover')" class="px-3 py-1 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-[11px] font-medium transition">Finn reisevenner</button>`;
     } else {
-      friendAvatars.innerHTML = friends.slice(0, 4).map(f => `
-        <button type="button" onclick="openTravelerProfileModal(${jsArg(f.uid)})" title="${escapeHtml(f.displayName || "Reisende")}"
-          class="w-8 h-8 rounded-full ring-2 ring-white text-white text-[11px] font-semibold flex items-center justify-center hover:-translate-y-0.5 transition"
-          style="background-color: ${safeColor(f.avatarColor, "#2563eb")}">${escapeHtml(getInitials(f.displayName || "Reisende"))}</button>
-      `).join("") + (friendsCount > 4
+      const known = getAllKnownTravelers();
+      friendAvatars.innerHTML = friends.slice(0, 4).map(f => {
+        const fresh = known.find(t => t.uid === f.uid) || f;
+        const photo = safePhoto(fresh.photo);
+        return `
+        <button type="button" onclick="openTravelerProfileModal(${jsArg(f.uid)})" title="${escapeHtml(fresh.displayName || "Reisende")}"
+          class="w-8 h-8 rounded-full ring-2 ring-white overflow-hidden text-white text-[11px] font-semibold flex items-center justify-center hover:-translate-y-0.5 transition"
+          style="background-color: ${safeColor(fresh.avatarColor, "#2563eb")}">${photo ? `<img src="${escapeHtml(photo)}" alt="" class="w-full h-full object-cover">` : escapeHtml(getInitials(fresh.displayName || "Reisende"))}</button>`;
+      }).join("") + (friendsCount > 4
         ? `<span class="w-8 h-8 rounded-full ring-2 ring-white bg-white text-slate-800 text-[11px] font-semibold flex items-center justify-center">+${Number(friendsCount - 4)}</span>`
         : "");
     }
@@ -4325,12 +4520,18 @@ export function openTravelerProfileModal(targetUid) {
   const wishlist = traveler.wishlistPlaces || [];
 
   container.innerHTML = `
-    <div class="p-5 sm:p-6 border-b border-slate-100 relative">
-      <button type="button" onclick="closeModal('modal-traveler-profile')" class="absolute top-4 right-4 w-8 h-8 rounded-full hover:bg-slate-100 text-slate-500 flex items-center justify-center transition" aria-label="Lukk">
+    <div class="relative h-32 sm:h-36 bg-slate-200 overflow-hidden">
+      <img id="traveler-modal-cover" src="${escapeHtml(DEFAULT_COVER_URL)}" alt="" class="w-full h-full object-cover">
+      <div class="absolute inset-0 bg-gradient-to-t from-slate-950/30 to-transparent"></div>
+      <button type="button" onclick="closeModal('modal-traveler-profile')" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/80 hover:bg-white text-slate-700 flex items-center justify-center transition" aria-label="Lukk">
         <i data-lucide="x" class="w-4 h-4"></i>
       </button>
-      <div class="flex items-center gap-4 pr-8">
-        ${socialAvatarHtml(traveler, "w-16 h-16 text-xl")}
+    </div>
+    <div class="px-5 sm:px-6 pb-5 border-b border-slate-100 relative">
+      <div class="-mt-9 mb-3 inline-block rounded-full ring-4 ring-white bg-white">
+        ${socialAvatarHtml(traveler, "w-[72px] h-[72px] text-xl")}
+      </div>
+      <div class="flex items-center gap-4">
         <div class="min-w-0 space-y-0.5">
           <div class="flex items-center flex-wrap gap-2">
             <h3 id="traveler-modal-name" class="text-lg sm:text-xl font-bold text-slate-900 truncate">${escapeHtml(traveler.displayName || "Reisende")}</h3>
@@ -4401,6 +4602,12 @@ export function openTravelerProfileModal(targetUid) {
 
   openModal("modal-traveler-profile");
   if (window.lucide) lucide.createIcons();
+
+  // Hent bakgrunnsbildet etter at vinduet er åpnet
+  fetchCoverForUser(traveler.uid).then(cover => {
+    const img = document.getElementById("traveler-modal-cover");
+    if (img && cover && document.getElementById("traveler-modal-name")) img.src = cover;
+  });
 }
 
 export function switchActiveTrip(tripId) {
@@ -5186,6 +5393,44 @@ function jsArg(value) {
 // Bare #RRGGBB godtas i style-attributter (hindrer CSS-injeksjon fra andres profiler)
 function safeColor(color, fallback = "#0d9488") {
   return typeof color === "string" && /^#[0-9a-fA-F]{6}$/.test(color) ? color : fallback;
+}
+
+// ---------------------------------------------------------------------------
+// Profilbilde og bakgrunnsbilde
+// Bildene beskjæres og komprimeres i nettleseren og lagres som JPEG-data-URL.
+// Profilbildet ligger i publicProfiles/{uid}.photo, bakgrunnen i profileMedia/{uid}.cover.
+// ---------------------------------------------------------------------------
+const PHOTO_PREFIX = "data:image/jpeg;base64,";
+const MAX_PHOTO_CHARS = 60000;   // ca. 45 kB
+const MAX_COVER_CHARS = 320000;  // ca. 240 kB
+const DEFAULT_COVER_URL = "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1000&q=80";
+let userCover = "";
+try { userCover = localStorage.getItem("railsync_cover_v1") || ""; } catch (e) {}
+
+function isSafePhotoDataUrl(value, maxChars = MAX_COVER_CHARS) {
+  return typeof value === "string"
+    && value.length > PHOTO_PREFIX.length
+    && value.length <= maxChars
+    && value.startsWith(PHOTO_PREFIX)
+    && /^[A-Za-z0-9+/]+={0,2}$/.test(value.slice(PHOTO_PREFIX.length));
+}
+
+function safePhoto(value) {
+  return isSafePhotoDataUrl(value, MAX_PHOTO_CHARS) ? value : "";
+}
+
+// Fyller et avatar-element med profilbilde eller initialer
+function paintAvatar(el, person, fallback = "#0d9488") {
+  if (!el) return;
+  const name = (person && person.displayName) || "Reisende";
+  el.style.backgroundColor = safeColor(person && person.avatarColor, fallback);
+  el.classList.add("overflow-hidden");
+  const photo = safePhoto(person && person.photo);
+  if (photo) {
+    el.innerHTML = `<img src="${escapeHtml(photo)}" alt="" class="w-full h-full object-cover">`;
+  } else {
+    el.textContent = getInitials(name);
+  }
 }
 
 function escapeHtml(str) {
@@ -6303,6 +6548,9 @@ window.toggleAccountMenu = toggleAccountMenu;
 window.closeAccountMenu = closeAccountMenu;
 window.updateBioCounter = updateBioCounter;
 window.renderUserProfileModal = renderUserProfileModal;
+window.triggerProfileImagePicker = triggerProfileImagePicker;
+window.handleProfileImageSelected = handleProfileImageSelected;
+window.removeProfileImage = removeProfileImage;
 window.handleTopBarTravelerSearch = handleTopBarTravelerSearch;
 window.setSocialDiscoverFilter = setSocialDiscoverFilter;
 window.addOrAcceptFriend = addOrAcceptFriend;

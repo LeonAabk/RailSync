@@ -986,6 +986,7 @@
               <!-- Scenic Mountain Cover Header -->
               <div class="relative h-64 sm:h-68 bg-slate-900 overflow-hidden">
                 <img 
+                  id="social-hero-cover"
                   src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1000&q=80" 
                   alt="Alpine railway landscape" 
                   class="w-full h-full object-cover opacity-85"
@@ -1419,12 +1420,36 @@
               <p class="text-xs text-slate-500 mt-1 leading-relaxed">Vises for andre innloggede reisende og på reiser du deler.</p>
             </div>
             <div class="md:col-span-2 space-y-5">
-              <div class="flex items-center gap-4">
-                <div id="profile-modal-avatar-preview" class="w-16 h-16 rounded-full bg-brand-600 text-white flex items-center justify-center text-xl font-semibold shrink-0 overflow-hidden">R</div>
-                <div>
-                  <p class="text-xs font-medium text-slate-600 mb-2">Farge på profilmerket</p>
-                  <input type="hidden" id="profile-avatar-color" value="#0d9488">
-                  <div class="flex items-center gap-2 flex-wrap">
+              <input type="file" id="profile-photo-input" accept="image/*" class="hidden" onchange="handleProfileImageSelected('photo', this)">
+              <input type="file" id="profile-cover-input" accept="image/*" class="hidden" onchange="handleProfileImageSelected('cover', this)">
+
+              <div>
+                <p class="field-label">Bakgrunnsbilde</p>
+                <div class="relative aspect-[3/1] rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
+                  <img id="profile-cover-preview" alt="Bakgrunnsbilde" class="hidden w-full h-full object-cover">
+                  <div id="profile-cover-empty" class="absolute inset-0 flex flex-col items-center justify-center gap-1 text-slate-400">
+                    <i data-lucide="image" class="w-5 h-5"></i>
+                    <span class="text-xs">Ingen bakgrunn valgt</span>
+                  </div>
+                  <div class="absolute bottom-2.5 right-2.5 flex items-center gap-2">
+                    <button type="button" id="btn-remove-profile-cover" onclick="removeProfileImage('cover')" class="hidden px-3 py-1.5 rounded-lg bg-white/90 hover:bg-white text-xs font-medium text-slate-700 shadow-sm transition">Fjern</button>
+                    <button type="button" onclick="triggerProfileImagePicker('cover')" class="px-3 py-1.5 rounded-lg bg-white/90 hover:bg-white text-xs font-semibold text-slate-900 shadow-sm transition">Last opp bakgrunn</button>
+                  </div>
+                </div>
+                <p class="text-xs text-slate-400 mt-1.5">Bredt bilde fungerer best. Bildet beskjæres til 3:1.</p>
+              </div>
+
+              <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+                <div id="profile-modal-avatar-preview" class="w-20 h-20 rounded-full bg-brand-600 text-white flex items-center justify-center text-2xl font-semibold shrink-0 overflow-hidden">R</div>
+                <div class="space-y-3">
+                  <div class="flex items-center gap-2">
+                    <button type="button" onclick="triggerProfileImagePicker('photo')" class="px-3.5 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition">Last opp profilbilde</button>
+                    <button type="button" id="btn-remove-profile-photo" onclick="removeProfileImage('photo')" class="hidden px-3.5 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-xs font-medium text-slate-700 transition">Fjern</button>
+                  </div>
+                  <div id="profile-color-row">
+                    <p class="text-xs text-slate-500 mb-1.5">Farge når du ikke har profilbilde</p>
+                    <input type="hidden" id="profile-avatar-color" value="#0d9488">
+                    <div class="flex items-center gap-2 flex-wrap">
                       <button type="button" data-profile-color="#0d9488" onclick="selectProfileColor('#0d9488')" class="w-6 h-6 rounded-full transition" style="background-color: #0d9488" aria-label="Velg farge #0d9488"></button>
                       <button type="button" data-profile-color="#2563eb" onclick="selectProfileColor('#2563eb')" class="w-6 h-6 rounded-full transition" style="background-color: #2563eb" aria-label="Velg farge #2563eb"></button>
                       <button type="button" data-profile-color="#7c3aed" onclick="selectProfileColor('#7c3aed')" class="w-6 h-6 rounded-full transition" style="background-color: #7c3aed" aria-label="Velg farge #7c3aed"></button>
@@ -1432,9 +1457,13 @@
                       <button type="button" data-profile-color="#f97316" onclick="selectProfileColor('#f97316')" class="w-6 h-6 rounded-full transition" style="background-color: #f97316" aria-label="Velg farge #f97316"></button>
                       <button type="button" data-profile-color="#059669" onclick="selectProfileColor('#059669')" class="w-6 h-6 rounded-full transition" style="background-color: #059669" aria-label="Velg farge #059669"></button>
                       <button type="button" data-profile-color="#0f172a" onclick="selectProfileColor('#0f172a')" class="w-6 h-6 rounded-full transition" style="background-color: #0f172a" aria-label="Velg farge #0f172a"></button>
+                    </div>
                   </div>
                 </div>
               </div>
+              <p id="profile-media-status" class="text-xs text-slate-500 -mt-2" aria-live="polite"></p>
+              <p class="text-xs text-slate-400 -mt-3">Bildene vises for alle innloggede reisende. Plassering og andre opplysninger i bildefilen fjernes før opplasting.</p>
+
               <div class="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label for="profile-display-name" class="field-label">Navn</label>
@@ -2360,7 +2389,7 @@
   <!-- ========================================================================= -->
   <!-- MODULAR JAVASCRIPT ENTRYPOINT                                             -->
   <!-- ========================================================================= -->
-  <script type="module" src="./app.js?v=20261111-5"></script>
+  <script type="module" src="./app.js?v=20261111-6"></script>
 
 </body>
 </html>

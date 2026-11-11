@@ -31,7 +31,7 @@ service cloud.firestore {
       let d = request.resource.data;
       return d.keys().hasOnly(['uid', 'displayName', 'username', 'avatarColor', 'homeStation', 'bio',
                                'visitedCountries', 'visitedPlaces', 'wishlistPlaces',
-                               'searchNameLower', 'searchUsernameLower', 'updatedAt'])
+                               'searchNameLower', 'searchUsernameLower', 'updatedAt', 'photo'])
         && d.uid == userId
         && d.displayName is string && d.displayName.size() <= 60
         && d.username is string && d.username.size() <= 30
@@ -40,12 +40,30 @@ service cloud.firestore {
         && (!('bio' in d) || (d.bio is string && d.bio.size() <= 300))
         && (!('visitedCountries' in d) || (d.visitedCountries is list && d.visitedCountries.size() <= 60))
         && (!('visitedPlaces' in d) || (d.visitedPlaces is list && d.visitedPlaces.size() <= 100))
-        && (!('wishlistPlaces' in d) || (d.wishlistPlaces is list && d.wishlistPlaces.size() <= 100));
+        && (!('wishlistPlaces' in d) || (d.wishlistPlaces is list && d.wishlistPlaces.size() <= 100))
+        && (!('photo' in d) || validJpegDataUrl(d.photo, 60000));
+    }
+
+    // Bilder lagres som JPEG-data-URL. Tom streng betyr "ingen bilde".
+    function validJpegDataUrl(v, maxSize) {
+      return v is string
+        && (v == '' || (v.size() <= maxSize && v.size() > 23 && v[0:23] == 'data:image/jpeg;base64,'));
     }
 
     match /publicProfiles/{userId} {
       allow read: if signedIn();
       allow create, update: if isSelf(userId) && validPublicProfile(userId);
+      allow delete: if isSelf(userId);
+    }
+
+    // -------------------------------------------------------------------
+    // Bakgrunnsbilde – eget dokument så profilsøk forblir raskt
+    // -------------------------------------------------------------------
+    match /profileMedia/{userId} {
+      allow read: if signedIn();
+      allow create, update: if isSelf(userId)
+        && request.resource.data.keys().hasOnly(['cover', 'updatedAt'])
+        && validJpegDataUrl(request.resource.data.cover, 320000);
       allow delete: if isSelf(userId);
     }
 
