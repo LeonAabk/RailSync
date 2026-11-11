@@ -20,7 +20,8 @@ import {
   arrayUnion,
   arrayRemove,
   deleteField,
-  limit
+  limit,
+  runTransaction
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import {
   getAuth,
@@ -402,6 +403,65 @@ export function loadLocalUserProfile() {
   updateAuthUI(currentUser);
 }
 
+// ---------------------------------------------------------------------------
+// Unike brukernavn: usernames/{brukernavn} → { uid }
+// ---------------------------------------------------------------------------
+export function normalizeHandle(raw) {
+  return String(raw || "")
+    .toLowerCase()
+    .replace(/^@+/, "")
+    .replace(/[æ]/g, "ae").replace(/[ø]/g, "o").replace(/[å]/g, "a")
+    .replace(/[^a-z0-9._-]/g, "")
+    .replace(/^[^a-z0-9]+/, "")
+    .slice(0, 29);
+}
+
+async function claimUsername(handle) {
+  if (!handle || !isCloudReady()) return "error";
+  const ref = doc(db, "usernames", handle);
+  try {
+    const snap = await getDoc(ref);
+    if (snap.exists()) return snap.data().uid === currentUser.uid ? "ok" : "taken";
+    await setDoc(ref, { uid: currentUser.uid, createdAt: new Date().toISOString() });
+    return "ok";
+  } catch (e) {
+    try {
+      const again = await getDoc(ref);
+      if (again.exists()) return again.data().uid === currentUser.uid ? "ok" : "taken";
+    } catch (e2) {}
+    console.warn("Kunne ikke reservere brukernavn:", e);
+    return "error";
+  }
+}
+
+async function releaseUsername(handle) {
+  if (!handle || !isCloudReady()) return;
+  try {
+    const ref = doc(db, "usernames", handle);
+    const snap = await getDoc(ref);
+    if (snap.exists() && snap.data().uid === currentUser.uid) await deleteDoc(ref);
+  } catch (e) { /* ignorer */ }
+}
+
+// Sørger for at brukeren eier brukernavnet sitt. Er det tatt, får brukeren en ledig variant.
+async function ensureOwnUsernameClaim() {
+  const wanted = normalizeHandle(userProfile.username) || normalizeHandle(userProfile.displayName) || "reisende";
+  for (let i = 0; i < 25; i++) {
+    const candidate = i === 0 ? wanted : `${wanted.slice(0, 26)}${i + 1}`;
+    const res = await claimUsername(candidate);
+    if (res === "ok") {
+      const before = userProfile.username;
+      userProfile.username = "@" + candidate;
+      if (before && normalizeHandle(before) && normalizeHandle(before) !== candidate) {
+        showToast("Nytt brukernavn", `@${normalizeHandle(before)} var allerede tatt, så du har fått @${candidate}. Du kan endre det under Konto og profil.`, "at-sign");
+      }
+      return true;
+    }
+    if (res === "error") return false;
+  }
+  return false;
+}
+
 export async function syncUserProfileWithCloud(user) {
   stopCloudListeners();
   if (!user) {
@@ -411,7 +471,7 @@ export async function syncUserProfileWithCloud(user) {
   }
 
   const fallbackName = user.displayName || (user.email ? user.email.split("@")[0] : "Reisende");
-  const fallbackHandle = "@" + fallbackName.toLowerCase().replace(/[^a-z0-9_]/g, "");
+  const fallbackHandle = "@" + (normalizeHandle(fallbackName) || "reisende");
 
   userProfile.uid = user.uid;
   if (userProfile.displayName === "Reisende" && fallbackName) {
@@ -445,6 +505,7 @@ export async function syncUserProfileWithCloud(user) {
       } else {
         ensureSocialProfileFields(userProfile);
       }
+      await ensureOwnUsernameClaim();
       await saveUserProfileEverywhere();
       savePersonalBudgetsToStorage();
       await loadOwnCoverFromCloud(user.uid);
@@ -490,61 +551,167 @@ function stopCloudListeners() {
   friendReqInUnsub = friendReqOutUnsub = memberTripsUnsub = null;
 }
 
+// ---------------------------------------------------------------------------
+// Venner
+// Et vennskap er et dokument i friendRequests med status "accepted".
+// Begge kan slette det, så det å fjerne en venn gjelder for begge.
+// ---------------------------------------------------------------------------
+let friendDocsIn = new Map();
+let friendDocsOut = new Map();
+let friendSnapsReady = { in: false, out: false };
+let legacyFriendUids = null;
+let friendAutoActions = new Set();
+let lastFriendProfileRefresh = 0;
+
 function startFriendRequestListeners(uid) {
   if (!isCloudReady()) return;
+  friendDocsIn = new Map();
+  friendDocsOut = new Map();
+  friendSnapsReady = { in: false, out: false };
+  friendAutoActions = new Set();
+  // Venner fra før denne modellen: bekreftes automatisk når den andre også har oppgradert
+  legacyFriendUids = userProfile.friendsModelV2 ? new Set() : new Set((userProfile.friends || []).map(f => f.uid));
   try {
-    const qIn = query(collection(db, "friendRequests"), where("to", "==", uid), where("status", "==", "pending"));
+    const qIn = query(collection(db, "friendRequests"), where("to", "==", uid));
     friendReqInUnsub = onSnapshot(qIn, (snap) => {
-      const list = [];
-      snap.forEach(d => {
-        const data = d.data() || {};
-        const p = data.fromProfile || {};
-        list.push({
-          uid: data.from,
-          displayName: String(p.displayName || "Reisende"),
-          username: String(p.username || ""),
-          avatarColor: safeColor(p.avatarColor, "#f97316"),
-          photo: safePhoto(p.photo),
-          homeStation: String(p.homeStation || ""),
-          requestId: d.id
-        });
-      });
-      userProfile.incomingFriendRequests = list;
-      renderSocialHub();
+      friendDocsIn = new Map(snap.docs.map(d => [d.id, d.data() || {}]));
+      friendSnapsReady.in = true;
+      recomputeFriendState(uid);
     }, (err) => console.warn("Lytter for venneforespørsler feilet:", err));
 
     const qOut = query(collection(db, "friendRequests"), where("from", "==", uid));
-    friendReqOutUnsub = onSnapshot(qOut, async (snap) => {
-      const pending = [];
-      let changed = false;
-      for (const d of snap.docs) {
-        const data = d.data() || {};
-        if (data.status === "accepted") {
-          const p = data.toProfile || {};
-          if (!isTravelerFriend(data.to)) {
-            userProfile.friends.unshift({
-              uid: data.to,
-              displayName: String(p.displayName || "Reisende"),
-              username: String(p.username || ""),
-              avatarColor: safeColor(p.avatarColor, "#2563eb"),
-              photo: safePhoto(p.photo),
-              homeStation: String(p.homeStation || ""),
-              addedAt: new Date().toISOString()
-            });
-            changed = true;
-            showToast("Venneforespørsel godtatt! 🤝", `${p.displayName || "En reisende"} er nå reisevennen din.`, "users");
-          }
-          try { await deleteDoc(d.ref); } catch (e) {}
-        } else {
-          pending.push(data.to);
-        }
-      }
-      userProfile.outgoingFriendRequests = pending;
-      if (changed) await saveUserProfileEverywhere();
-      renderSocialHub();
+    friendReqOutUnsub = onSnapshot(qOut, (snap) => {
+      friendDocsOut = new Map(snap.docs.map(d => [d.id, d.data() || {}]));
+      friendSnapsReady.out = true;
+      recomputeFriendState(uid);
     }, (err) => console.warn("Lytter for sendte forespørsler feilet:", err));
   } catch (e) {
     console.warn("Kunne ikke starte vennelyttere:", e);
+  }
+}
+
+function friendFromSnippet(otherUid, p, fallbackColor) {
+  const known = (userProfile.friends || []).find(f => f.uid === otherUid) || {};
+  p = p || {};
+  return {
+    uid: otherUid,
+    displayName: String(known.displayName || p.displayName || "Reisende").slice(0, 60),
+    username: String(known.username || p.username || "").slice(0, 30),
+    avatarColor: safeColor(known.avatarColor || p.avatarColor, fallbackColor),
+    photo: safePhoto(known.photo || p.photo),
+    homeStation: String(known.homeStation || p.homeStation || "").slice(0, 80),
+    addedAt: known.addedAt || new Date().toISOString()
+  };
+}
+
+async function recomputeFriendState(uid) {
+  if (!friendSnapsReady.in || !friendSnapsReady.out || !currentUser || currentUser.uid !== uid) return;
+
+  const incoming = [];
+  const outgoingPending = [];
+  const accepted = new Map();
+
+  friendDocsIn.forEach((data, id) => {
+    if (data.status === "accepted") accepted.set(data.from, friendFromSnippet(data.from, data.fromProfile, "#2563eb"));
+    else if (data.status === "pending") incoming.push({ ...friendFromSnippet(data.from, data.fromProfile, "#f97316"), requestId: id });
+  });
+  friendDocsOut.forEach((data) => {
+    if (data.status === "accepted") accepted.set(data.to, friendFromSnippet(data.to, data.toProfile, "#2563eb"));
+    else if (data.status === "pending") outgoingPending.push(data.to);
+  });
+
+  // Begge har sendt forespørsel til hverandre, eller dere var venner før: godta automatisk
+  for (const req of incoming) {
+    const mutual = outgoingPending.includes(req.uid);
+    const legacy = legacyFriendUids && legacyFriendUids.has(req.uid);
+    // Har begge sendt, er det bare den med lavest ID som rydder opp – ellers kan begge slette hverandres
+    if (mutual && uid > req.uid) continue;
+    if ((mutual || legacy) && !accepted.has(req.uid) && !friendAutoActions.has("acc_" + req.uid)) {
+      friendAutoActions.add("acc_" + req.uid);
+      try {
+        await updateDoc(doc(db, "friendRequests", `${req.uid}_${uid}`), {
+          status: "accepted", acceptedAt: new Date().toISOString(), toProfile: myPublicSnippet()
+        });
+        if (mutual) await deleteDoc(doc(db, "friendRequests", `${uid}_${req.uid}`)).catch(() => {});
+      } catch (e) { console.warn("Kunne ikke godta gjensidig forespørsel:", e); }
+      return; // lytterne kjører på nytt med oppdatert data
+    }
+  }
+
+  // Engangsoverføring av venner fra den gamle modellen: send en forespørsel som den andre godtar automatisk
+  if (legacyFriendUids && legacyFriendUids.size > 0 && !userProfile.friendsModelV2) {
+    for (const otherUid of legacyFriendUids) {
+      if (accepted.has(otherUid) || outgoingPending.includes(otherUid) || incoming.some(r => r.uid === otherUid)) continue;
+      if (friendAutoActions.has("req_" + otherUid) || isExampleTravelerUid(otherUid)) continue;
+      friendAutoActions.add("req_" + otherUid);
+      try {
+        await setDoc(doc(db, "friendRequests", `${uid}_${otherUid}`), {
+          from: uid, to: otherUid, status: "pending", createdAt: new Date().toISOString(), fromProfile: myPublicSnippet()
+        });
+      } catch (e) { /* finnes allerede eller ikke tilgang */ }
+    }
+  }
+
+  const previousFriendUids = new Set((userProfile.friends || []).map(f => f.uid));
+  const previousOutgoing = new Set(userProfile.outgoingFriendRequests || []);
+  const friends = [...accepted.values()];
+  // Behold gamle venner som venter på bekreftelse, så listen ikke tømmes mens overføringen pågår
+  if (!userProfile.friendsModelV2 && legacyFriendUids) {
+    (userProfile.friends || []).forEach(f => {
+      if (legacyFriendUids.has(f.uid) && !accepted.has(f.uid)) friends.push(f);
+    });
+  }
+
+  friends.forEach(f => {
+    if (!previousFriendUids.has(f.uid) && previousOutgoing.has(f.uid)) {
+      showToast("Venneforespørsel godtatt", `${f.displayName} er nå reisevennen din.`, "users");
+    }
+  });
+
+  const changed = JSON.stringify(friends.map(f => f.uid).sort()) !== JSON.stringify([...previousFriendUids].sort());
+  userProfile.friends = friends;
+  userProfile.incomingFriendRequests = incoming;
+  userProfile.outgoingFriendRequests = outgoingPending;
+
+  let flagChanged = false;
+  if (!userProfile.friendsModelV2 && legacyFriendUids && [...legacyFriendUids].every(u => accepted.has(u))) {
+    userProfile.friendsModelV2 = true;
+    flagChanged = true;
+  }
+  if (changed || flagChanged) saveUserProfileEverywhere();
+  renderSocialHub();
+  renderShareAndCollabModal();
+  refreshFriendProfiles(changed);
+}
+
+// Henter navn, brukernavn og bilde på nytt, så vennelisten ikke viser gamle opplysninger
+export async function refreshFriendProfiles(force = false) {
+  if (!isCloudReady()) return;
+  const now = Date.now();
+  if (!force && now - lastFriendProfileRefresh < 60000) return;
+  lastFriendProfileRefresh = now;
+  const list = userProfile.friends || [];
+  let changed = false;
+  await Promise.all(list.map(async f => {
+    if (!f || !f.uid || isExampleTravelerUid(f.uid)) return;
+    try {
+      const snap = await getDoc(doc(db, "publicProfiles", f.uid));
+      if (!snap.exists()) return;
+      const p = snap.data() || {};
+      const fresh = {
+        displayName: String(p.displayName || f.displayName || "Reisende").slice(0, 60),
+        username: String(p.username || f.username || "").slice(0, 30),
+        avatarColor: safeColor(p.avatarColor, f.avatarColor || "#2563eb"),
+        photo: safePhoto(p.photo),
+        homeStation: String(p.homeStation || "").slice(0, 80)
+      };
+      if (Object.keys(fresh).some(k => fresh[k] !== f[k])) { Object.assign(f, fresh); changed = true; }
+    } catch (e) { /* ignorer */ }
+  }));
+  if (changed) {
+    try { localStorage.setItem("railsync_user_profile_v1", JSON.stringify(userProfile)); } catch (e) {}
+    renderSocialHub();
+    renderShareAndCollabModal();
   }
 }
 
@@ -848,6 +1015,15 @@ export async function handleUsernameAuth(e) {
   }
 
   try {
+    if (isNewUser && !rawInput.includes("@") && db) {
+      try {
+        const taken = await getDoc(doc(db, "usernames", normalizeHandle(username)));
+        if (taken.exists()) {
+          showAuthError(`Brukernavnet «${username}» er allerede tatt. Velg et annet, eller logg inn.`);
+          return;
+        }
+      } catch (e) { /* sjekkes igjen etter innlogging */ }
+    }
     if (isNewUser) {
       const res = await createUserWithEmailAndPassword(auth, authEmail, password);
       try {
@@ -1178,8 +1354,8 @@ export function isTripOwnedByCurrentUser(tripObj) {
 export function canEditActiveTrip() {
   const active = getActiveTripObject();
   if (!active) return true;
-  if (active.visibility !== "shared") return true;
   if (isTripOwnedByCurrentUser(active)) return true;
+  if (active.visibility !== "shared") return true;
 
   const myUid = currentUser ? currentUser.uid : userProfile.uid;
   const myMember = (active.members || []).find(m => (m.uid || m.id) === myUid);
@@ -1187,6 +1363,19 @@ export function canEditActiveTrip() {
     return myMember.role === "owner" || myMember.role === "editor";
   }
   return active.sharePermission !== "view";
+}
+
+// Skjuler redigeringsknapper når reisen bare kan ses (i stedet for å vise feilmelding ved klikk)
+const EDIT_ACTIONS = /\b(openAddStopModal|openEditStopModal|deleteStop|moveStopOrder|openAddTrainModal|openEditTrainModal|deleteTrain|openAddPackingItemModal|deletePackingItem|handleQuickAddPacking|openTripSettingsModal|importLiveJourneyToTrip|addWishlistPlaceToActiveTrip|handleSaveStop|handleSaveTrain|handleSavePackingItem)\(/;
+const LOCK_ACTIONS = /\b(togglePackingItem|toggleTrainReservation)\(/;
+
+export function applyEditMode(isEditable = canEditActiveTrip()) {
+  document.body.dataset.canEdit = isEditable ? "true" : "false";
+  document.querySelectorAll("[onclick],[onsubmit],[onchange]").forEach(el => {
+    const handler = (el.getAttribute("onclick") || "") + (el.getAttribute("onsubmit") || "") + (el.getAttribute("onchange") || "");
+    if (EDIT_ACTIONS.test(handler)) el.setAttribute("data-edit-only", "");
+    else if (LOCK_ACTIONS.test(handler)) el.setAttribute("data-edit-lock", "");
+  });
 }
 
 function requireEditPermission() {
@@ -1425,6 +1614,128 @@ function claimLocalOwnership(tripObj) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Samtidig redigering
+// Hver reise husker siste versjon fra skyen (_base). Har både du og en annen
+// endret noe, slås endringene sammen per stopp/tog/pakkeliste-punkt i stedet
+// for at den siste som lagrer overskriver den andre.
+// ---------------------------------------------------------------------------
+const sameJson = (a, b) => JSON.stringify(a === undefined ? null : a) === JSON.stringify(b === undefined ? null : b);
+
+function tripContentOf(t) {
+  const src = t || {};
+  const trip = { ...(src.trip && typeof src.trip === "object" ? src.trip : {}) };
+  delete trip.totalBudget;
+  const title = String(trip.title || src.title || "");
+  trip.title = title;
+  return JSON.parse(JSON.stringify({
+    title,
+    trip,
+    stops: Array.isArray(src.stops) ? src.stops : [],
+    trains: Array.isArray(src.trains) ? src.trains : [],
+    packingList: Array.isArray(src.packingList) ? src.packingList : []
+  }));
+}
+
+function mergeObjectFields(base, local, remote) {
+  const out = {};
+  const keys = new Set([...Object.keys(base || {}), ...Object.keys(local || {}), ...Object.keys(remote || {})]);
+  keys.forEach(k => {
+    const v = !sameJson((local || {})[k], (base || {})[k]) ? (local || {})[k] : (remote || {})[k];
+    if (v !== undefined) out[k] = v;
+  });
+  return out;
+}
+
+function mergeItemList(base, local, remote) {
+  const key = x => (x && x.id != null ? String(x.id) : null);
+  const B = new Map(base.map(x => [key(x), x]));
+  const L = new Map(local.map(x => [key(x), x]));
+  const R = new Map(remote.map(x => [key(x), x]));
+  const pick = k => {
+    const inB = B.has(k), inL = L.has(k), inR = R.has(k);
+    if (inL && inR) return !inB ? L.get(k) : (!sameJson(L.get(k), B.get(k)) ? L.get(k) : R.get(k));
+    if (inL) return !inB ? L.get(k) : (!sameJson(L.get(k), B.get(k)) ? L.get(k) : null);
+    if (inR) return !inB ? R.get(k) : (!sameJson(R.get(k), B.get(k)) ? R.get(k) : null);
+    return null;
+  };
+  const relOrder = (list, other) => list.map(key).filter(k => other.has(k));
+  const localReordered = !sameJson(relOrder(base, L), relOrder(local, B));
+  const skeleton = localReordered ? local : remote;
+  const other = localReordered ? remote : local;
+  const out = [];
+  const seen = new Set();
+  skeleton.forEach(x => {
+    const k = key(x);
+    if (k === null) { out.push(x); return; }
+    if (seen.has(k)) return;
+    seen.add(k);
+    const v = pick(k);
+    if (v) out.push(v);
+  });
+  other.forEach((x, i) => {
+    const k = key(x);
+    if (k === null || seen.has(k)) return;
+    seen.add(k);
+    const v = pick(k);
+    if (!v) return;
+    let pos = i === 0 ? 0 : out.length;
+    for (let j = i - 1; j >= 0; j--) {
+      const at = out.findIndex(o => key(o) === key(other[j]));
+      if (at !== -1) { pos = at + 1; break; }
+    }
+    out.splice(pos, 0, v);
+  });
+  return out;
+}
+
+function mergeTripContent(base, local, remote) {
+  if (!base) return local;
+  const title = !sameJson(local.title, base.title) ? local.title : remote.title;
+  const trip = mergeObjectFields(base.trip, local.trip, remote.trip);
+  trip.title = title;
+  const stops = mergeItemList(base.stops, local.stops, remote.stops).map((st, i) => ({ ...st, order: i + 1 }));
+  return {
+    title,
+    trip,
+    stops,
+    trains: mergeItemList(base.trains, local.trains, remote.trains),
+    packingList: mergeItemList(base.packingList, local.packingList, remote.packingList)
+  };
+}
+
+function mergeActivityLogs(a, b) {
+  const all = [...(Array.isArray(a) ? a : []), ...(Array.isArray(b) ? b : [])];
+  const seen = new Set();
+  return all
+    .filter(x => { const k = `${x && x.time}|${x && x.text}|${x && x.by}`; if (seen.has(k)) return false; seen.add(k); return true; })
+    .sort((x, y) => String(y.time || "").localeCompare(String(x.time || "")))
+    .slice(0, 12);
+}
+
+// Legger sammenslått innhold inn i den lokale reisen (og skjermen hvis den er åpen)
+function applyContentToTrip(tripObj, content) {
+  const myBudget = getPersonalBudgetForTrip(tripObj);
+  tripObj.title = content.title || tripObj.title;
+  tripObj.trip = { ...JSON.parse(JSON.stringify(content.trip)), totalBudget: myBudget.totalBudget };
+  tripObj.stops = JSON.parse(JSON.stringify(content.stops));
+  tripObj.trains = JSON.parse(JSON.stringify(content.trains));
+  tripObj.packingList = JSON.parse(JSON.stringify(content.packingList));
+  if (tripObj.id === activeTripId) {
+    isApplyingRemoteSnapshot = true;
+    try {
+      appState.trip = JSON.parse(JSON.stringify(tripObj.trip));
+      appState.stops = JSON.parse(JSON.stringify(tripObj.stops));
+      appState.trains = JSON.parse(JSON.stringify(tripObj.trains));
+      appState.packingList = JSON.parse(JSON.stringify(tripObj.packingList));
+      renderAll();
+      updateMapLayers();
+    } finally {
+      isApplyingRemoteSnapshot = false;
+    }
+  }
+}
+
 function buildTripContentPayload(tripObj) {
   const clone = JSON.parse(JSON.stringify(tripObj));
   const trip = clone.trip && typeof clone.trip === "object" ? clone.trip : {};
@@ -1476,7 +1787,20 @@ async function ensureShareCodeDoc(tripObj) {
   }
 }
 
-async function pushTripToFirestore(tripObj, _retried = false) {
+const tripPushQueue = new Map();
+
+// Lagringer av samme reise kjøres etter hverandre, så de ikke tråkker på hverandre
+function pushTripToFirestore(tripObj, _retried = false) {
+  if (!tripObj || !tripObj.id) return Promise.resolve(false);
+  const key = tripObj.id;
+  const prev = tripPushQueue.get(key) || Promise.resolve();
+  const next = prev.catch(() => {}).then(() => pushTripToFirestoreNow(tripObj, _retried));
+  tripPushQueue.set(key, next);
+  next.finally(() => { if (tripPushQueue.get(key) === next) tripPushQueue.delete(key); });
+  return next;
+}
+
+async function pushTripToFirestoreNow(tripObj, _retried = false) {
   if (!isCloudReady() || !tripObj || !tripObj.id) return false;
   ensureTripCollaborationFields(tripObj);
   const owned = isTripOwnedByCurrentUser(tripObj);
@@ -1488,13 +1812,50 @@ async function pushTripToFirestore(tripObj, _retried = false) {
   }
   if (owned) claimLocalOwnership(tripObj);
 
-  const payload = buildTripContentPayload(tripObj);
-  if (owned && !tripObj._cloudCreated) {
-    Object.assign(payload, buildTripMembershipPayload(tripObj));
-  }
-
   try {
-    await setDoc(doc(db, "trips", tripObj.id), payload, { merge: true });
+    const ref = doc(db, "trips", tripObj.id);
+    if (owned && !tripObj._cloudCreated) {
+      // Ny reise: opprett med medlemmer og innhold
+      const payload = buildTripContentPayload(tripObj);
+      Object.assign(payload, buildTripMembershipPayload(tripObj));
+      await setDoc(ref, payload, { merge: true });
+      tripObj._base = tripContentOf(tripObj);
+    } else {
+      let merged = null;
+      try {
+        await runTransaction(db, async (tx) => {
+          const snap = await tx.get(ref);
+          const local = tripContentOf(tripObj);
+          let content = local;
+          let remoteLog = [];
+          if (snap.exists()) {
+            const remoteData = snap.data() || {};
+            remoteLog = remoteData.activityLog;
+            const remote = tripContentOf(remoteData);
+            if (tripObj._base && !sameJson(remote, tripObj._base)) {
+              content = mergeTripContent(tripObj._base, local, remote);
+            }
+          }
+          const payload = buildTripContentPayload({ ...tripObj, ...content, trip: { ...content.trip } });
+          payload.activityLog = mergeActivityLogs(remoteLog, payload.activityLog);
+          tx.set(ref, payload, { merge: true });
+          merged = { content, local, activityLog: payload.activityLog };
+        });
+      } catch (txErr) {
+        if (txErr && txErr.code === "permission-denied") throw txErr;
+        // Uten nett: lagre vanlig (Firestore sender endringen når nettet er tilbake)
+        await setDoc(ref, buildTripContentPayload(tripObj), { merge: true });
+        merged = null;
+      }
+      if (merged) {
+        tripObj._base = merged.content;
+        tripObj.activityLog = merged.activityLog;
+        if (!sameJson(merged.content, merged.local)) {
+          applyContentToTrip(tripObj, merged.content);
+          showToast("Endringer slått sammen", "Noen andre endret reisen samtidig. Begge endringene er tatt vare på.", "git-merge");
+        }
+      }
+    }
     if (owned) {
       tripObj._cloudCreated = true;
       await ensureShareCodeDoc(tripObj);
@@ -1505,8 +1866,9 @@ async function pushTripToFirestore(tripObj, _retried = false) {
     // Reiser i eldre format (uten eier) kan ikke oppdateres – lagre dem på nytt med ny ID
     if (owned && !_retried && err && err.code === "permission-denied") {
       reassignTripId(tripObj);
+      tripObj._cloudCreated = false;
       syncUrlWithActiveTrip();
-      return pushTripToFirestore(tripObj, true);
+      return pushTripToFirestoreNow(tripObj, true);
     }
     console.warn("Kunne ikke synkronisere reise til Firestore:", err);
     return false;
@@ -1566,10 +1928,17 @@ export function subscribeToActiveSharedTrip() {
       if (!cloudData || !cloudData.trip) return;
       delete cloudData.expenses;
 
-      // Avoid overwriting if local state has identical or newer timestamp
       const currentActive = allTrips.find(t => t.id === active.id);
-      if (currentActive && currentActive.updatedAt && cloudData.updatedAt && currentActive.updatedAt >= cloudData.updatedAt) {
-        return;
+      if (!currentActive) return;
+      const remoteContent = tripContentOf(cloudData);
+      const localContent = tripContentOf(currentActive);
+      const base = currentActive._base;
+      let newContent = remoteContent;
+      let needsPush = false;
+      if (base && !sameJson(localContent, base) && !sameJson(localContent, remoteContent)) {
+        // Du har endringer som ikke er lagret ennå: slå sammen med det som kom fra skyen
+        newContent = mergeTripContent(base, localContent, remoteContent);
+        needsPush = !sameJson(newContent, remoteContent);
       }
 
       isApplyingRemoteSnapshot = true;
@@ -1577,8 +1946,10 @@ export function subscribeToActiveSharedTrip() {
         const merged = ensureTripCollaborationFields({
           ...currentActive,
           ...cloudData,
+          ...newContent,
+          trip: { ...newContent.trip },
           id: active.id,
-          title: cloudData.trip.title || cloudData.title || "Delt Reise"
+          _base: remoteContent
         });
         if (isTripOwnedByCurrentUser(merged)) merged._cloudCreated = true;
 
@@ -1601,7 +1972,9 @@ export function subscribeToActiveSharedTrip() {
           saveAllTripsToLocalStorage();
           renderAll();
           updateMapLayers();
+          renderShareAndCollabModal();
         }
+        if (needsPush && canEditTrip(merged)) pushTripToFirestore(merged);
       } finally {
         isApplyingRemoteSnapshot = false;
       }
@@ -1624,6 +1997,7 @@ function mergeCloudTripDoc(docSnap) {
     title: data.trip.title || data.title || "Min Reise"
   });
   if (isTripOwnedByCurrentUser(cloudTrip)) cloudTrip._cloudCreated = true;
+  cloudTrip._base = tripContentOf(cloudTrip);
   const myBudget = getPersonalBudgetForTrip(cloudTrip);
   cloudTrip.trip.totalBudget = myBudget.totalBudget;
   cloudTrip.expenses = myBudget.expenses;
@@ -1825,6 +2199,7 @@ export async function fetchAndJoinSharedTrip(tripIdOrCode, fromUrlParam = false)
       title: cloudData.trip ? (cloudData.trip.title || cloudData.title) : (cloudData.title || "Delt Reise")
     });
     if (!loadedTrip.trip) loadedTrip.trip = {};
+    loadedTrip._base = tripContentOf(loadedTrip);
     const myBudget = getPersonalBudgetForTrip(loadedTrip);
     loadedTrip.trip.totalBudget = myBudget.totalBudget;
     loadedTrip.expenses = myBudget.expenses;
@@ -1914,7 +2289,7 @@ export async function handleSaveAndShareTrip() {
     let active = getActiveTripObject();
     if (!active) return;
     if (!requireCloudLogin("dele reiser")) return;
-    if (!requireTripOwner(active)) {
+    if (!isTripOwnedByCurrentUser(active)) {
       renderShareAndCollabModal();
       openModal("modal-share-trip");
       return;
@@ -2108,10 +2483,11 @@ export function updateMapLayers() {
 
     const marker = L.marker([stop.lat, stop.lng], { icon: customIcon }).addTo(map);
 
-    let statusBadge = `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-slate-100 text-slate-700">${escapeHtml(stop.accommodationStatus)}</span>`;
-    if (stop.accommodationStatus.includes("Bestilt")) {
+    let statusBadge = `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-slate-100 text-slate-700">${escapeHtml(stop.accommodationStatus || "")}</span>`;
+    const accText = String(stop.accommodationStatus || "");
+    if (accText.includes("Bestilt")) {
       statusBadge = `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800">✓ Overnatting bestilt</span>`;
-    } else if (stop.accommodationStatus.includes("Ser etter")) {
+    } else if (accText.includes("Ser etter")) {
       statusBadge = `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-800">⚡ Søker overnatting</span>`;
     }
 
@@ -2327,7 +2703,7 @@ export function renderOverview() {
   if (dailySub) dailySub.textContent = `For de ${durationDays} planlagte dagene`;
 
   // Unique countries
-  const uniqueCountries = new Set(appState.stops.map(s => s.country.trim()));
+  const uniqueCountries = new Set(appState.stops.map(s => String(s.country || "").trim()).filter(Boolean));
   const countriesCount = uniqueCountries.size;
   const countriesList = Array.from(uniqueCountries).slice(0, 5).join(", ") + (countriesCount > 5 ? '...' : '');
 
@@ -2390,9 +2766,10 @@ export function renderOverview() {
     const isEnd = idx === appState.stops.length - 1;
 
     let badgeStyle = "bg-slate-100 text-slate-700 border-slate-200";
-    if (stop.accommodationStatus.includes("Bestilt")) {
+    const accStatus = String(stop.accommodationStatus || "");
+    if (accStatus.includes("Bestilt")) {
       badgeStyle = "bg-emerald-50 text-emerald-700 border-emerald-200/80";
-    } else if (stop.accommodationStatus.includes("Ser etter")) {
+    } else if (accStatus.includes("Ser etter")) {
       badgeStyle = "bg-amber-50 text-amber-700 border-amber-200/80";
     }
 
@@ -2876,6 +3253,7 @@ export function renderHeaderCollaborationBar() {
   const readonlyBanner = document.getElementById("readonly-trip-banner");
 
   const isEditable = canEditActiveTrip();
+  applyEditMode(isEditable);
   if (readonlyBanner) {
     if (!isEditable) {
       readonlyBanner.classList.remove("hidden");
@@ -2938,6 +3316,7 @@ export function renderAll() {
   renderTripManagerList();
   renderSocialHub();
   updateAuthUI(currentUser);
+  applyEditMode();
   if (window.lucide) lucide.createIcons();
 }
 
@@ -3298,137 +3677,121 @@ export async function handleJoinSharedTripByCode(e) {
 export function renderShareAndCollabModal() {
   const active = getActiveTripObject();
   if (!active) return;
+  ensureTripCollaborationFields(active);
+  const owned = isTripOwnedByCurrentUser(active);
+  const isShared = active.visibility === "shared";
 
-  const visSelect = document.getElementById("share-visibility-select");
-  const permSelect = document.getElementById("share-permission-select");
-  const livePill = document.getElementById("share-modal-live-pill");
-  const codeBadge = document.getElementById("share-code-badge");
-  const shareInput = document.getElementById("share-url-input");
-  const membersContainer = document.getElementById("share-members-list");
-  const activityContainer = document.getElementById("share-activity-log");
+  const set = (id, fn) => { const el = document.getElementById(id); if (el) fn(el); };
+  set("share-modal-trip-title", el => { el.textContent = active.title || "reisen"; });
+  set("share-visibility-select", el => { el.value = isShared ? "shared" : "private"; el.disabled = !owned; });
+  set("share-permission-select", el => { el.value = active.sharePermission === "view" ? "view" : "edit"; el.disabled = !owned || !isShared; });
+  set("share-code-badge", el => { el.textContent = active.shareCode || "–"; });
+  set("share-url-input", el => { el.value = `${window.location.origin}${window.location.pathname}?trip=${active.id}`; });
+  set("share-modal-live-pill", el => {
+    el.textContent = isShared ? "Delt" : "Privat";
+    el.className = isShared
+      ? "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700"
+      : "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600";
+  });
+  document.querySelectorAll("[data-share-owner-only]").forEach(el => el.classList.toggle("hidden", !owned));
+  document.querySelectorAll("[data-share-when-shared]").forEach(el => el.classList.toggle("hidden", !isShared));
+  set("share-not-owner-note", el => {
+    el.classList.toggle("hidden", owned);
+    el.textContent = owned ? "" : `Det er ${(active.owner && active.owner.name) || "eieren"} som styrer deling og tilgang for denne reisen.`;
+  });
+  set("native-share-container", el => el.classList.toggle("hidden", typeof navigator.share !== "function" || !isShared));
 
-  if (visSelect) visSelect.value = active.visibility || "shared";
-  if (permSelect) permSelect.value = active.sharePermission || "edit";
-  if (codeBadge) codeBadge.textContent = active.shareCode;
+  const members = Array.isArray(active.members) ? active.members : [];
+  const myUid = currentUser ? currentUser.uid : userProfile.uid;
+  const known = getAllKnownTravelers();
+  const personOf = (m) => {
+    const uid = m.uid || m.id;
+    const fresh = (userProfile.friends || []).find(f => f.uid === uid) || known.find(t => t.uid === uid) || (uid === myUid ? userProfile : null);
+    return {
+      displayName: (fresh && fresh.displayName) || m.name,
+      username: (fresh && fresh.username) || m.username || "",
+      avatarColor: (fresh && fresh.avatarColor) || m.avatarColor,
+      photo: fresh ? fresh.photo : ""
+    };
+  };
 
-  if (livePill) {
-    if (active.visibility === "shared") {
-      livePill.className = "px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 self-start sm:self-auto";
-      livePill.textContent = "🟢 Sanntids deling aktiv";
-    } else {
-      livePill.className = "px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-200 text-slate-700 self-start sm:self-auto";
-      livePill.textContent = "🔒 Kun privat (Lokal)";
-    }
-  }
-
-  const shareUrl = `${window.location.origin}${window.location.pathname}?trip=${active.id}`;
-  if (shareInput) shareInput.value = shareUrl;
-
-  const nativeShareContainer = document.getElementById("native-share-container");
-  if (nativeShareContainer) {
-    if (typeof navigator.share === "function") {
-      nativeShareContainer.classList.remove("hidden");
-    } else {
-      nativeShareContainer.classList.add("hidden");
-    }
-  }
-
-  const friendsPickerContainer = document.getElementById("share-modal-friends-picker");
-  if (friendsPickerContainer) {
-    ensureSocialProfileFields(userProfile);
+  set("share-modal-friends-picker", el => {
     const friendsList = Array.isArray(userProfile.friends) ? userProfile.friends : [];
-    const members = Array.isArray(active.members) ? active.members : [];
-
     if (friendsList.length === 0) {
-      friendsPickerContainer.innerHTML = `
-        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/80 text-center space-y-1.5">
-          <p class="text-xs font-semibold text-slate-600">Du har ikke lagt til noen reisevenner ennå.</p>
-          <button type="button" onclick="closeModal('modal-share-trip'); switchTab('social'); switchSocialSubTab('discover')" class="px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs transition inline-flex items-center gap-1.5">
-            <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
-            <span>Søk opp profiler og legg til venner</span>
-          </button>
-        </div>
-      `;
-    } else {
-      friendsPickerContainer.innerHTML = friendsList.map(friend => {
-        const alreadyOnTrip = members.some(
-          m => (m.uid && m.uid === friend.uid) || (m.id && m.id === friend.uid) || (m.username && friend.username && m.username.toLowerCase() === friend.username.toLowerCase()) || (m.name && friend.displayName && m.name.toLowerCase() === friend.displayName.toLowerCase())
-        );
-        return `
-          <div class="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-indigo-50/40 border border-indigo-100">
-            <div onclick="openTravelerProfileModal(${jsArg(friend.uid)})" class="flex items-center gap-2.5 min-w-0 cursor-pointer group">
-              <span class="w-7 h-7 rounded-full text-white text-xs font-extrabold flex items-center justify-center shrink-0" style="background-color: ${safeColor(friend.avatarColor, '#2563eb')}">
-                ${escapeHtml(getInitials(friend.displayName))}
-              </span>
-              <div class="min-w-0">
-                <p class="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-brand-600 transition truncate">${escapeHtml(friend.displayName)} <span class="text-[11px] font-mono text-slate-500">${escapeHtml(friend.username || '')}</span></p>
-                <p class="text-[10px] text-slate-500 truncate">🚆 ${escapeHtml(friend.homeStation || 'Europa')}</p>
-              </div>
-            </div>
-            <div class="shrink-0">
-              ${alreadyOnTrip ? `
-                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 text-[11px] font-bold">
-                  <i data-lucide="check" class="w-3 h-3"></i>
-                  <span>Med på reisen</span>
-                </span>
-              ` : `
-                <button type="button" onclick="shareActiveTripWithFriend(${jsArg(friend.uid)}, 'editor')" class="px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow-2xs transition flex items-center gap-1">
-                  <i data-lucide="share-2" class="w-3 h-3"></i>
-                  <span>+ Del reise</span>
-                </button>
-              `}
-            </div>
-          </div>
-        `;
-      }).join("");
+      el.innerHTML = `<p class="text-sm text-slate-500">Du har ingen venner på RailSync ennå. <button type="button" onclick="closeModal('modal-share-trip'); switchTab('social'); switchSocialSubTab('discover')" class="font-medium text-slate-900 underline underline-offset-2">Finn reisende</button></p>`;
+      return;
     }
-  }
-
-  if (membersContainer) {
-    const members = Array.isArray(active.members) ? active.members : [];
-    membersContainer.innerHTML = members.map((m, idx) => {
-      const isOwner = m.role === "owner" || idx === 0;
-      const memberUid = m.uid || m.id || "";
+    el.innerHTML = friendsList.map(friend => {
+      const onTrip = members.some(m => (m.uid || m.id) === friend.uid);
       return `
-        <div class="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
-          <div onclick="${!isOwner && memberUid ? `openTravelerProfileModal(${jsArg(memberUid)})` : ''}" class="flex items-center gap-2.5 min-w-0 ${!isOwner && memberUid ? 'cursor-pointer group' : ''}">
-            <span class="w-7 h-7 rounded-full text-white text-xs font-extrabold flex items-center justify-center shrink-0" style="background-color: ${safeColor(m.avatarColor, '#0d9488')}">
-              ${escapeHtml(getInitials(m.name))}
+        <li class="flex items-center justify-between gap-3 py-2.5">
+          <button type="button" onclick="openTravelerProfileModal(${jsArg(friend.uid)})" class="flex items-center gap-3 min-w-0 text-left">
+            ${socialAvatarHtml(friend, "w-8 h-8 text-[11px]")}
+            <span class="min-w-0">
+              <span class="block text-sm font-medium text-slate-900 truncate">${escapeHtml(friend.displayName || "Reisende")}</span>
+              <span class="block text-xs text-slate-500 truncate">${escapeHtml(friend.username || "")}</span>
             </span>
-            <div class="min-w-0">
-              <p class="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-brand-600 transition truncate">${escapeHtml(m.name)} ${m.username ? `<span class="text-[11px] font-mono text-slate-400">${escapeHtml(m.username)}</span>` : ''}</p>
-              <p class="text-[10px] text-slate-500 font-semibold">${isOwner ? '👑 Eier av reisen' : (m.role === 'viewer' ? '👁️ Kun visning' : '✏️ Kan redigere')}</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-1.5 shrink-0">
-            ${!isOwner ? `
-              <button type="button" onclick="toggleTripMemberRole(${Number(idx)})" class="text-[11px] font-semibold px-2 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-brand-50 transition">
-                ${m.role === 'viewer' ? 'Gi redigering' : 'Sett kun visning'}
-              </button>
-              <button type="button" onclick="removeTripMember(${Number(idx)})" class="p-1 text-slate-400 hover:text-rose-600 rounded transition" title="Fjern fra reisefølge">
-                <i data-lucide="x" class="w-3.5 h-3.5"></i>
-              </button>
-            ` : `
-              <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-brand-50 text-brand-700 border border-brand-200">Deg / Eier</span>
-            `}
-          </div>
-        </div>
-      `;
+          </button>
+          ${onTrip
+            ? `<span class="text-xs text-slate-500 shrink-0">Med på reisen</span>`
+            : `<button type="button" onclick="shareActiveTripWithFriend(${jsArg(friend.uid)})" class="shrink-0 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition">Legg til</button>`}
+        </li>`;
     }).join("");
-  }
+  });
 
-  if (activityContainer) {
-    const logs = Array.isArray(active.activityLog) ? active.activityLog : [];
-    if (logs.length === 0) {
-      activityContainer.innerHTML = `<p class="text-slate-400 italic">Ingen loggførte hendelser ennå.</p>`;
-    } else {
-      activityContainer.innerHTML = logs.slice(0, 8).map(item => `
-        <div class="flex items-center justify-between gap-2 py-0.5">
-          <span class="truncate">• <strong>${escapeHtml(item.by || 'Reisende')}:</strong> ${escapeHtml(item.text)}</span>
+  set("share-members-list", el => {
+    const accountMembers = [];
+    members.forEach((m, idx) => { if (m.role === "owner" || isRealUid(m.uid || m.id)) accountMembers.push([m, idx]); });
+    el.innerHTML = accountMembers.map(([m, idx]) => {
+      const isOwnerRow = m.role === "owner";
+      const isMe = (m.uid || m.id) === myUid;
+      const uid = m.uid || m.id;
+      const roleText = isOwnerRow ? "Eier" : (m.role === "viewer" ? "Kan se" : "Kan redigere");
+      const person = personOf(m);
+      const control = owned && !isOwnerRow
+        ? `<div class="flex items-center gap-1 shrink-0">
+             <label class="sr-only" for="member-role-${Number(idx)}">Tilgang for ${escapeHtml(person.displayName || m.name)}</label>
+             <select id="member-role-${Number(idx)}" onchange="setTripMemberRole(${Number(idx)}, this.value)" class="text-xs bg-white border border-slate-200 rounded-lg pl-2 pr-7 py-1.5 text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-600/20">
+               <option value="editor" ${m.role !== "viewer" ? "selected" : ""}>Kan redigere</option>
+               <option value="viewer" ${m.role === "viewer" ? "selected" : ""}>Kan se</option>
+             </select>
+             <button type="button" onclick="confirmRemoveTripMember(${Number(idx)})" class="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition" aria-label="Fjern ${escapeHtml(m.name)}"><i data-lucide="x" class="w-4 h-4"></i></button>
+           </div>`
+        : `<span class="text-xs text-slate-500 shrink-0">${roleText}</span>`;
+      return `
+        <li class="flex items-center justify-between gap-3 py-2.5">
+          <div class="flex items-center gap-3 min-w-0 ${!isMe && uid ? "cursor-pointer" : ""}" ${!isMe && uid ? `onclick="openTravelerProfileModal(${jsArg(uid)})"` : ""}>
+            ${socialAvatarHtml(person, "w-8 h-8 text-[11px]", "#0d9488")}
+            <span class="min-w-0">
+              <span class="block text-sm font-medium text-slate-900 truncate">${escapeHtml(person.displayName || "Reisende")}${isMe ? ` <span class="font-normal text-slate-400">(deg)</span>` : ""}</span>
+              <span class="block text-xs text-slate-500 truncate">${escapeHtml(person.username || roleText)}</span>
+            </span>
+          </div>
+          ${control}
+        </li>`;
+    }).join("");
+  });
+
+  set("share-guests-list", el => {
+    const guests = [];
+    members.forEach((m, idx) => { if (m.role !== "owner" && !isRealUid(m.uid || m.id)) guests.push([m, idx]); });
+    set("share-guests-empty", e => e.classList.toggle("hidden", guests.length > 0));
+    el.innerHTML = guests.map(([m, idx]) => `
+      <li class="flex items-center justify-between gap-3 py-2">
+        <div class="flex items-center gap-3 min-w-0">
+          <span class="w-8 h-8 rounded-full border border-dashed border-slate-300 text-slate-500 text-[11px] font-semibold flex items-center justify-center shrink-0">${escapeHtml(getInitials(m.name || "?"))}</span>
+          <span class="text-sm text-slate-700 truncate">${escapeHtml(m.name || "Uten navn")}</span>
         </div>
-      `).join("");
-    }
-  }
+        ${owned ? `<button type="button" onclick="confirmRemoveTripMember(${Number(idx)})" class="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition shrink-0" aria-label="Fjern ${escapeHtml(m.name)}"><i data-lucide="x" class="w-4 h-4"></i></button>` : ""}
+      </li>`).join("");
+  });
+
+  set("share-activity-log", el => {
+    const logs = Array.isArray(active.activityLog) ? active.activityLog : [];
+    el.innerHTML = logs.length === 0
+      ? `<li class="text-slate-400">Ingen endringer ennå.</li>`
+      : logs.slice(0, 8).map(item => `<li><span class="font-medium text-slate-700">${escapeHtml(item.by || "Reisende")}</span> ${escapeHtml(item.text || "")}</li>`).join("");
+  });
 
   if (window.lucide) lucide.createIcons();
 }
@@ -3444,8 +3807,15 @@ export async function handleUpdateTripSharingSettings() {
   const visSelect = document.getElementById("share-visibility-select");
   const permSelect = document.getElementById("share-permission-select");
 
+  const previousPermission = active.sharePermission;
   if (visSelect) active.visibility = visSelect.value;
   if (permSelect) active.sharePermission = permSelect.value;
+  // «Alle i reisefølget kan …» gjelder alle som er med nå, ikke bare nye
+  if (active.sharePermission !== previousPermission) {
+    (active.members || []).forEach(m => {
+      if (m.role !== "owner") m.role = active.sharePermission === "view" ? "viewer" : "editor";
+    });
+  }
 
   persistState(`Endret delingsinnstillinger (${active.visibility === 'shared' ? 'Delt' : 'Privat'}, ${active.sharePermission === 'edit' ? 'Kan redigere' : 'Kun visning'})`);
   await pushTripMembershipToFirestore(active);
@@ -3454,7 +3824,9 @@ export async function handleUpdateTripSharingSettings() {
   }
   renderShareAndCollabModal();
   renderAll();
-  showToast("Tilgang oppdatert", `Reisen er nå satt til ${active.visibility === 'shared' ? 'Delt' : 'Privat'}.`, "shield-check");
+  showToast("Tilgang oppdatert", active.visibility === "shared"
+    ? (active.sharePermission === "view" ? "Reisefølget kan se reisen, men ikke endre den." : "Reisefølget kan se og endre reisen.")
+    : "Reisen er privat. Bare du ser den.", "shield-check");
 }
 
 export async function copyShareCodeOnly() {
@@ -3475,8 +3847,8 @@ export function handleAddTripMember(e) {
   const roleSelect = document.getElementById("new-member-role");
   if (!nameInput || !nameInput.value.trim()) return;
 
-  const name = nameInput.value.trim();
-  const role = roleSelect ? roleSelect.value : "editor";
+  const name = nameInput.value.trim().slice(0, 60);
+  const role = "guest";
   const palette = ["#f97316", "#2563eb", "#7c3aed", "#e11d48", "#059669", "#0d9488"];
   const color = palette[(active.members ? active.members.length : 1) % palette.length];
 
@@ -3494,7 +3866,34 @@ export function handleAddTripMember(e) {
   pushTripMembershipToFirestore(active);
   renderShareAndCollabModal();
   renderAll();
-  showToast("Lagt til i reisefølget!", `${name} er nå med på reisen.`, "users");
+  showToast("Navn lagt til", `${name} står nå i reisefølget. Legg til som venn for å gi tilgang til selve reisen.`, "users");
+}
+
+export function setTripMemberRole(idx, role) {
+  const active = getActiveTripObject();
+  if (!active || !Array.isArray(active.members) || !active.members[idx]) return;
+  if (!requireTripOwner(active)) return;
+  const member = active.members[idx];
+  if (member.role === "owner") return;
+  member.role = role === "viewer" ? "viewer" : "editor";
+  persistState(`Endret tilgang for ${member.name}`);
+  pushTripMembershipToFirestore(active);
+  renderShareAndCollabModal();
+  renderAll();
+}
+
+export async function confirmRemoveTripMember(idx) {
+  const active = getActiveTripObject();
+  if (!active || !Array.isArray(active.members) || !active.members[idx]) return;
+  const m = active.members[idx];
+  const hasAccount = isRealUid(m.uid || m.id);
+  const ok = await showAppDialog({
+    title: `Fjerne ${m.name} fra reisen?`,
+    message: hasAccount ? `${m.name} mister tilgangen til reisen.` : "Navnet fjernes fra reisefølget.",
+    confirmLabel: "Fjern",
+    danger: true
+  });
+  if (ok) removeTripMember(idx);
 }
 
 export function toggleTripMemberRole(idx) {
@@ -3764,8 +4163,26 @@ export async function handleSaveUserProfile(e) {
   const bioInput = document.getElementById("profile-bio");
 
   const newName = ((nameInput && nameInput.value.trim()) || "Reisende").slice(0, 60);
-  let newHandle = ((userInput && userInput.value.trim()) || newName).toLowerCase().replace(/^@+/, "").replace(/[^a-z0-9._-]/g, "").slice(0, 29);
-  if (!newHandle) newHandle = "reisende";
+  let newHandle = normalizeHandle((userInput && userInput.value.trim()) || newName);
+  const statusEl = document.getElementById("profile-save-status");
+  if (newHandle.length < 2) {
+    if (statusEl) { statusEl.textContent = "Brukernavnet må ha minst 2 tegn."; statusEl.className = "text-xs text-rose-600"; }
+    if (userInput) userInput.focus();
+    return;
+  }
+  const oldHandle = normalizeHandle(userProfile.username);
+  if (newHandle !== oldHandle && isCloudReady()) {
+    const claim = await claimUsername(newHandle);
+    if (claim !== "ok") {
+      if (statusEl) {
+        statusEl.textContent = claim === "taken" ? `@${newHandle} er allerede tatt. Velg et annet brukernavn.` : "Kunne ikke sjekke brukernavnet. Prøv igjen.";
+        statusEl.className = "text-xs text-rose-600";
+      }
+      if (userInput) userInput.focus();
+      return;
+    }
+  }
+  const releaseOld = newHandle !== oldHandle ? oldHandle : "";
   newHandle = "@" + newHandle;
 
   userProfile.displayName = newName;
@@ -3781,10 +4198,13 @@ export async function handleSaveUserProfile(e) {
     if (isTripOwnedByCurrentUser(t)) {
       t.owner.name = userProfile.displayName;
       t.owner.avatarColor = userProfile.avatarColor;
-      if (t.members && t.members[0]) {
-        t.members[0].name = userProfile.displayName;
-        t.members[0].avatarColor = userProfile.avatarColor;
+      const ownerRow = (t.members || []).find(m => m.role === "owner") || (t.members || [])[0];
+      if (ownerRow) {
+        ownerRow.name = userProfile.displayName;
+        ownerRow.avatarColor = userProfile.avatarColor;
+        ownerRow.username = userProfile.username;
       }
+      if (t._cloudCreated) pushTripMembershipToFirestore(t);
     }
   });
 
@@ -3798,7 +4218,8 @@ export async function handleSaveUserProfile(e) {
     } catch (err) {}
   }
 
-  await saveUserProfileEverywhere();
+  const publicSaved = await saveUserProfileEverywhere();
+  if (publicSaved && releaseOld) releaseUsername(releaseOld);
   saveAllTripsToLocalStorage();
   updateAuthUI(currentUser);
   renderAll();
@@ -4099,11 +4520,27 @@ export function isTravelerFriend(targetUid) {
 }
 
 export function friendActionLabel(traveler) {
-  if (!traveler) return "+ Legg til venn";
+  if (!traveler) return "Legg til venn";
   if (traveler.isCommunityProfile) return "Eksempelprofil";
   if ((userProfile.incomingFriendRequests || []).some(r => r.uid === traveler.uid)) return "Godta venneforespørsel";
   if ((userProfile.outgoingFriendRequests || []).includes(traveler.uid)) return "Forespørsel sendt";
-  return "+ Legg til venn";
+  return "Legg til venn";
+}
+
+export async function cancelFriendRequest(targetUid) {
+  if (!requireCloudLogin("trekke tilbake forespørsler")) return;
+  const myUid = currentUser.uid;
+  userProfile.outgoingFriendRequests = (userProfile.outgoingFriendRequests || []).filter(u => u !== targetUid);
+  try {
+    await deleteDoc(doc(db, "friendRequests", `${myUid}_${targetUid}`));
+    showToast("Forespørselen er trukket tilbake", "Den andre ser den ikke lenger.", "undo-2");
+  } catch (e) {
+    console.warn("Kunne ikke trekke tilbake forespørsel:", e);
+    showToast("Noe gikk galt", "Kunne ikke trekke tilbake forespørselen. Prøv igjen.", "alert-triangle");
+  }
+  renderSocialHub();
+  const modalEl = document.getElementById("modal-traveler-profile");
+  if (modalEl && !modalEl.classList.contains("hidden")) openTravelerProfileModal(targetUid);
 }
 
 export async function addOrAcceptFriend(targetUid) {
@@ -4131,6 +4568,7 @@ export async function addOrAcceptFriend(targetUid) {
         acceptedAt: new Date().toISOString(),
         toProfile: myPublicSnippet()
       });
+      deleteDoc(doc(db, "friendRequests", `${myUid}_${target.uid}`)).catch(() => {});
       userProfile.incomingFriendRequests = userProfile.incomingFriendRequests.filter(r => r.uid !== target.uid);
       userProfile.friends.unshift({
         uid: target.uid,
@@ -4142,7 +4580,7 @@ export async function addOrAcceptFriend(targetUid) {
         addedAt: new Date().toISOString()
       });
       await saveUserProfileEverywhere();
-      showToast("Venn lagt til! 🤝", `Du og ${target.displayName} er nå reisevenner og kan dele reiser sammen.`, "users");
+      showToast("Dere er nå venner", `Du og ${target.displayName} kan dele reiser med hverandre.`, "users");
     } else {
       if ((userProfile.outgoingFriendRequests || []).includes(target.uid)) {
         showToast("Allerede sendt", `Venter på at ${target.displayName} godtar forespørselen.`, "clock");
@@ -4156,7 +4594,7 @@ export async function addOrAcceptFriend(targetUid) {
         fromProfile: myPublicSnippet()
       });
       userProfile.outgoingFriendRequests = [...(userProfile.outgoingFriendRequests || []), target.uid];
-      showToast("Venneforespørsel sendt! 📨", `${target.displayName} får beskjed og kan godta forespørselen.`, "send");
+      showToast("Venneforespørsel sendt", `${target.displayName} får beskjed og kan godta forespørselen.`, "send");
     }
   } catch (e) {
     console.warn("Venneforespørsel feilet:", e);
@@ -4189,13 +4627,30 @@ export async function declineFriendRequest(targetUid) {
 export async function removeFriend(targetUid) {
   ensureSocialProfileFields(userProfile);
   const friend = (userProfile.friends || []).find(f => f.uid === targetUid);
+  if (!friend) return;
+  const ok = await showAppDialog({
+    title: `Fjerne ${friend.displayName} som venn?`,
+    message: "Dere blir fjernet fra hverandres vennelister. Reiser dere allerede deler, påvirkes ikke.",
+    confirmLabel: "Fjern venn",
+    danger: true
+  });
+  if (!ok) return;
+
+  if (isCloudReady()) {
+    const myUid = currentUser.uid;
+    await Promise.all([
+      deleteDoc(doc(db, "friendRequests", `${myUid}_${targetUid}`)).catch(() => {}),
+      deleteDoc(doc(db, "friendRequests", `${targetUid}_${myUid}`)).catch(() => {})
+    ]);
+  }
+  if (legacyFriendUids) legacyFriendUids.delete(targetUid);
   userProfile.friends = (userProfile.friends || []).filter(f => f.uid !== targetUid);
   await saveUserProfileEverywhere();
   renderSocialHub();
   renderShareAndCollabModal();
-  if (friend) {
-    showToast("Venn fjernet", `${friend.displayName} ble fjernet fra vennelisten din.`, "user-minus");
-  }
+  const modalEl = document.getElementById("modal-traveler-profile");
+  if (modalEl && !modalEl.classList.contains("hidden")) closeModal("modal-traveler-profile");
+  showToast("Venn fjernet", `${friend.displayName} er ikke lenger på vennelisten din.`, "user-minus");
 }
 
 export async function shareActiveTripWithFriend(friendUid, role = "editor") {
@@ -4232,7 +4687,7 @@ export async function shareActiveTripWithFriend(friendUid, role = "editor") {
       uid: friend.uid,
       username: friend.username || "",
       name: friend.displayName,
-      role: role === "viewer" ? "viewer" : "editor",
+      role: (role === "viewer" || active.sharePermission === "view") ? "viewer" : "editor",
       avatarColor: safeColor(friend.avatarColor, "#2563eb"),
       joinedAt: new Date().toISOString()
     });
@@ -4249,7 +4704,7 @@ export async function shareActiveTripWithFriend(friendUid, role = "editor") {
   if (modalEl && !modalEl.classList.contains("hidden")) {
     openTravelerProfileModal(friend.uid);
   }
-  showToast("Reise delt med venn! 🚆", `${friend.displayName} er nå lagt til på "${active.title}" og ser den under Mine reiser.`, "share-2");
+  showToast("Reisen er delt", `${friend.displayName} er lagt til på «${active.title}» og finner den under Reiser.`, "share-2");
 }
 
 
@@ -4287,10 +4742,18 @@ function friendActionButtonHtml(traveler, extraClass = "") {
   }
   const label = friendActionLabel(traveler);
   const pending = label === "Forespørsel sendt";
+  if (pending) {
+    return `
+    <button type="button" onclick="cancelFriendRequest(${jsArg(traveler.uid)})" title="Trekk tilbake forespørselen"
+      class="group px-3.5 py-1.5 rounded-lg font-semibold text-xs transition flex items-center gap-1.5 ${extraClass} border border-slate-200 bg-white text-slate-600 hover:border-rose-200 hover:text-rose-600">
+      <i data-lucide="clock" class="w-3.5 h-3.5 group-hover:hidden"></i><i data-lucide="x" class="w-3.5 h-3.5 hidden group-hover:block"></i>
+      <span class="group-hover:hidden">Forespørsel sendt</span><span class="hidden group-hover:inline">Trekk tilbake</span>
+    </button>`;
+  }
   return `
-    <button type="button" onclick="addOrAcceptFriend(${jsArg(traveler.uid)})" ${pending ? "disabled" : ""}
-      class="px-3.5 py-1.5 rounded-lg font-semibold text-xs transition flex items-center gap-1.5 ${extraClass} ${pending ? "bg-slate-100 text-slate-500 cursor-default" : "bg-slate-900 hover:bg-slate-800 text-white"}">
-      <i data-lucide="${pending ? "clock" : "user-plus"}" class="w-3.5 h-3.5"></i>
+    <button type="button" onclick="addOrAcceptFriend(${jsArg(traveler.uid)})"
+      class="px-3.5 py-1.5 rounded-lg font-semibold text-xs transition flex items-center gap-1.5 ${extraClass} bg-slate-900 hover:bg-slate-800 text-white">
+      <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
       <span>${escapeHtml(label)}</span>
     </button>`;
 }
@@ -6718,6 +7181,10 @@ window.closeTripCardMenus = closeTripCardMenus;
 window.openTripFromList = openTripFromList;
 window.shareTripFromList = shareTripFromList;
 window.showAppDialog = showAppDialog;
+window.cancelFriendRequest = cancelFriendRequest;
+window.setTripMemberRole = setTripMemberRole;
+window.confirmRemoveTripMember = confirmRemoveTripMember;
+window.applyEditMode = applyEditMode;
 window.newTripFromPage = newTripFromPage;
 window.switchTripManagerTab = switchTripManagerTab;
 window.syncAllUserTripsWithCloud = syncAllUserTripsWithCloud;

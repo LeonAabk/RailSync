@@ -178,6 +178,8 @@
     }
     /* Toppfeltet må kunne vise kontomenyen under seg */
     header { overflow: visible !important; }
+    body[data-can-edit="false"] [data-edit-only] { display: none !important; }
+    body[data-can-edit="false"] [data-edit-lock] { pointer-events: none; cursor: default; }
 
     /* Hide scrollbar for smooth swipe */
     .no-scrollbar::-webkit-scrollbar {
@@ -496,10 +498,10 @@
       <div class="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div class="flex items-center gap-2">
           <i data-lucide="eye" class="w-4 h-4 text-amber-600 shrink-0"></i>
-          <span><strong>Lesevisning:</strong> Denne delte reisen er satt til «Kun visning» av eieren. Lag en kopi for å redigere selv.</span>
+          <span><strong>Du kan bare se denne reisen.</strong> Eieren har ikke gitt deg tilgang til å endre den. Lag en kopi hvis du vil planlegge videre selv.</span>
         </div>
         <button onclick="duplicateActiveTrip()" class="px-3 py-1 rounded-md bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition shrink-0 self-start sm:self-auto">
-          Lag redigerbar kopi
+          Lag en kopi
         </button>
       </div>
     </div>
@@ -2119,192 +2121,106 @@
   <!-- ========================================================================= -->
   <!-- MODAL: DEL REISE, REISEFØLGE & TILGANGSKONTROLL                           -->
   <!-- ========================================================================= -->
-  <div id="modal-share-trip" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl max-w-xl w-full p-5 sm:p-6 shadow-2xl border border-slate-100 space-y-5 max-h-[92vh] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modal-share-title">
-      
-      <!-- Modal Header -->
-      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-orange-50 text-rail-accent flex items-center justify-center font-bold">
-            <i data-lucide="users" class="w-5 h-5"></i>
+  <div id="modal-share-trip" class="fixed inset-0 z-50 hidden bg-slate-900/50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-xl border border-slate-200 max-h-[92vh] flex flex-col" role="dialog" aria-modal="true" aria-labelledby="modal-share-title">
+      <div class="px-5 sm:px-6 pt-5 pb-4 border-b border-slate-100 flex items-start justify-between gap-4">
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <h3 id="modal-share-title" class="text-base font-semibold text-slate-900">Deling og reisefølge</h3>
+            <span id="share-modal-live-pill" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">Privat</span>
           </div>
-          <div>
-            <h3 id="modal-share-title" class="font-bold text-slate-900 text-lg">Del Reise & Administrer Reisefølge</h3>
-            <p class="text-xs text-slate-500">Sanntids samarbeid, tilgangskontroll og deltakere på turen</p>
-          </div>
+          <p id="share-modal-trip-title" class="text-sm text-slate-500 truncate mt-0.5"></p>
         </div>
-        <button onclick="closeModal('modal-share-trip')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
-          <i data-lucide="x" class="w-5 h-5"></i>
+        <button type="button" onclick="closeModal('modal-share-trip')" class="w-8 h-8 -mr-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition shrink-0" aria-label="Lukk">
+          <i data-lucide="x" class="w-4 h-4"></i>
         </button>
       </div>
 
-      <!-- 1. Synlighet & Tilgangskontroll (Privat vs Delt, Kan redigere vs Kun visning) -->
-      <div class="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 space-y-3">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div>
-            <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-              <i data-lucide="shield-check" class="w-4 h-4 text-brand-600"></i>
-              Status & Tilgangskontroll
-            </span>
-            <p class="text-[11px] text-slate-500">Bestem hvem som har tilgang og hva gjester kan gjøre</p>
-          </div>
-          <span id="share-modal-live-pill" class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 self-start sm:self-auto">
-            Sanntids deling aktiv
-          </span>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-          <div>
-            <label for="share-visibility-select" class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Synlighet</label>
-            <select id="share-visibility-select" onchange="handleUpdateTripSharingSettings()" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none">
-              <option value="shared">Delt med reisefølget</option>
-              <option value="private">Privat (Kun på min profil)</option>
-            </select>
-          </div>
-          <div>
-            <label for="share-permission-select" class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Standard tilgang for lenke/kode</label>
-            <select id="share-permission-select" onchange="handleUpdateTripSharingSettings()" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none">
-              <option value="edit">Kan redigere (Samarbeidsmodus)</option>
-              <option value="view">Kun lesevisning (Se reiserute)</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <!-- 2. Delingskode & Direktelenke -->
-      <div class="space-y-3">
-        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-brand-50/70 border border-brand-200 rounded-2xl p-3.5">
-          <div>
-            <span class="text-[10px] font-extrabold uppercase tracking-wider text-brand-700">Hurtigkode for å bli med</span>
-            <div class="flex items-center gap-2 mt-0.5">
-              <span id="share-code-badge" class="font-mono text-base sm:text-lg font-extrabold text-slate-900 tracking-wider">RS-0000</span>
-              <span class="text-[11px] text-slate-500">(Eller bruk direktelenken under)</span>
+      <div class="overflow-y-auto divide-y divide-slate-100">
+        <section class="px-5 sm:px-6 py-5 space-y-3">
+          <h4 class="text-sm font-semibold text-slate-900">Tilgang</h4>
+          <p id="share-not-owner-note" class="hidden text-sm text-slate-500"></p>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label for="share-visibility-select" class="field-label">Hvem ser reisen</label>
+              <select id="share-visibility-select" onchange="handleUpdateTripSharingSettings()" class="field-input">
+                <option value="private">Bare meg</option>
+                <option value="shared">Meg og reisefølget</option>
+              </select>
+            </div>
+            <div>
+              <label for="share-permission-select" class="field-label">Reisefølget kan</label>
+              <select id="share-permission-select" onchange="handleUpdateTripSharingSettings()" class="field-input">
+                <option value="edit">Se og redigere</option>
+                <option value="view">Bare se</option>
+              </select>
             </div>
           </div>
-          <button type="button" onclick="copyShareCodeOnly()" class="px-3 py-1.5 rounded-xl bg-white hover:bg-brand-100 text-brand-700 border border-brand-200 font-bold text-xs transition shrink-0">
-            Kopier kode
-          </button>
-        </div>
+          <p data-share-owner-only class="text-xs text-slate-400">Endrer du dette, gjelder det alle i reisefølget. Du kan også velge for hver person under.</p>
+        </section>
 
-        <div class="space-y-1.5">
-          <label for="share-url-input" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-            Direktelenke til den delte reisen
-          </label>
+        <section data-share-when-shared class="px-5 sm:px-6 py-5 space-y-3">
+          <h4 class="text-sm font-semibold text-slate-900">Inviter med kode eller lenke</h4>
+          <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-3.5 py-2.5">
+            <div class="min-w-0">
+              <p class="text-xs text-slate-500">Reisekode</p>
+              <p id="share-code-badge" class="font-mono text-sm font-semibold text-slate-900 tracking-wide">–</p>
+            </div>
+            <button type="button" onclick="copyShareCodeOnly()" class="shrink-0 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition">Kopier kode</button>
+          </div>
           <div class="flex items-center gap-2">
-            <input 
-              type="text" 
-              id="share-url-input" 
-              readonly 
-              onclick="this.select()"
-              class="flex-1 bg-slate-50 border border-slate-200 text-xs rounded-xl px-3 py-2.5 text-slate-700 font-mono focus:ring-2 focus:ring-brand-500 focus:outline-none"
-            >
-            <button 
-              type="button" 
-              id="btn-copy-url" 
-              onclick="copyShareTripUrl()" 
-              class="px-4 py-2.5 rounded-xl bg-rail-accent hover:bg-rail-accentHover active:scale-[0.98] text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 shrink-0"
-            >
-              <i data-lucide="copy" class="w-4 h-4"></i>
-              <span id="btn-copy-url-text">Kopier lenke</span>
+            <label for="share-url-input" class="sr-only">Lenke til reisen</label>
+            <input type="text" id="share-url-input" readonly onclick="this.select()" class="field-input font-mono text-xs flex-1 min-w-0">
+            <button type="button" id="btn-copy-url" onclick="copyShareTripUrl()" class="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition">
+              <i data-lucide="link" class="w-3.5 h-3.5"></i><span id="btn-copy-url-text">Kopier lenke</span>
             </button>
           </div>
-        </div>
+          <div id="native-share-container" class="hidden">
+            <button type="button" onclick="triggerNativeShare()" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">
+              <i data-lucide="send" class="w-4 h-4 text-slate-500"></i><span>Send invitasjon</span>
+            </button>
+          </div>
+          <p class="text-xs text-slate-400">Den som har koden eller lenken, må logge inn for å bli med.</p>
+        </section>
 
-        <!-- Native Share Button (Mobile) -->
-        <div id="native-share-container" class="hidden">
-          <button 
-            type="button" 
-            onclick="triggerNativeShare()" 
-            class="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs border border-slate-200 transition"
-          >
-            <i data-lucide="send" class="w-4 h-4 text-brand-600"></i>
-            <span>Send invitasjon via Meldinger, Snapchat, WhatsApp...</span>
-          </button>
-        </div>
-      </div>
+        <section data-share-owner-only class="px-5 sm:px-6 py-5 space-y-2">
+          <h4 class="text-sm font-semibold text-slate-900">Legg til venner</h4>
+          <ul id="share-modal-friends-picker" class="divide-y divide-slate-100"></ul>
+        </section>
 
-      <!-- 3. Del direkte med dine Reisevenner (Hovedmetode) -->
-      <div class="space-y-2.5 pt-2 border-t border-slate-100">
-        <div class="flex items-center justify-between gap-2">
+        <section class="px-5 sm:px-6 py-5 space-y-2">
+          <h4 class="text-sm font-semibold text-slate-900">Reisefølget</h4>
+          <ul id="share-members-list" class="divide-y divide-slate-100"></ul>
+        </section>
+
+        <section class="px-5 sm:px-6 py-5 space-y-2">
           <div>
-            <h4 class="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1.5">
-              <i data-lucide="heart-handshake" class="w-4 h-4 text-indigo-600"></i>
-              Del reisen direkte med vennene dine
-            </h4>
-            <p class="text-[11px] text-slate-500">Velg fra vennelisten din for å invitere dem rett inn på reisen</p>
+            <h4 class="text-sm font-semibold text-slate-900">Uten konto</h4>
+            <p class="text-xs text-slate-500 mt-0.5">Navn du har lagt til i planen. De har ikke tilgang til reisen selv.</p>
           </div>
-          <button type="button" onclick="closeModal('modal-share-trip'); switchTab('social'); switchSocialSubTab('discover')" class="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-[11px] border border-indigo-200 transition shrink-0 flex items-center gap-1">
-            <i data-lucide="user-plus" class="w-3 h-3"></i>
-            <span>Finn venner</span>
-          </button>
-        </div>
+          <p id="share-guests-empty" class="text-sm text-slate-400">Ingen navn lagt til.</p>
+          <ul id="share-guests-list" class="divide-y divide-slate-100"></ul>
+          <form data-share-owner-only onsubmit="handleAddTripMember(event)" class="flex items-center gap-2 pt-1">
+            <label for="new-member-name" class="sr-only">Navn</label>
+            <input type="text" id="new-member-name" required maxlength="60" placeholder="Navn, for eksempel Sander" class="field-input flex-1 min-w-0">
+            <button type="submit" class="shrink-0 px-3.5 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">Legg til</button>
+          </form>
+        </section>
 
-        <div id="share-modal-friends-picker" class="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-          <!-- Populated dynamically by renderShareAndCollabModal() -->
-        </div>
+        <details class="px-5 sm:px-6 py-4 group">
+          <summary class="cursor-pointer list-none flex items-center justify-between text-sm font-semibold text-slate-900">
+            <span>Siste endringer</span>
+            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 transition group-open:rotate-180"></i>
+          </summary>
+          <ul id="share-activity-log" class="mt-3 space-y-1.5 text-xs text-slate-500"></ul>
+        </details>
       </div>
 
-      <!-- 4. Reisefølge (Medlemmer & Roller på turen) -->
-      <div class="space-y-3 pt-2 border-t border-slate-100">
-        <div class="flex items-center justify-between">
-          <div>
-            <h4 class="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1.5">
-              <i data-lucide="users" class="w-4 h-4 text-brand-600"></i>
-              Reisefølge på denne turen
-            </h4>
-            <p class="text-[11px] text-slate-500">De som deltar på reisen (alle beholder sitt eget private budsjett)</p>
-          </div>
-        </div>
-
-        <div id="share-members-list" class="space-y-2 max-h-44 overflow-y-auto pr-1">
-          <!-- Populated dynamically by renderShareModalMembers() -->
-        </div>
-
-        <!-- Add Member Form -->
-        <form onsubmit="handleAddTripMember(event)" class="flex flex-col sm:flex-row gap-2 pt-1">
-          <input 
-            type="text" 
-            id="new-member-name" 
-            required 
-            placeholder="+ Eller legg til navn manuelt (f.eks. Sander)..." 
-            class="flex-1 bg-slate-50 focus:bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500"
-          >
-          <select id="new-member-role" class="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
-            <option value="editor">Kan redigere</option>
-            <option value="viewer">Kun visning</option>
-          </select>
-          <button type="submit" class="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition shrink-0">
-            + Legg til
-          </button>
-        </form>
-      </div>
-
-      <!-- 4. Siste aktivitet + Lag uavhengig kopi -->
-      <div class="pt-2 border-t border-slate-100 space-y-3">
-        <div class="space-y-1.5">
-          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-            <i data-lucide="activity" class="w-3.5 h-3.5 text-brand-600"></i>
-            Siste aktivitet på reisen
-          </span>
-          <div id="share-activity-log" class="bg-slate-50 rounded-xl p-3 border border-slate-200/70 text-[11px] text-slate-600 space-y-1 max-h-28 overflow-y-auto">
-            <!-- Populated dynamically -->
-          </div>
-        </div>
-
-        <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
-          <button 
-            type="button" 
-            onclick="duplicateActiveTripAndCloseModal()" 
-            class="text-xs font-semibold text-brand-700 hover:text-brand-800 bg-brand-50 hover:bg-brand-100 px-3 py-2 rounded-xl border border-brand-200 transition flex items-center gap-1.5"
-          >
-            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
-            <span>Lag en privat kopi av denne turen</span>
-          </button>
-
-          <button onclick="closeModal('modal-share-trip')" class="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition">
-            Ferdig
-          </button>
-        </div>
+      <div class="px-5 sm:px-6 py-3.5 bg-slate-50 border-t border-slate-100 rounded-b-2xl flex items-center justify-between gap-3">
+        <button type="button" onclick="duplicateActiveTripAndCloseModal()" class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 transition">
+          <i data-lucide="copy" class="w-4 h-4"></i><span>Lag en kopi</span>
+        </button>
+        <button type="button" onclick="closeModal('modal-share-trip')" class="px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold transition">Ferdig</button>
       </div>
     </div>
   </div>
@@ -2336,7 +2252,7 @@
   <!-- ========================================================================= -->
   <!-- MODULAR JAVASCRIPT ENTRYPOINT                                             -->
   <!-- ========================================================================= -->
-  <script type="module" src="./app.js?v=20261111-9"></script>
+  <script type="module" src="./app.js?v=20261111-10"></script>
 
 </body>
 </html>

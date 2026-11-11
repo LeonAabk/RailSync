@@ -35,6 +35,8 @@ service cloud.firestore {
         && d.uid == userId
         && d.displayName is string && d.displayName.size() <= 60
         && d.username is string && d.username.size() <= 30
+        && d.username.matches('^@[a-z0-9][a-z0-9._-]{0,28}$')
+        && get(/databases/$(database)/documents/usernames/$(d.username[1:d.username.size()])).data.uid == userId
         && d.avatarColor is string && d.avatarColor.matches('^#[0-9a-fA-F]{6}$')
         && (!('homeStation' in d) || (d.homeStation is string && d.homeStation.size() <= 80))
         && (!('bio' in d) || (d.bio is string && d.bio.size() <= 300))
@@ -57,6 +59,21 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------------
+    // Unike brukernavn – dokument-ID er brukernavnet uten @
+    // Alle kan sjekke om et navn er ledig, bare eieren kan slippe det.
+    // -------------------------------------------------------------------
+    match /usernames/{handle} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if signedIn()
+        && handle.matches('^[a-z0-9][a-z0-9._-]{0,28}$')
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid', 'createdAt']);
+      allow update: if false;
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    // -------------------------------------------------------------------
     // Bakgrunnsbilde – eget dokument så profilsøk forblir raskt
     // -------------------------------------------------------------------
     match /profileMedia/{userId} {
@@ -68,7 +85,8 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------------
-    // Venneforespørsler – dokument-ID er "{fra}_{til}"
+    // Venneforespørsler og vennskap – dokument-ID er "{fra}_{til}".
+    // status 'accepted' = venner. Begge kan slette (fjerne venn / avslå / trekke tilbake).
     // -------------------------------------------------------------------
     match /friendRequests/{requestId} {
       allow read: if signedIn()
