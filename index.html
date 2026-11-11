@@ -171,11 +171,13 @@
     }
 
     /* Prevent accidental flex blowout across viewports */
-    main, section.tab-content, header {
+    main, section.tab-content {
       width: 100%;
       max-width: 100vw;
       overflow-x: hidden;
     }
+    /* Toppfeltet må kunne vise kontomenyen under seg */
+    header { overflow: visible !important; }
 
     /* Hide scrollbar for smooth swipe */
     .no-scrollbar::-webkit-scrollbar {
@@ -2358,7 +2360,7 @@
   <!-- ========================================================================= -->
   <!-- MODULAR JAVASCRIPT ENTRYPOINT                                             -->
   <!-- ========================================================================= -->
-  <script type="module" src="./app.js?v=20261111-4"></script>
+  <script type="module" src="./app.js?v=20261111-5"></script>
 
 </body>
 </html>
