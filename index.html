@@ -274,7 +274,10 @@
       <button onclick="switchTab('social')" class="w-full flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-900 transition">
         <div class="flex items-center gap-2.5 min-w-0">
           <span id="sidebar-user-avatar" class="w-7 h-7 rounded-full bg-brand-600 text-white text-xs font-bold flex items-center justify-center shrink-0">R</span>
-          <span id="sidebar-user-label" class="text-xs font-semibold text-slate-200 truncate">Min profil</span>
+          <span class="flex flex-col min-w-0 text-left">
+            <span id="sidebar-user-label" class="text-xs font-semibold text-slate-200 truncate">Min profil</span>
+            <span id="sidebar-user-sublabel" class="text-[10px] text-slate-500 truncate">Lokal profil</span>
+          </span>
         </div>
         <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500 shrink-0"></i>
       </button>
@@ -2343,7 +2346,7 @@
   <!-- ========================================================================= -->
   <!-- MODULAR JAVASCRIPT ENTRYPOINT                                             -->
   <!-- ========================================================================= -->
-  <script type="module" src="./app.js?v=20261111-2"></script>
+  <script type="module" src="./app.js?v=20261111-3"></script>
 
 </body>
 </html>

@@ -3359,33 +3359,6 @@ let socialDiscoverSearchQuery = "";
 let socialDiscoverFilter = "all";
 let cloudDirectoryTravelers = [];
 
-export function switchSocialSubTab(subTab) {
-  currentSocialSubTab = subTab || "passport";
-  const tabs = ["passport", "friends", "discover"];
-  tabs.forEach(t => {
-    const btn = document.getElementById(`social-subtab-btn-${t}`);
-    const panel = document.getElementById(`social-panel-${t}`);
-    if (btn) {
-      if (t === currentSocialSubTab) {
-        btn.className = "py-2.5 px-2 sm:px-4 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 bg-white text-slate-900 shadow-xs min-w-0";
-      } else {
-        btn.className = "py-2.5 px-2 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900 min-w-0";
-      }
-    }
-    if (panel) {
-      if (t === currentSocialSubTab) {
-        panel.classList.remove("hidden");
-      } else {
-        panel.classList.add("hidden");
-      }
-    }
-  });
-
-  if (currentSocialSubTab === "discover") {
-    fetchCloudTravelerDirectory();
-  }
-  renderSocialHub();
-}
 
 export function toggleCountryPickerGrid() {
   const container = document.getElementById("country-picker-grid-container");
@@ -3661,19 +3634,6 @@ export function handleSearchTravelersInput(val) {
   renderSocialDiscoverGrid();
 }
 
-export function setSocialDiscoverFilter(filterType) {
-  socialDiscoverFilter = filterType || "all";
-  ["all", "match", "cloud"].forEach(f => {
-    const btn = document.getElementById(`discover-filter-${f}`);
-    if (!btn) return;
-    if (f === socialDiscoverFilter) {
-      btn.className = "px-3 py-1 rounded-full font-bold bg-slate-900 text-white transition";
-    } else {
-      btn.className = "px-3 py-1 rounded-full font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition";
-    }
-  });
-  renderSocialDiscoverGrid();
-}
 
 export function isTravelerFriend(targetUid) {
   ensureSocialProfileFields(userProfile);
@@ -3833,152 +3793,340 @@ export async function shareActiveTripWithFriend(friendUid, role = "editor") {
   showToast("Reise delt med venn! 🚆", `${friend.displayName} er nå lagt til på "${active.title}" og ser den under Mine reiser.`, "share-2");
 }
 
-export function openTravelerProfileModal(targetUid) {
-  const container = document.getElementById("traveler-profile-modal-content");
-  if (!container) return;
 
-  const allKnown = getAllKnownTravelers();
-  const traveler = allKnown.find(t => t.uid === targetUid) || (userProfile.friends || []).find(f => f.uid === targetUid);
-  if (!traveler) {
-    showToast("Profil", "Fant ikke detaljert profil for denne deltakeren ennå.", "user");
-    return;
+
+// ---------------------------------------------------------------------------
+// Sosialt: felles hjelpere for profilvisningen (redaksjonelt 2-kolonnedesign)
+// All tekst går gjennom escapeHtml, handler-argumenter gjennom jsArg,
+// farger gjennom safeColor. Bilder kommer bare fra getPlaceThumbnailUrl.
+// ---------------------------------------------------------------------------
+function socialAvatarHtml(person, sizeClass = "w-11 h-11 text-sm", fallback = "#2563eb") {
+  const name = (person && person.displayName) || "Reisende";
+  return `<div class="${sizeClass} rounded-full text-white font-semibold flex items-center justify-center shrink-0" style="background-color: ${safeColor(person && person.avatarColor, fallback)}">${escapeHtml(getInitials(name))}</div>`;
+}
+
+function placeThumbHtml(city, country, sizeClass = "w-12 h-12") {
+  return `<img src="${escapeHtml(getPlaceThumbnailUrl(city || "", country || ""))}" alt="" loading="lazy" referrerpolicy="no-referrer" class="${sizeClass} rounded-lg object-cover bg-slate-100 shrink-0">`;
+}
+
+function isUidOnActiveTrip(uid) {
+  const active = getActiveTripObject();
+  return Boolean(active && Array.isArray(active.members) && active.members.some(m => (m.uid || m.id) === uid));
+}
+
+function firstName(name) {
+  return String(name || "Reisende").split(" ")[0];
+}
+
+function friendActionButtonHtml(traveler, extraClass = "") {
+  if (traveler.isCommunityProfile) {
+    return `<span class="px-3 py-1.5 rounded-lg bg-slate-50 text-slate-400 border border-slate-200 font-medium text-xs ${extraClass}">Eksempelprofil</span>`;
+  }
+  const label = friendActionLabel(traveler);
+  const pending = label === "Forespørsel sendt";
+  return `
+    <button type="button" onclick="addOrAcceptFriend(${jsArg(traveler.uid)})" ${pending ? "disabled" : ""}
+      class="px-3.5 py-1.5 rounded-lg font-semibold text-xs transition flex items-center gap-1.5 ${extraClass} ${pending ? "bg-slate-100 text-slate-500 cursor-default" : "bg-slate-900 hover:bg-slate-800 text-white"}">
+      <i data-lucide="${pending ? "clock" : "user-plus"}" class="w-3.5 h-3.5"></i>
+      <span>${escapeHtml(label)}</span>
+    </button>`;
+}
+
+function shareWithFriendButtonHtml(traveler, extraClass = "") {
+  if (isUidOnActiveTrip(traveler.uid)) {
+    return `<span class="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold text-xs flex items-center gap-1.5 ${extraClass}">
+      <i data-lucide="check" class="w-3.5 h-3.5"></i><span>Med på aktiv reise</span></span>`;
+  }
+  return `<button type="button" onclick="shareActiveTripWithFriend(${jsArg(traveler.uid)}, 'editor')" class="px-3.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs transition flex items-center gap-1.5 ${extraClass}">
+      <i data-lucide="share-2" class="w-3.5 h-3.5"></i><span>Del aktiv reise</span></button>`;
+}
+
+export function handleTopBarTravelerSearch(value) {
+  const v = String(value || "");
+  const input = document.getElementById("social-user-search-input");
+  if (input && input.value !== v) input.value = v;
+  socialDiscoverSearchQuery = v.trim();
+  if (currentSocialSubTab !== "discover") {
+    switchSocialSubTab("discover");
+  } else {
+    renderSocialDiscoverGrid();
+  }
+}
+
+export function switchSocialSubTab(subTab) {
+  currentSocialSubTab = ["passport", "friends", "discover"].includes(subTab) ? subTab : "passport";
+  ["passport", "friends", "discover"].forEach(t => {
+    const btn = document.getElementById(`social-subtab-btn-${t}`);
+    const panel = document.getElementById(`social-panel-${t}`);
+    const isActive = t === currentSocialSubTab;
+    if (btn) {
+      btn.className = isActive
+        ? "py-3.5 text-xs sm:text-sm font-semibold border-b-2 border-brand-600 text-slate-900 transition flex items-center gap-2 whitespace-nowrap"
+        : "py-3.5 text-xs sm:text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition flex items-center gap-2 whitespace-nowrap";
+      btn.setAttribute("aria-selected", isActive ? "true" : "false");
+    }
+    if (panel) panel.classList.toggle("hidden", !isActive);
+  });
+
+  if (currentSocialSubTab === "discover") {
+    fetchCloudTravelerDirectory();
+  }
+  renderSocialHub();
+}
+
+export function setSocialDiscoverFilter(filterType) {
+  socialDiscoverFilter = ["all", "match", "cloud"].includes(filterType) ? filterType : "all";
+  ["all", "match", "cloud"].forEach(f => {
+    const btn = document.getElementById(`discover-filter-${f}`);
+    if (!btn) return;
+    btn.className = f === socialDiscoverFilter
+      ? "px-3 py-1.5 rounded-lg font-semibold bg-slate-900 text-white transition"
+      : "px-3 py-1.5 rounded-lg font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 transition";
+  });
+  renderSocialDiscoverGrid();
+}
+
+export function renderSocialHub() {
+  ensureSocialProfileFields(userProfile);
+  const setText = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  };
+
+  const name = userProfile.displayName || "Reisende";
+  const username = userProfile.username || "@reisende";
+  const station = userProfile.homeStation || "Oslo S";
+  const active = getActiveTripObject();
+
+  // 1. Identitet (venstre kort + høyre topp + detaljgrid)
+  const heroAvatar = document.getElementById("social-hero-avatar");
+  if (heroAvatar) {
+    heroAvatar.textContent = getInitials(name);
+    heroAvatar.style.backgroundColor = safeColor(userProfile.avatarColor, "#0d9488");
+  }
+  setText("social-hero-name", name);
+  setText("social-detail-name", name);
+  setText("social-hero-station", station);
+  setText("social-detail-location", station);
+  setText("social-hero-username", username);
+  setText("spec-username", username);
+  setText("spec-home-station", station);
+  setText("social-hero-bio", userProfile.bio || "Planlegger togreiser gjennom Europa.");
+  setText("social-hero-pass", userProfile.defaultPassType || "Global Pass 7 dager");
+  setText("spec-active-trip", active ? (active.title || "Min reise") : "Ingen aktiv reise");
+
+  const heroStatus = document.getElementById("social-hero-status");
+  if (heroStatus) {
+    heroStatus.textContent = currentUser ? "Skykonto · søkbar profil" : "Lokal profil";
+    heroStatus.className = currentUser ? "text-xs font-medium text-emerald-700" : "text-xs font-medium text-slate-500";
   }
 
-  ensureSocialProfileFields(traveler);
-  const isFriend = isTravelerFriend(traveler.uid, traveler.username);
-  const active = getActiveTripObject();
-  const alreadyOnActiveTrip = active && Array.isArray(active.members) && active.members.some(
-    m => (m.uid && m.uid === traveler.uid) || (m.id && m.id === traveler.uid) || (m.name && traveler.displayName && m.name.toLowerCase() === traveler.displayName.toLowerCase())
-  );
+  // 2. Tall og merker
+  const visitedCountries = Array.from(new Set(userProfile.visitedCountries || []));
+  const visitedPlaces = userProfile.visitedPlaces || [];
+  const wishlist = userProfile.wishlistPlaces || [];
+  const friends = userProfile.friends || [];
+  const requests = userProfile.incomingFriendRequests || [];
+  const countryCount = visitedCountries.length;
+  const friendsCount = friends.length;
+  const pendingReqCount = requests.length;
 
-  const { sharedDreams, sharedVisited } = getCommonCountriesWithUser(traveler);
+  setText("social-stat-visited-countries", String(countryCount));
+  setText("social-stat-visited-places", String(visitedPlaces.length));
+  setText("social-stat-friends", String(friendsCount));
+  setText("social-stat-wishlist", `${wishlist.length} reisemål`);
+  setText("social-top-friends-count", String(friendsCount));
+  setText("social-subtab-friends-badge", pendingReqCount > 0 ? `${friendsCount} · ${pendingReqCount} ny` : String(friendsCount));
+  setText("sidebar-social-badge", pendingReqCount > 0 ? `${friendsCount} (+${pendingReqCount})` : `${friendsCount} venner`);
+  const mobileReqDot = document.getElementById("mobile-social-req-dot");
+  if (mobileReqDot) mobileReqDot.classList.toggle("hidden", pendingReqCount === 0);
 
-  container.innerHTML = `
-    <!-- Top Header Banner -->
-    <div class="bg-gradient-to-r from-slate-900 via-brand-900 to-teal-800 p-5 sm:p-6 text-white relative">
-      <button onclick="closeModal('modal-traveler-profile')" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center transition">
-        <i data-lucide="x" class="w-4 h-4"></i>
-      </button>
+  // 3. Venneavatarer på forsidekortet
+  const friendAvatars = document.getElementById("social-hero-friend-avatars");
+  if (friendAvatars) {
+    if (friendsCount === 0) {
+      friendAvatars.innerHTML = `<button type="button" onclick="switchSocialSubTab('discover')" class="px-3 py-1 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-[11px] font-medium transition">Finn reisevenner</button>`;
+    } else {
+      friendAvatars.innerHTML = friends.slice(0, 4).map(f => `
+        <button type="button" onclick="openTravelerProfileModal(${jsArg(f.uid)})" title="${escapeHtml(f.displayName || "Reisende")}"
+          class="w-8 h-8 rounded-full ring-2 ring-white text-white text-[11px] font-semibold flex items-center justify-center hover:-translate-y-0.5 transition"
+          style="background-color: ${safeColor(f.avatarColor, "#2563eb")}">${escapeHtml(getInitials(f.displayName || "Reisende"))}</button>
+      `).join("") + (friendsCount > 4
+        ? `<span class="w-8 h-8 rounded-full ring-2 ring-white bg-white text-slate-800 text-[11px] font-semibold flex items-center justify-center">+${Number(friendsCount - 4)}</span>`
+        : "");
+    }
+  }
 
-      <div class="flex items-center gap-3.5 sm:gap-4 pr-8">
-        <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl text-white font-extrabold text-xl flex items-center justify-center ring-4 ring-white/20 shadow-lg shrink-0" style="background-color: ${safeColor(traveler.avatarColor, '#2563eb')}">
-          ${escapeHtml(getInitials(traveler.displayName))}
-        </div>
-        <div class="min-w-0 space-y-1">
-          <div class="flex items-center flex-wrap gap-1.5">
-            <h3 id="traveler-modal-name" class="text-lg sm:text-xl font-extrabold text-white truncate">${escapeHtml(traveler.displayName)}</h3>
-            <span class="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-white/15 text-brand-200">${escapeHtml(traveler.username || '@reisende')}</span>
-            ${traveler.isCommunityProfile ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-300/20 text-amber-100 border border-amber-200/30">Eksempelprofil</span>` : ''}
-            ${isFriend ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-400/20 text-emerald-200 border border-emerald-300/30">✓ Din venn</span>` : ''}
+  // 4. Venstre kolonne: tidligere steder og ønskeliste
+  const leftVisited = document.getElementById("social-left-visited-summary");
+  if (leftVisited) {
+    leftVisited.innerHTML = visitedPlaces.length === 0
+      ? `<p class="text-xs text-slate-400">Ingen steder registrert ennå.</p>`
+      : visitedPlaces.slice(0, 3).map(vp => `
+        <div class="flex items-center gap-3 min-w-0">
+          ${placeThumbHtml(vp.city, vp.country, "w-10 h-10")}
+          <div class="min-w-0">
+            <p class="text-xs font-semibold text-slate-900 truncate">${escapeHtml(vp.city)}</p>
+            <p class="text-[11px] text-slate-500 truncate">${escapeHtml(vp.country)}${vp.note ? ` · ${escapeHtml(vp.note)}` : ""}</p>
           </div>
-          <p class="text-xs text-slate-200">${escapeHtml(traveler.bio || 'Interrail-reisende i Europa')}</p>
-          <div class="flex items-center flex-wrap gap-2 pt-0.5 text-[11px] text-teal-100 font-semibold">
-            <span>🚆 Hjemstasjon: ${escapeHtml(traveler.homeStation || 'Oslo S')}</span>
-            <span>•</span>
-            <span>🎫 ${escapeHtml(traveler.defaultPassType || 'Global Pass')}</span>
+        </div>`).join("");
+  }
+
+  const leftWishlist = document.getElementById("social-left-wishlist-summary");
+  if (leftWishlist) {
+    leftWishlist.innerHTML = wishlist.length === 0
+      ? `<p class="text-xs text-slate-400">Ønskelisten er tom.</p>`
+      : wishlist.slice(0, 5).map(w => `
+        <div class="flex items-center justify-between gap-3 text-xs">
+          <span class="font-medium text-slate-800 truncate">${escapeHtml(w.city)}</span>
+          <span class="text-slate-400 shrink-0">${escapeHtml(cleanTagLabel(w.tag))}</span>
+        </div>`).join("");
+  }
+
+  // 5. Europa-dekning og land
+  const pctEurope = Math.min(100, Math.round((countryCount / 33) * 100));
+  setText("visited-countries-meter-label", `${countryCount} av 33 land (${pctEurope}%)`);
+  const meterBar = document.getElementById("visited-countries-meter-bar");
+  if (meterBar) meterBar.style.width = `${pctEurope}%`;
+
+  const chipsContainer = document.getElementById("visited-countries-chips");
+  if (chipsContainer) {
+    chipsContainer.innerHTML = countryCount === 0
+      ? `<p class="text-xs text-slate-400">Ingen land registrert ennå. Trykk «Rediger landliste» for å velge land du har besøkt.</p>`
+      : visitedCountries.map(cName => `
+        <span class="inline-flex items-center gap-1 pl-3 pr-1 py-1 rounded-md bg-slate-100 text-slate-800 text-xs font-medium">
+          <span>${escapeHtml(cName)}</span>
+          <button type="button" onclick="toggleVisitedCountry(${jsArg(cName)})" class="w-5 h-5 rounded text-slate-400 hover:text-rose-600 hover:bg-white transition" title="Fjern ${escapeHtml(cName)}" aria-label="Fjern ${escapeHtml(cName)}">×</button>
+        </span>`).join("");
+  }
+
+  const pickerGrid = document.getElementById("country-picker-grid");
+  if (pickerGrid) {
+    pickerGrid.innerHTML = EUROPEAN_INTERRAIL_COUNTRIES.map(c => {
+      const isSelected = visitedCountries.some(vc => vc.toLowerCase() === c.name.toLowerCase());
+      return `
+        <button type="button" onclick="toggleVisitedCountry(${jsArg(c.name)})" aria-pressed="${isSelected ? "true" : "false"}"
+          class="px-3 py-2 rounded-lg text-xs font-medium border text-left flex items-center justify-between gap-1.5 transition ${isSelected ? "bg-slate-900 text-white border-slate-900" : "bg-white hover:bg-slate-50 text-slate-700 border-slate-200"}">
+          <span class="truncate">${escapeHtml(c.name)}</span>
+          ${isSelected ? `<i data-lucide="check" class="w-3.5 h-3.5 shrink-0"></i>` : ""}
+        </button>`;
+    }).join("");
+  }
+
+  // 6. Steder jeg har vært og ønskeliste (kort med bilde)
+  setText("visited-places-count-badge", String(visitedPlaces.length));
+  const vpList = document.getElementById("visited-places-list");
+  if (vpList) {
+    vpList.innerHTML = visitedPlaces.length === 0
+      ? `<p class="text-xs text-slate-400 py-6 text-center">Ingen steder ennå. Legg til byer og stasjoner du har besøkt under.</p>`
+      : visitedPlaces.map(vp => `
+        <div class="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 transition">
+          ${placeThumbHtml(vp.city, vp.country, "w-14 h-14")}
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-semibold text-slate-900 truncate">${escapeHtml(vp.city)}</p>
+            <p class="text-xs text-slate-500 truncate">${escapeHtml(vp.country)}${vp.note ? ` · ${escapeHtml(vp.note)}` : ""}</p>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Body Content -->
-    <div class="p-5 sm:p-6 space-y-5">
-      
-      ${(sharedDreams.length > 0 || sharedVisited.length > 0) ? `
-        <div class="bg-amber-50/90 border border-amber-200 rounded-2xl p-3.5 space-y-1">
-          <p class="text-xs font-extrabold text-amber-900 flex items-center gap-1.5">
-            <i data-lucide="sparkles" class="w-4 h-4 text-amber-600 shrink-0"></i>
-            <span>Reise-match mellom deg og ${escapeHtml(traveler.displayName)}!</span>
-          </p>
-          ${sharedDreams.length > 0 ? `<p class="text-xs text-amber-800">✨ <strong>Dere ønsker begge å reise til:</strong> ${sharedDreams.map(c => `${getCountryFlag(c)} ${escapeHtml(c)}`).join(", ")}</p>` : ''}
-          ${sharedVisited.length > 0 ? `<p class="text-[11px] text-amber-700">🌍 <strong>Begge har vært i:</strong> ${sharedVisited.map(c => `${getCountryFlag(c)} ${escapeHtml(c)}`).join(", ")}</p>` : ''}
-        </div>
-      ` : ''}
-
-      <!-- Visited Countries & Places -->
-      <div class="space-y-2.5">
-        <div class="flex items-center justify-between">
-          <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-            <i data-lucide="globe" class="w-3.5 h-3.5 text-emerald-600"></i>
-            <span>Land & Steder ${escapeHtml(traveler.displayName.split(' ')[0])} har vært (${(traveler.visitedCountries || []).length} land)</span>
-          </h4>
-        </div>
-
-        <div class="flex flex-wrap gap-1.5">
-          ${(traveler.visitedCountries || []).map(c => `
-            <span class="px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200/80 text-xs font-bold">
-              ${getCountryFlag(c)} ${escapeHtml(c)}
-            </span>
-          `).join("")}
-        </div>
-
-        ${(traveler.visitedPlaces || []).length > 0 ? `
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-            ${(traveler.visitedPlaces || []).map(vp => `
-              <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200/70 space-y-0.5">
-                <p class="text-xs font-bold text-slate-900">${getCountryFlag(vp.country)} ${escapeHtml(vp.city)}, ${escapeHtml(vp.country)}</p>
-                ${vp.note ? `<p class="text-[11px] text-slate-500">${escapeHtml(vp.note)}</p>` : ''}
-              </div>
-            `).join("")}
-          </div>
-        ` : ''}
-      </div>
-
-      <!-- Wishlist / Bucket List -->
-      <div class="space-y-2.5 pt-2 border-t border-slate-100">
-        <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i>
-          <span>Ønskeliste: Steder ${escapeHtml(traveler.displayName.split(' ')[0])} vil reise til</span>
-        </h4>
-
-        ${(traveler.wishlistPlaces || []).length === 0 ? `
-          <p class="text-xs text-slate-400 italic">Ingen steder lagt til på ønskelisten ennå.</p>
-        ` : `
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            ${(traveler.wishlistPlaces || []).map(wl => `
-              <div class="p-2.5 rounded-xl bg-amber-50/50 border border-amber-200/70 flex items-start justify-between gap-2">
-                <div>
-                  <p class="text-xs font-bold text-slate-900">${getCountryFlag(wl.country)} ${escapeHtml(wl.city)}, ${escapeHtml(wl.country)}</p>
-                  <span class="inline-block mt-0.5 text-[10px] font-semibold text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded-md">${escapeHtml(wl.tag || '✨ Drømmemål')}</span>
-                </div>
-              </div>
-            `).join("")}
-          </div>
-        `}
-      </div>
-
-      <!-- Footer Action Bar: Add Friend & Share Trip -->
-      <div class="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
-        ${!isFriend ? `
-          <button type="button" onclick="addOrAcceptFriend(${jsArg(traveler.uid)})" class="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition flex items-center justify-center gap-1.5">
-            <i data-lucide="user-plus" class="w-4 h-4"></i>
-            <span>${escapeHtml(friendActionLabel(traveler))}</span>
+          <button type="button" onclick="deleteVisitedPlace(${jsArg(vp.id)})" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition shrink-0" title="Fjern sted" aria-label="Fjern ${escapeHtml(vp.city)}">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
           </button>
-        ` : `
-          <span class="px-3 py-2 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-xs flex items-center gap-1.5">
-            <i data-lucide="user-check" class="w-4 h-4 text-emerald-600"></i>
-            <span>Dere er reisevenner</span>
-          </span>
-        `}
+        </div>`).join("");
+  }
 
-        <div class="flex items-center gap-2 ml-auto">
-          ${alreadyOnActiveTrip ? `
-            <span class="px-3.5 py-2.5 rounded-xl bg-brand-50 text-brand-800 border border-brand-200 font-bold text-xs flex items-center gap-1.5">
-              <i data-lucide="check" class="w-4 h-4 text-brand-600"></i>
-              <span>Med på "${escapeHtml(active ? active.title : 'aktiv reise')}"</span>
-            </span>
-          ` : `
-            <button type="button" onclick="shareActiveTripWithFriend(${jsArg(traveler.uid)}, 'editor')" class="px-4 py-2.5 rounded-xl bg-rail-accent hover:bg-rail-accentHover text-white font-bold text-xs shadow-sm transition flex items-center gap-1.5">
-              <i data-lucide="share-2" class="w-4 h-4"></i>
-              <span>Del aktiv reise med ${escapeHtml(traveler.displayName.split(' ')[0])}</span>
+  setText("wishlist-places-count-badge", String(wishlist.length));
+  const wlList = document.getElementById("wishlist-places-list");
+  if (wlList) {
+    wlList.innerHTML = wishlist.length === 0
+      ? `<p class="text-xs text-slate-400 py-6 text-center">Ønskelisten er tom. Legg til steder og togruter du vil oppleve.</p>`
+      : wishlist.map(wl => `
+        <div class="p-2 rounded-xl hover:bg-slate-50 transition">
+          <div class="flex items-center gap-3">
+            ${placeThumbHtml(wl.city, wl.country, "w-14 h-14")}
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-semibold text-slate-900 truncate">${escapeHtml(wl.city)}</p>
+              <p class="text-xs text-slate-500 truncate">${escapeHtml(wl.country)} · ${escapeHtml(cleanTagLabel(wl.tag))}</p>
+            </div>
+            <button type="button" onclick="deleteWishlistPlace(${jsArg(wl.id)})" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition shrink-0" title="Fjern fra ønskelisten" aria-label="Fjern ${escapeHtml(wl.city)}">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
             </button>
-          `}
-        </div>
-      </div>
-    </div>
-  `;
+          </div>
+          <div class="flex items-center gap-3 pl-[68px] pt-1 text-[11px] font-semibold">
+            <button type="button" onclick="addWishlistPlaceToActiveTrip(${jsArg(wl.id)})" class="text-brand-600 hover:text-brand-700">Legg til i aktiv reise</button>
+            <span class="text-slate-200">|</span>
+            <button type="button" onclick="markWishlistPlaceVisited(${jsArg(wl.id)})" class="text-slate-500 hover:text-slate-800">Merk som besøkt</button>
+          </div>
+        </div>`).join("");
+  }
 
-  openModal("modal-traveler-profile");
+  // 7. Kontaktforespørsler
+  const reqSection = document.getElementById("social-friend-requests-section");
+  const reqList = document.getElementById("social-friend-requests-list");
+  if (reqSection && reqList) {
+    reqSection.classList.toggle("hidden", pendingReqCount === 0);
+    setText("social-friend-requests-count", String(pendingReqCount));
+    reqList.innerHTML = requests.map(req => `
+      <div class="rounded-xl p-3.5 border border-slate-200 flex items-center justify-between gap-3">
+        <button type="button" onclick="openTravelerProfileModal(${jsArg(req.uid)})" class="flex items-center gap-3 min-w-0 text-left group">
+          ${socialAvatarHtml(req, "w-10 h-10 text-sm", "#f97316")}
+          <div class="min-w-0">
+            <p class="text-sm font-semibold text-slate-900 group-hover:text-brand-600 truncate">${escapeHtml(req.displayName || "Reisende")}</p>
+            <p class="text-xs text-slate-500 truncate">${escapeHtml(req.username || "")}${req.homeStation ? ` · ${escapeHtml(req.homeStation)}` : ""}</p>
+          </div>
+        </button>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button type="button" onclick="addOrAcceptFriend(${jsArg(req.uid)})" class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition">Godta</button>
+          <button type="button" onclick="declineFriendRequest(${jsArg(req.uid)})" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium text-xs transition">Avslå</button>
+        </div>
+      </div>`).join("");
+  }
+
+  // 8. Mine kontakter
+  const friendsListEl = document.getElementById("social-friends-list");
+  if (friendsListEl) {
+    if (friendsCount === 0) {
+      friendsListEl.innerHTML = `
+        <div class="col-span-full rounded-xl border border-dashed border-slate-200 p-8 text-center space-y-3">
+          <p class="text-sm font-semibold text-slate-800">Ingen reisevenner ennå</p>
+          <p class="text-xs text-slate-500 max-w-md mx-auto">Søk opp venner på navn eller @brukernavn og send en forespørsel. Når den er godtatt, kan dere dele reiser.</p>
+          <button type="button" onclick="switchSocialSubTab('discover')" class="px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition">Finn reisende</button>
+        </div>`;
+    } else {
+      const allKnown = getAllKnownTravelers();
+      friendsListEl.innerHTML = friends.map(friendItem => {
+        const enriched = allKnown.find(t => t.uid === friendItem.uid) || ensureSocialProfileFields({ ...friendItem });
+        const { sharedDreams } = getCommonCountriesWithUser(enriched);
+        const visitedCount = (enriched.visitedCountries || []).length;
+        const wishPreview = (enriched.wishlistPlaces || []).slice(0, 2).map(w => escapeHtml(w.city)).join(", ");
+        return `
+          <div class="rounded-xl border border-slate-200 p-4 flex flex-col justify-between gap-3 hover:border-slate-300 transition">
+            <div class="flex items-start justify-between gap-2">
+              <button type="button" onclick="openTravelerProfileModal(${jsArg(enriched.uid)})" class="flex items-center gap-3 min-w-0 text-left group">
+                ${socialAvatarHtml(enriched)}
+                <div class="min-w-0">
+                  <p class="text-sm font-semibold text-slate-900 group-hover:text-brand-600 truncate">${escapeHtml(enriched.displayName || "Reisende")}</p>
+                  <p class="text-xs text-slate-500 truncate">${escapeHtml(enriched.username || "")}${enriched.homeStation ? ` · ${escapeHtml(enriched.homeStation)}` : ""}</p>
+                </div>
+              </button>
+              <button type="button" onclick="removeFriend(${jsArg(enriched.uid)})" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition shrink-0" title="Fjern kontakt" aria-label="Fjern ${escapeHtml(enriched.displayName || "kontakt")}">
+                <i data-lucide="user-minus" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+            <div class="text-xs text-slate-600 space-y-1 border-t border-slate-100 pt-2.5">
+              <p class="truncate"><span class="text-slate-400">Besøkt:</span> ${Number(visitedCount)} land</p>
+              <p class="truncate"><span class="text-slate-400">Vil til:</span> ${wishPreview || "Ikke oppgitt"}</p>
+              ${sharedDreams.length > 0 ? `<p class="truncate text-brand-700"><span class="text-slate-400">Felles ønskemål:</span> ${sharedDreams.map(c => escapeHtml(c)).join(", ")}</p>` : ""}
+            </div>
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <button type="button" onclick="openTravelerProfileModal(${jsArg(enriched.uid)})" class="text-xs font-semibold text-slate-600 hover:text-slate-900">Se profil</button>
+              ${shareWithFriendButtonHtml(enriched)}
+            </div>
+          </div>`;
+      }).join("");
+    }
+  }
+
+  // 9. Finn reisende
+  renderSocialDiscoverGrid();
+
   if (window.lucide) lucide.createIcons();
 }
 
@@ -3986,415 +4134,165 @@ export function renderSocialDiscoverGrid() {
   const container = document.getElementById("social-discover-results");
   if (!container) return;
 
-  const allTravelers = getAllKnownTravelers();
   const q = (socialDiscoverSearchQuery || "").toLowerCase();
-
-  const filtered = allTravelers.filter(t => {
+  const filtered = getAllKnownTravelers().filter(t => {
     if (socialDiscoverFilter === "cloud" && t.isCommunityProfile) return false;
     const { sharedDreams, sharedVisited } = getCommonCountriesWithUser(t);
     if (socialDiscoverFilter === "match" && sharedDreams.length === 0 && sharedVisited.length === 0) return false;
-
     if (!q) return true;
     const hay = [
-      t.displayName || "",
-      t.username || "",
-      t.homeStation || "",
-      t.bio || "",
+      t.displayName || "", t.username || "", t.homeStation || "", t.bio || "",
       ...(t.visitedCountries || []),
       ...(t.visitedPlaces || []).map(p => `${p.city} ${p.country}`),
       ...(t.wishlistPlaces || []).map(w => `${w.city} ${w.country}`)
     ].join(" ").toLowerCase();
-
     return hay.includes(q);
   });
 
   if (filtered.length === 0) {
+    const loginHint = !currentUser && socialDiscoverFilter === "cloud";
     container.innerHTML = `
-      <div class="col-span-full bg-white rounded-2xl border border-slate-200/80 p-8 text-center space-y-2">
-        <p class="text-sm font-bold text-slate-800">Ingen profiler matchet søket "${escapeHtml(socialDiscoverSearchQuery)}"</p>
-        <p class="text-xs text-slate-500">Prøv å søke på et annet navn, @brukernavn eller et land i Europa (f.eks. Italia, Sveits eller Østerrike).</p>
-      </div>
-    `;
+      <div class="col-span-full bg-white rounded-2xl border border-slate-200/90 p-8 text-center space-y-2">
+        <p class="text-sm font-semibold text-slate-800">${loginHint ? "Logg inn for å se registrerte reisende" : (q ? `Ingen treff på «${escapeHtml(socialDiscoverSearchQuery)}»` : "Ingen profiler å vise")}</p>
+        <p class="text-xs text-slate-500">${loginHint ? "Profiler fra andre brukere vises bare for innloggede." : "Prøv et annet navn, @brukernavn eller land."}</p>
+      </div>`;
     return;
   }
 
-  const active = getActiveTripObject();
-
   container.innerHTML = filtered.map(t => {
-    const isFriend = isTravelerFriend(t.uid, t.username);
+    const isFriend = isTravelerFriend(t.uid);
     const { sharedDreams } = getCommonCountriesWithUser(t);
-    const alreadyOnActiveTrip = active && Array.isArray(active.members) && active.members.some(
-      m => (m.uid && m.uid === t.uid) || (m.id && m.id === t.uid) || (m.name && t.displayName && m.name.toLowerCase() === t.displayName.toLowerCase())
-    );
-
-    const visitedPreview = (t.visitedCountries || []).slice(0, 5).map(c => `${getCountryFlag(c)} ${escapeHtml(c)}`).join(" • ");
-    const wishlistPreview = (t.wishlistPlaces || []).slice(0, 3).map(w => `${getCountryFlag(w.country)} ${escapeHtml(w.city)}`).join(" • ");
-
+    const visitedPreview = (t.visitedCountries || []).slice(0, 4).map(c => escapeHtml(c)).join(", ");
+    const wishlistPreview = (t.wishlistPlaces || []).slice(0, 3).map(w => escapeHtml(w.city)).join(", ");
     return `
-      <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-4 sm:p-5 flex flex-col justify-between gap-4 hover:border-brand-300 transition">
+      <div class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 flex flex-col justify-between gap-4 hover:border-slate-300 transition">
         <div class="space-y-3">
           <div class="flex items-start justify-between gap-3">
-            <div onclick="openTravelerProfileModal(${jsArg(t.uid)})" class="flex items-center gap-3 min-w-0 cursor-pointer group">
-              <div class="w-12 h-12 rounded-2xl text-white font-extrabold text-base flex items-center justify-center shrink-0 shadow-xs" style="background-color: ${safeColor(t.avatarColor, '#2563eb')}">
-                ${escapeHtml(getInitials(t.displayName))}
-              </div>
+            <button type="button" onclick="openTravelerProfileModal(${jsArg(t.uid)})" class="flex items-center gap-3 min-w-0 text-left group">
+              ${socialAvatarHtml(t, "w-12 h-12 text-base")}
               <div class="min-w-0">
                 <div class="flex items-center flex-wrap gap-1.5">
-                  <h4 class="font-bold text-slate-900 text-sm sm:text-base group-hover:text-brand-600 transition truncate">${escapeHtml(t.displayName)}</h4>
-                  <span class="text-xs font-mono font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full">${escapeHtml(t.username || '@reisende')}</span>
-                  ${t.isCommunityProfile ? `<span class="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Eksempel</span>` : ''}
+                  <p class="font-semibold text-slate-900 text-sm sm:text-base group-hover:text-brand-600 transition truncate">${escapeHtml(t.displayName || "Reisende")}</p>
+                  ${t.isCommunityProfile ? `<span class="text-[10px] font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">Eksempel</span>` : ""}
                 </div>
-                <p class="text-[11px] text-slate-500 font-medium truncate">🚆 Hjemstasjon: ${escapeHtml(t.homeStation || 'Oslo S')}</p>
+                <p class="text-xs text-slate-500 truncate">${escapeHtml(t.username || "@reisende")}${t.homeStation ? ` · ${escapeHtml(t.homeStation)}` : ""}</p>
               </div>
-            </div>
-
-            ${isFriend ? `
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">✓ Venn</span>
-            ` : ''}
+            </button>
+            ${isFriend ? `<span class="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">Kontakt</span>` : ""}
           </div>
-
-          <p class="text-xs text-slate-600 line-clamp-2">${escapeHtml(t.bio || 'Klar for nye togeventyr i Europa!')}</p>
-
-          ${sharedDreams.length > 0 ? `
-            <div class="px-2.5 py-1.5 rounded-xl bg-amber-50 border border-amber-200/80 text-[11px] font-semibold text-amber-900 flex items-center gap-1.5">
-              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-600 shrink-0"></i>
-              <span class="truncate">Felles drømmemål: <strong>${sharedDreams.map(c => `${getCountryFlag(c)} ${escapeHtml(c)}`).join(", ")}</strong></span>
-            </div>
-          ` : ''}
-
-          <div class="space-y-1 text-[11px] bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-            <p class="text-slate-600 truncate"><strong>🌍 Har vært i (${(t.visitedCountries || []).length} land):</strong> ${visitedPreview || 'Ingen registrert ennå'}</p>
-            <p class="text-slate-600 truncate"><strong>✨ Vil reise til:</strong> ${wishlistPreview || 'Åpen for forslag'}</p>
+          <p class="text-xs text-slate-600 line-clamp-2">${escapeHtml(t.bio || "Planlegger togreiser gjennom Europa.")}</p>
+          <div class="text-xs text-slate-600 space-y-1 border-t border-slate-100 pt-2.5">
+            <p class="truncate"><span class="text-slate-400">Besøkt (${Number((t.visitedCountries || []).length)}):</span> ${visitedPreview || "Ingen registrert"}</p>
+            <p class="truncate"><span class="text-slate-400">Vil til:</span> ${wishlistPreview || "Ikke oppgitt"}</p>
+            ${sharedDreams.length > 0 ? `<p class="truncate text-brand-700"><span class="text-slate-400">Felles ønskemål:</span> ${sharedDreams.map(c => escapeHtml(c)).join(", ")}</p>` : ""}
           </div>
         </div>
-
-        <div class="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
-          <button type="button" onclick="openTravelerProfileModal(${jsArg(t.uid)})" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition flex items-center gap-1.5">
-            <i data-lucide="user" class="w-3.5 h-3.5 text-slate-500"></i>
-            <span>Se profil</span>
-          </button>
-
-          <div class="flex items-center gap-1.5 ml-auto">
-            ${!isFriend ? `
-              <button type="button" onclick="addOrAcceptFriend(${jsArg(t.uid)})" class="px-3.5 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow-2xs transition flex items-center gap-1.5">
-                <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
-                <span>${escapeHtml(friendActionLabel(t))}</span>
-              </button>
-            ` : `
-              ${alreadyOnActiveTrip ? `
-                <span class="px-2.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-xs flex items-center gap-1">
-                  <i data-lucide="check" class="w-3.5 h-3.5"></i>
-                  <span>Med på reisen</span>
-                </span>
-              ` : `
-                <button type="button" onclick="shareActiveTripWithFriend(${jsArg(t.uid)}, 'editor')" class="px-3 py-1.5 rounded-xl bg-rail-accent hover:bg-rail-accentHover text-white font-bold text-xs shadow-2xs transition flex items-center gap-1">
-                  <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
-                  <span>Del aktiv reise</span>
-                </button>
-              `}
-            `}
-          </div>
+        <div class="flex items-center justify-between gap-2 flex-wrap">
+          <button type="button" onclick="openTravelerProfileModal(${jsArg(t.uid)})" class="text-xs font-semibold text-slate-600 hover:text-slate-900">Se profil</button>
+          ${isFriend ? shareWithFriendButtonHtml(t) : friendActionButtonHtml(t)}
         </div>
-      </div>
-    `;
+      </div>`;
   }).join("");
 
   if (window.lucide) lucide.createIcons();
 }
 
-export function renderSocialHub() {
-  ensureSocialProfileFields(userProfile);
+export function openTravelerProfileModal(targetUid) {
+  const container = document.getElementById("traveler-profile-modal-content");
+  if (!container) return;
 
-  // 1. Hero Profile Banner
-  const heroAvatar = document.getElementById("social-hero-avatar");
-  const heroName = document.getElementById("social-hero-name");
-  const heroUsername = document.getElementById("social-hero-username");
-  const heroStatus = document.getElementById("social-hero-status");
-  const heroBio = document.getElementById("social-hero-bio");
-  const heroStation = document.getElementById("social-hero-station");
-  const heroPass = document.getElementById("social-hero-pass");
-
-  if (heroAvatar) {
-    heroAvatar.textContent = getInitials(userProfile.displayName || "Reisende");
-    heroAvatar.style.backgroundColor = userProfile.avatarColor || "#0d9488";
-  }
-  if (heroName) heroName.textContent = userProfile.displayName || "Reisende";
-  if (heroUsername) heroUsername.textContent = userProfile.username || "@reisende";
-  if (heroBio) heroBio.textContent = userProfile.bio || "Klar for Interrail gjennom Europa!";
-  if (heroStation) heroStation.textContent = `Hjemstasjon: ${userProfile.homeStation || "Oslo S"}`;
-  if (heroPass) heroPass.textContent = userProfile.defaultPassType || "Global Pass 7 dager";
-
-  if (heroStatus) {
-    if (currentUser) {
-      heroStatus.className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-200 border border-emerald-400/30";
-      heroStatus.textContent = "☁️ Verifisert skyprofil";
-    } else {
-      heroStatus.className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/15 text-slate-200 border border-white/20";
-      heroStatus.textContent = "Søkbart profilkort";
-    }
+  const traveler = getAllKnownTravelers().find(t => t.uid === targetUid)
+    || (userProfile.friends || []).find(f => f.uid === targetUid)
+    || (userProfile.incomingFriendRequests || []).find(r => r.uid === targetUid);
+  if (!traveler) {
+    showToast("Profil", "Fant ikke profilen til denne reisende ennå.", "user");
+    return;
   }
 
-  // Combine visited countries with countries from user's trips
-  const combinedVisitedCountries = new Set(userProfile.visitedCountries || []);
-  const countryCount = combinedVisitedCountries.size;
-  const placesCount = (userProfile.visitedPlaces || []).length;
-  const wishlistCount = (userProfile.wishlistPlaces || []).length;
-  const friendsCount = (userProfile.friends || []).length;
-  const pendingReqCount = (userProfile.incomingFriendRequests || []).length;
+  ensureSocialProfileFields(traveler);
+  const isFriend = isTravelerFriend(traveler.uid);
+  const first = firstName(traveler.displayName);
+  const { sharedDreams, sharedVisited } = getCommonCountriesWithUser(traveler);
+  const visitedCountries = traveler.visitedCountries || [];
+  const visitedPlaces = traveler.visitedPlaces || [];
+  const wishlist = traveler.wishlistPlaces || [];
 
-  // Update 4 Hero Counters & Sidebar/Mobile Badges
-  const statCountriesEl = document.getElementById("social-stat-visited-countries");
-  const statPlacesEl = document.getElementById("social-stat-visited-places");
-  const statWishlistEl = document.getElementById("social-stat-wishlist");
-  const statFriendsEl = document.getElementById("social-stat-friends");
-  const sidebarSocialBadge = document.getElementById("sidebar-social-badge");
-  const subtabFriendsBadge = document.getElementById("social-subtab-friends-badge");
-  const mobileReqDot = document.getElementById("mobile-social-req-dot");
-
-  if (statCountriesEl) statCountriesEl.textContent = `${countryCount} land`;
-  if (statPlacesEl) statPlacesEl.textContent = `${placesCount} steder`;
-  if (statWishlistEl) statWishlistEl.textContent = `${wishlistCount} drømmemål`;
-  if (statFriendsEl) statFriendsEl.textContent = `${friendsCount} venn${friendsCount === 1 ? '' : 'er'}`;
-
-  if (sidebarSocialBadge) {
-    sidebarSocialBadge.textContent = pendingReqCount > 0 ? `${friendsCount} (+${pendingReqCount} ny)` : `${friendsCount} venner`;
-  }
-  if (subtabFriendsBadge) {
-    subtabFriendsBadge.textContent = pendingReqCount > 0 ? `${friendsCount} • ${pendingReqCount} ny` : `${friendsCount}`;
-  }
-  if (mobileReqDot) {
-    if (pendingReqCount > 0) mobileReqDot.classList.remove("hidden");
-    else mobileReqDot.classList.add("hidden");
-  }
-
-  // 2. Render Sub-Panel A: Visited Countries, Visited Places & Wishlist
-  const meterLabel = document.getElementById("visited-countries-meter-label");
-  const meterBar = document.getElementById("visited-countries-meter-bar");
-  const pctEurope = Math.min(100, Math.round((countryCount / 33) * 100));
-  if (meterLabel) meterLabel.textContent = `${countryCount} av 33 land utforsket (${pctEurope}%)`;
-  if (meterBar) meterBar.style.width = `${pctEurope}%`;
-
-  const chipsContainer = document.getElementById("visited-countries-chips");
-  if (chipsContainer) {
-    if (countryCount === 0) {
-      chipsContainer.innerHTML = `<span class="text-xs text-slate-400 italic">Ingen besøkte land valgt ennå – klikk «Velg land fra Europa-liste» for å krysse av landene du har vært i!</span>`;
-    } else {
-      chipsContainer.innerHTML = Array.from(combinedVisitedCountries).map(cName => `
-        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-900 border border-emerald-200 text-xs font-bold shadow-2xs">
-          <span>${getCountryFlag(cName)} ${escapeHtml(cName)}</span>
-          <button type="button" onclick="toggleVisitedCountry(${jsArg(cName)})" class="text-emerald-600 hover:text-rose-600 ml-0.5" title="Fjern land">×</button>
-        </span>
-      `).join("");
-    }
-  }
-
-  const pickerGrid = document.getElementById("country-picker-grid");
-  if (pickerGrid) {
-    pickerGrid.innerHTML = EUROPEAN_INTERRAIL_COUNTRIES.map(c => {
-      const isSelected = (userProfile.visitedCountries || []).some(vc => vc.toLowerCase() === c.name.toLowerCase());
-      return `
-        <button 
-          type="button" 
-          onclick="toggleVisitedCountry(${jsArg(c.name)})" 
-          class="px-2.5 py-2 rounded-xl text-xs font-bold border text-left flex items-center justify-between gap-1.5 transition ${
-            isSelected 
-              ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' 
-              : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
-          }"
-        >
-          <span class="truncate">${c.flag} ${escapeHtml(c.name)}</span>
-          ${isSelected ? `<i data-lucide="check" class="w-3.5 h-3.5 shrink-0"></i>` : ''}
-        </button>
-      `;
-    }).join("");
-  }
-
-  const vpBadge = document.getElementById("visited-places-count-badge");
-  if (vpBadge) vpBadge.textContent = `${placesCount} steder`;
-
-  const vpList = document.getElementById("visited-places-list");
-  if (vpList) {
-    if (placesCount === 0) {
-      vpList.innerHTML = `<p class="text-xs text-slate-400 italic py-4 text-center">Du har ikke lagt til noen spesifikke byer eller steder ennå. Legg inn steder du har besøkt ovenfor!</p>`;
-    } else {
-      vpList.innerHTML = (userProfile.visitedPlaces || []).map(vp => `
-        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start justify-between gap-2.5 hover:bg-white transition">
-          <div class="min-w-0 space-y-0.5">
-            <div class="flex items-center gap-1.5 flex-wrap">
-              <span class="text-sm">${getCountryFlag(vp.country)}</span>
-              <h4 class="font-bold text-slate-900 text-xs sm:text-sm">${escapeHtml(vp.city)}</h4>
-              <span class="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.2 rounded-full border border-emerald-200">${escapeHtml(vp.country)}</span>
-            </div>
-            ${vp.note ? `<p class="text-xs text-slate-500">${escapeHtml(vp.note)}</p>` : ''}
+  container.innerHTML = `
+    <div class="p-5 sm:p-6 border-b border-slate-100 relative">
+      <button type="button" onclick="closeModal('modal-traveler-profile')" class="absolute top-4 right-4 w-8 h-8 rounded-full hover:bg-slate-100 text-slate-500 flex items-center justify-center transition" aria-label="Lukk">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+      <div class="flex items-center gap-4 pr-8">
+        ${socialAvatarHtml(traveler, "w-16 h-16 text-xl")}
+        <div class="min-w-0 space-y-0.5">
+          <div class="flex items-center flex-wrap gap-2">
+            <h3 id="traveler-modal-name" class="text-lg sm:text-xl font-bold text-slate-900 truncate">${escapeHtml(traveler.displayName || "Reisende")}</h3>
+            ${traveler.isCommunityProfile ? `<span class="text-[10px] font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">Eksempelprofil</span>` : ""}
+            ${isFriend ? `<span class="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">Kontakt</span>` : ""}
           </div>
-          <button type="button" onclick="deleteVisitedPlace(${jsArg(vp.id)})" class="p-1 text-slate-400 hover:text-rose-600 rounded-lg transition shrink-0" title="Fjern sted">
-            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-          </button>
+          <p class="text-xs font-semibold text-brand-600">${escapeHtml(traveler.username || "@reisende")}${traveler.homeStation ? `<span class="text-slate-400 font-medium"> · ${escapeHtml(traveler.homeStation)}</span>` : ""}</p>
+          <p class="text-xs sm:text-sm text-slate-600 pt-1">${escapeHtml(traveler.bio || "Planlegger togreiser gjennom Europa.")}</p>
         </div>
-      `).join("");
-    }
-  }
+      </div>
+    </div>
 
-  const wlBadge = document.getElementById("wishlist-places-count-badge");
-  if (wlBadge) wlBadge.textContent = `${wishlistCount} drømmemål`;
+    <div class="p-5 sm:p-6 space-y-5">
+      ${(sharedDreams.length > 0 || sharedVisited.length > 0) ? `
+        <div class="rounded-xl bg-brand-50/60 border border-brand-100 p-3.5 text-xs space-y-1">
+          ${sharedDreams.length > 0 ? `<p class="text-slate-700"><span class="font-semibold text-slate-900">Dere vil begge til:</span> ${sharedDreams.map(c => escapeHtml(c)).join(", ")}</p>` : ""}
+          ${sharedVisited.length > 0 ? `<p class="text-slate-600"><span class="font-semibold text-slate-900">Begge har vært i:</span> ${sharedVisited.map(c => escapeHtml(c)).join(", ")}</p>` : ""}
+        </div>` : ""}
 
-  const wlList = document.getElementById("wishlist-places-list");
-  if (wlList) {
-    if (wishlistCount === 0) {
-      wlList.innerHTML = `<p class="text-xs text-slate-400 italic py-4 text-center">Ønskelisten din er tom. Legg til byer, land eller togruter du drømmer om å oppleve!</p>`;
-    } else {
-      wlList.innerHTML = (userProfile.wishlistPlaces || []).map(wl => `
-        <div class="p-3 rounded-xl bg-amber-50/40 border border-amber-200/80 space-y-2 hover:bg-amber-50/70 transition">
-          <div class="flex items-start justify-between gap-2">
-            <div class="min-w-0">
-              <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="text-sm">${getCountryFlag(wl.country)}</span>
-                <h4 class="font-bold text-slate-900 text-xs sm:text-sm">${escapeHtml(wl.city)}</h4>
-                <span class="text-[11px] font-semibold text-slate-600">(${escapeHtml(wl.country)})</span>
-              </div>
-              <span class="inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-900">${escapeHtml(wl.tag || '🔥 Øverst på ønskelista')}</span>
-            </div>
-            <button type="button" onclick="deleteWishlistPlace(${jsArg(wl.id)})" class="p-1 text-slate-400 hover:text-rose-600 rounded-lg transition shrink-0" title="Fjern fra ønskeliste">
-              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-            </button>
-          </div>
-          <div class="flex items-center gap-1.5 pt-1 border-t border-amber-200/50 flex-wrap">
-            <button type="button" onclick="addWishlistPlaceToActiveTrip(${jsArg(wl.id)})" class="px-2.5 py-1 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-bold text-[11px] transition flex items-center gap-1">
-              <i data-lucide="plus" class="w-3 h-3"></i>
-              <span>Legg til i aktiv reise</span>
-            </button>
-            <button type="button" onclick="markWishlistPlaceVisited(${jsArg(wl.id)})" class="px-2.5 py-1 rounded-lg bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-[11px] transition flex items-center gap-1">
-              <i data-lucide="check" class="w-3 h-3"></i>
-              <span>Har vært her nå</span>
-            </button>
-          </div>
+      <div class="space-y-2.5">
+        <div class="flex items-center gap-3">
+          <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400 shrink-0">Besøkte land (${Number(visitedCountries.length)})</span>
+          <div class="h-px bg-slate-100 flex-1"></div>
         </div>
-      `).join("");
-    }
-  }
-
-  // 3. Render Sub-Panel B: Incoming Friend Requests & Friends List
-  const reqSection = document.getElementById("social-friend-requests-section");
-  const reqCountBadge = document.getElementById("social-friend-requests-count");
-  const reqList = document.getElementById("social-friend-requests-list");
-
-  if (reqSection && reqList) {
-    if (pendingReqCount === 0) {
-      reqSection.classList.add("hidden");
-    } else {
-      reqSection.classList.remove("hidden");
-      if (reqCountBadge) reqCountBadge.textContent = pendingReqCount;
-      reqList.innerHTML = (userProfile.incomingFriendRequests || []).map(req => `
-        <div class="bg-white rounded-xl p-3.5 border border-amber-200 shadow-2xs flex items-center justify-between gap-3">
-          <div onclick="openTravelerProfileModal(${jsArg(req.uid)})" class="flex items-center gap-3 min-w-0 cursor-pointer group">
-            <div class="w-10 h-10 rounded-xl text-white font-extrabold text-sm flex items-center justify-center shrink-0" style="background-color: ${safeColor(req.avatarColor, '#f97316')}">
-              ${escapeHtml(getInitials(req.displayName))}
-            </div>
-            <div class="min-w-0">
-              <p class="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-brand-600 truncate">${escapeHtml(req.displayName)} <span class="text-[11px] font-mono text-slate-500">${escapeHtml(req.username || '')}</span></p>
-              <p class="text-[11px] text-slate-500 truncate">Vil legge deg til som reisevenn • 🚆 ${escapeHtml(req.homeStation || 'Norge')}</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-1.5 shrink-0">
-            <button type="button" onclick="addOrAcceptFriend(${jsArg(req.uid)})" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition">
-              Godta
-            </button>
-            <button type="button" onclick="declineFriendRequest(${jsArg(req.uid)})" class="p-1.5 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 transition" title="Avslå">
-              <i data-lucide="x" class="w-4 h-4"></i>
-            </button>
-          </div>
-        </div>
-      `).join("");
-    }
-  }
-
-  const friendsListEl = document.getElementById("social-friends-list");
-  if (friendsListEl) {
-    const active = getActiveTripObject();
-    const allKnown = getAllKnownTravelers();
-
-    if (friendsCount === 0) {
-      friendsListEl.innerHTML = `
-        <div class="col-span-full bg-slate-50 rounded-2xl border border-slate-200/80 p-8 text-center space-y-3">
-          <p class="text-sm font-bold text-slate-800">Du har ikke lagt til noen reisevenner ennå</p>
-          <p class="text-xs text-slate-500 max-w-md mx-auto">Søk opp vennene dine på navn eller @brukernavn under «Søk Profiler» for å se deres reisepass og dele reiser sammen!</p>
-          <button type="button" onclick="switchSocialSubTab('discover')" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs transition inline-flex items-center gap-1.5">
-            <i data-lucide="search" class="w-3.5 h-3.5"></i>
-            <span>Søk opp profiler nå</span>
-          </button>
-        </div>
-      `;
-    } else {
-      friendsListEl.innerHTML = (userProfile.friends || []).map(friendItem => {
-        const enriched = allKnown.find(t => t.uid === friendItem.uid) || ensureSocialProfileFields(friendItem);
-        const { sharedDreams } = getCommonCountriesWithUser(enriched);
-        const alreadyOnActiveTrip = active && Array.isArray(active.members) && active.members.some(
-          m => (m.uid && m.uid === enriched.uid) || (m.id && m.id === enriched.uid) || (m.name && enriched.displayName && m.name.toLowerCase() === enriched.displayName.toLowerCase())
-        );
-
-        const visitedStr = (enriched.visitedCountries || []).slice(0, 4).map(c => `${getCountryFlag(c)} ${escapeHtml(c)}`).join(", ");
-        const wishlistStr = (enriched.wishlistPlaces || []).slice(0, 2).map(w => `${getCountryFlag(w.country)} ${escapeHtml(w.city)}`).join(", ");
-
-        return `
-          <div class="bg-slate-50/70 hover:bg-white rounded-2xl border border-slate-200/80 p-4 flex flex-col justify-between gap-3 transition shadow-2xs">
-            <div class="space-y-2.5">
-              <div class="flex items-start justify-between gap-2">
-                <div onclick="openTravelerProfileModal(${jsArg(enriched.uid)})" class="flex items-center gap-3 min-w-0 cursor-pointer group">
-                  <div class="w-11 h-11 rounded-2xl text-white font-extrabold text-sm flex items-center justify-center shrink-0 shadow-2xs" style="background-color: ${safeColor(enriched.avatarColor, '#2563eb')}">
-                    ${escapeHtml(getInitials(enriched.displayName))}
-                  </div>
-                  <div class="min-w-0">
-                    <div class="flex items-center gap-1.5 flex-wrap">
-                      <h4 class="font-bold text-slate-900 text-sm group-hover:text-brand-600 transition truncate">${escapeHtml(enriched.displayName)}</h4>
-                      <span class="text-[11px] font-mono font-bold text-brand-700 bg-brand-50 px-2 py-0.2 rounded-full">${escapeHtml(enriched.username || '')}</span>
-                    </div>
-                    <p class="text-[11px] text-slate-500 truncate">🚆 ${escapeHtml(enriched.homeStation || 'Oslo S')}</p>
-                  </div>
+        ${visitedCountries.length === 0 ? `<p class="text-xs text-slate-400">Ingen land registrert.</p>` : `
+          <div class="flex flex-wrap gap-1.5">
+            ${visitedCountries.map(c => `<span class="px-2.5 py-1 rounded-md bg-slate-100 text-slate-800 text-xs font-medium">${escapeHtml(c)}</span>`).join("")}
+          </div>`}
+        ${visitedPlaces.length > 0 ? `
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+            ${visitedPlaces.map(vp => `
+              <div class="flex items-center gap-2.5 min-w-0">
+                ${placeThumbHtml(vp.city, vp.country, "w-10 h-10")}
+                <div class="min-w-0">
+                  <p class="text-xs font-semibold text-slate-900 truncate">${escapeHtml(vp.city)}, ${escapeHtml(vp.country)}</p>
+                  ${vp.note ? `<p class="text-[11px] text-slate-500 truncate">${escapeHtml(vp.note)}</p>` : ""}
                 </div>
-                <button type="button" onclick="removeFriend(${jsArg(enriched.uid)})" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition shrink-0" title="Fjern venn">
-                  <i data-lucide="user-minus" class="w-3.5 h-3.5"></i>
-                </button>
-              </div>
+              </div>`).join("")}
+          </div>` : ""}
+      </div>
 
-              ${sharedDreams.length > 0 ? `
-                <div class="px-2.5 py-1 rounded-xl bg-amber-50 border border-amber-200/80 text-[11px] font-semibold text-amber-900">
-                  ✨ Felles drømmemål: <strong>${sharedDreams.map(c => `${getCountryFlag(c)} ${escapeHtml(c)}`).join(", ")}</strong>
+      <div class="space-y-2.5">
+        <div class="flex items-center gap-3">
+          <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400 shrink-0">Ønskeliste</span>
+          <div class="h-px bg-slate-100 flex-1"></div>
+        </div>
+        ${wishlist.length === 0 ? `<p class="text-xs text-slate-400">Ingen steder på ønskelisten.</p>` : `
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            ${wishlist.map(wl => `
+              <div class="flex items-center gap-2.5 min-w-0">
+                ${placeThumbHtml(wl.city, wl.country, "w-10 h-10")}
+                <div class="min-w-0">
+                  <p class="text-xs font-semibold text-slate-900 truncate">${escapeHtml(wl.city)}, ${escapeHtml(wl.country)}</p>
+                  <p class="text-[11px] text-slate-500 truncate">${escapeHtml(cleanTagLabel(wl.tag))}</p>
                 </div>
-              ` : ''}
+              </div>`).join("")}
+          </div>`}
+      </div>
 
-              <div class="text-[11px] text-slate-600 space-y-0.5 bg-white p-2.5 rounded-xl border border-slate-100">
-                <p class="truncate"><strong>🌍 Har vært i:</strong> ${visitedStr || 'Flere land i Europa'}</p>
-                <p class="truncate"><strong>✨ Vil til:</strong> ${wishlistStr || 'Nye togdestinasjoner'}</p>
-              </div>
-            </div>
+      <div class="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+        ${isFriend
+          ? `<span class="text-xs font-semibold text-emerald-700 flex items-center gap-1.5"><i data-lucide="user-check" class="w-4 h-4"></i>Dere er reisevenner</span>`
+          : friendActionButtonHtml(traveler)}
+        ${isFriend ? shareWithFriendButtonHtml(traveler, "ml-auto") : ""}
+      </div>
+      ${isFriend ? "" : `<p class="text-[11px] text-slate-400">Når ${escapeHtml(first)} har godtatt forespørselen, kan dere dele reiser.</p>`}
+    </div>`;
 
-            <div class="pt-2.5 border-t border-slate-200/60 flex items-center justify-between gap-2 flex-wrap">
-              <button type="button" onclick="openTravelerProfileModal(${jsArg(enriched.uid)})" class="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-bold text-xs transition flex items-center gap-1.5">
-                <i data-lucide="stamp" class="w-3.5 h-3.5 text-brand-600"></i>
-                <span>Se profil & reisepass</span>
-              </button>
-
-              ${alreadyOnActiveTrip ? `
-                <span class="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-xs flex items-center gap-1">
-                  <i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600"></i>
-                  <span>Med på aktiv reise</span>
-                </span>
-              ` : `
-                <button type="button" onclick="shareActiveTripWithFriend(${jsArg(enriched.uid)}, 'editor')" class="px-3 py-1.5 rounded-xl bg-rail-accent hover:bg-rail-accentHover text-white font-bold text-xs shadow-2xs transition flex items-center gap-1.5">
-                  <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
-                  <span>Del aktiv reise</span>
-                </button>
-              `}
-            </div>
-          </div>
-        `;
-      }).join("");
-    }
-  }
-
-  // 4. Render Sub-Panel C: Discover / Search Profiles Grid
-  renderSocialDiscoverGrid();
-
+  openModal("modal-traveler-profile");
   if (window.lucide) lucide.createIcons();
 }
 
@@ -6292,6 +6190,7 @@ window.addWishlistPlaceToActiveTrip = addWishlistPlaceToActiveTrip;
 window.fetchCloudTravelerDirectory = fetchCloudTravelerDirectory;
 window.refreshCloudDirectorySearch = refreshCloudDirectorySearch;
 window.handleSearchTravelersInput = handleSearchTravelersInput;
+window.handleTopBarTravelerSearch = handleTopBarTravelerSearch;
 window.setSocialDiscoverFilter = setSocialDiscoverFilter;
 window.addOrAcceptFriend = addOrAcceptFriend;
 window.declineFriendRequest = declineFriendRequest;
