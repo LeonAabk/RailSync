@@ -462,8 +462,13 @@ async function ensureOwnUsernameClaim() {
   return false;
 }
 
+// Ble oppstarten mot skyen fullført? Hvis ikke (åpnet uten nett), prøves den igjen når nettet er tilbake.
+let cloudBootstrapOk = false;
+
 export async function syncUserProfileWithCloud(user) {
   stopCloudListeners();
+  cloudBootstrapOk = false;
+  let profileSynced = false;
   if (!user) {
     updateAuthUI(null);
     renderSocialHub();
@@ -509,11 +514,13 @@ export async function syncUserProfileWithCloud(user) {
       await saveUserProfileEverywhere();
       savePersonalBudgetsToStorage();
       await loadOwnCoverFromCloud(user.uid);
-      startFriendRequestListeners(user.uid);
-      startMemberTripsListener(user.uid);
+      profileSynced = true;
     } catch (e) {
       console.warn("Kunne ikke synkronisere brukerprofil med Firestore:", e);
     }
+    // Lytterne startes også uten nett – de kobler seg på når nettet er tilbake
+    startFriendRequestListeners(user.uid);
+    startTripListeners(user.uid);
   }
 
   try {
@@ -521,7 +528,8 @@ export async function syncUserProfileWithCloud(user) {
   } catch (e) {}
 
   updateAuthUI(user);
-  await syncAllUserTripsWithCloud(true);
+  const tripsSynced = await syncAllUserTripsWithCloud(true);
+  cloudBootstrapOk = profileSynced && tripsSynced === true;
   renderSocialHub();
 
   // Fullfør en delt lenke brukeren åpnet før innlogging
@@ -541,14 +549,15 @@ export async function syncUserProfileWithCloud(user) {
 let friendReqInUnsub = null;
 let friendReqOutUnsub = null;
 let memberTripsUnsub = null;
+let ownedTripsUnsub = null;
 
 function stopCloudListeners() {
-  [friendReqInUnsub, friendReqOutUnsub, memberTripsUnsub].forEach(fn => {
+  [friendReqInUnsub, friendReqOutUnsub, memberTripsUnsub, ownedTripsUnsub].forEach(fn => {
     if (typeof fn === "function") {
       try { fn(); } catch (e) {}
     }
   });
-  friendReqInUnsub = friendReqOutUnsub = memberTripsUnsub = null;
+  friendReqInUnsub = friendReqOutUnsub = memberTripsUnsub = ownedTripsUnsub = null;
 }
 
 // ---------------------------------------------------------------------------
@@ -715,30 +724,87 @@ export async function refreshFriendProfiles(force = false) {
   }
 }
 
-function startMemberTripsListener(uid) {
+// Lytter på alle reiser brukeren eier eller er med på, så endringer fra andre
+// (og fra dine egne andre enheter) vises med en gang.
+function startTripListeners(uid) {
   if (!isCloudReady()) return;
-  let initial = true;
-  try {
-    const q = query(collection(db, "trips"), where("memberUids", "array-contains", uid));
-    memberTripsUnsub = onSnapshot(q, (snap) => {
-      let added = 0;
-      snap.docChanges().forEach(change => {
-        if (change.type === "added" && !allTrips.some(t => t.id === change.doc.id)) {
-          mergeCloudTripDoc(change.doc);
-          added++;
-        }
-      });
-      if (added > 0) {
-        saveAllTripsToLocalStorage();
-        renderAll();
-        if (!initial) {
-          showToast("Ny delt reise! 🚆", "En reisevenn har delt en reise med deg. Du finner den under Mine reiser.", "share-2");
-        }
+  const handle = (label) => (snap) => {
+    let touched = false;
+    let newShared = 0;
+    const toPush = [];
+    snap.docChanges().forEach(change => {
+      if (change.type === "removed") {
+        handleRemoteTripRemoval(change.doc.id);
+        return;
       }
-      initial = false;
-    }, (err) => console.warn("Lytter for delte reiser feilet:", err));
+      const res = applyRemoteTripData(change.doc.id, change.doc.data());
+      if (!res) return;
+      if (res.changed) touched = true;
+      if (res.isNew && label === "member" && !isTripOwnedByCurrentUser(allTrips.find(t => t.id === change.doc.id))) newShared++;
+      if (res.needsPush) toPush.push(change.doc.id);
+    });
+    if (touched) afterRemoteTripChanges();
+    if (newShared > 0 && tripListenersReady[label]) {
+      showToast("Ny delt reise", "En reisevenn har delt en reise med deg. Du finner den under Reiser.", "share-2");
+    }
+    tripListenersReady[label] = true;
+    toPush.forEach(id => {
+      const t = allTrips.find(x => x.id === id);
+      if (t && canEditTrip(t)) pushTripToFirestore(t);
+    });
+    updateSyncStatus();
+  };
+  const onErr = (err) => { console.warn("Lytter for reiser feilet:", err); updateSyncStatus(); };
+  try {
+    tripListenersReady = { owned: false, member: false };
+    ownedTripsUnsub = onSnapshot(query(collection(db, "trips"), where("ownerUid", "==", uid)), handle("owned"), onErr);
+    memberTripsUnsub = onSnapshot(query(collection(db, "trips"), where("memberUids", "array-contains", uid)), handle("member"), onErr);
   } catch (e) {
-    console.warn("Kunne ikke starte lytter for delte reiser:", e);
+    console.warn("Kunne ikke starte lyttere for reiser:", e);
+  }
+}
+let tripListenersReady = { owned: false, member: false };
+
+function afterRemoteTripChanges() {
+  saveAllTripsToLocalStorage();
+  if (!allTrips.some(t => t.id === activeTripId) && allTrips.length > 0) activeTripId = allTrips[0].id;
+  syncActiveTripToState();
+  renderAll();
+  updateMapLayers();
+  renderShareAndCollabModal();
+}
+
+// En reise forsvant fra lytteren: sjekk om den er slettet eller om du er fjernet
+async function handleRemoteTripRemoval(id) {
+  if (!isCloudReady()) return;
+  const uid = currentUser.uid;
+  try {
+    const snap = await getDoc(doc(db, "trips", id));
+    if (snap.exists()) {
+      const d = snap.data() || {};
+      if (d.ownerUid === uid || (Array.isArray(d.memberUids) && d.memberUids.includes(uid))) return;
+    }
+  } catch (e) {
+    if (!e || e.code !== "permission-denied") return; // nettfeil: ikke fjern noe
+  }
+  removeLocalTrip(id, true);
+}
+
+function removeLocalTrip(id, notify) {
+  const t = allTrips.find(x => x.id === id);
+  if (!t) return;
+  allTrips = allTrips.filter(x => x.id !== id);
+  if (allTrips.length === 0) {
+    createNewTrip();
+  } else if (activeTripId === id) {
+    activeTripId = allTrips[0].id;
+  }
+  saveAllTripsToLocalStorage();
+  syncActiveTripToState();
+  renderAll();
+  updateMapLayers();
+  if (notify) {
+    showToast("Reisen er ikke lenger tilgjengelig", `«${t.title || "Reisen"}» er slettet, eller du er ikke lenger med i reisefølget.`, "info");
   }
 }
 
@@ -1064,8 +1130,10 @@ export async function handleUsernameAuth(e) {
 export const handleEmailAuth = handleUsernameAuth;
 
 export async function handleLogout() {
+  isLoggingOut = true;
   try {
     stopCloudListeners();
+    syncStatusState = "";
     if (activeTripUnsubscribe) {
       activeTripUnsubscribe();
       activeTripUnsubscribe = null;
@@ -1565,9 +1633,65 @@ export function syncStateToActiveTrip(activityText = "") {
   saveAllTripsToLocalStorage();
 
   // Innlogget: last opp endringen i bakgrunnen (egne reiser og delte reiser jeg kan redigere)
-  if (!isApplyingRemoteSnapshot && isCloudReady() && (isTripOwnedByCurrentUser(active) || (active.visibility === "shared" && canEditActiveTrip()))) {
+  if (!isApplyingRemoteSnapshot && isCloudReady() && (isTripOwnedByCurrentUser(active) || canEditTrip(active))) {
     pushTripToFirestore(active);
   }
+  updateSyncStatus();
+}
+
+// ---------------------------------------------------------------------------
+// Lagringsstatus og nye forsøk
+// ---------------------------------------------------------------------------
+let syncStatusState = "";
+
+export function updateSyncStatus() {
+  const online = typeof navigator === "undefined" || navigator.onLine !== false;
+  let state;
+  if (!currentUser) state = "";
+  else if (syncInFlight > 0) state = "saving";
+  else if (allTrips.some(isTripDirty)) state = online ? (lastSyncFailed ? "retry" : "saving") : "offline";
+  else state = "saved";
+  if (state === syncStatusState) return;
+  syncStatusState = state;
+  const labels = {
+    saving: ["Lagrer …", "bg-amber-400 animate-pulse", "Endringene sendes til kontoen din."],
+    saved: ["Lagret", "bg-emerald-500", "Alt er lagret på kontoen din."],
+    offline: ["Ikke på nett", "bg-slate-400", "Endringene er lagret på denne enheten og sendes når nettet er tilbake."],
+    retry: ["Prøver igjen …", "bg-amber-500", "Fikk ikke lagret med en gang. Prøver igjen automatisk."]
+  };
+  document.querySelectorAll("[data-sync-status]").forEach(el => {
+    if (!state) { el.classList.add("hidden"); return; }
+    const [text, dot, title] = labels[state];
+    el.classList.remove("hidden");
+    el.title = title;
+    el.setAttribute("aria-label", title);
+    el.innerHTML = `<span class="w-1.5 h-1.5 rounded-full ${dot}"></span><span>${text}</span>`;
+  });
+}
+
+function retryDirtyTrips() {
+  if (!isCloudReady() || syncInFlight > 0) return;
+  if (typeof navigator !== "undefined" && navigator.onLine === false) { updateSyncStatus(); return; }
+  allTrips.filter(isTripDirty).forEach(t => {
+    if (isTripOwnedByCurrentUser(t) || canEditTrip(t)) pushTripToFirestore(t);
+  });
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("online", () => {
+    lastSyncFailed = false;
+    updateSyncStatus();
+    if (currentUser && !cloudBootstrapOk && !isLoggingOut) syncUserProfileWithCloud(currentUser);
+    else retryDirtyTrips();
+  });
+  window.addEventListener("offline", () => updateSyncStatus());
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") saveAllTripsToLocalStorage();
+    else if (currentUser && !cloudBootstrapOk && !isLoggingOut && navigator.onLine !== false) syncUserProfileWithCloud(currentUser);
+    else retryDirtyTrips();
+  });
+  window.addEventListener("pagehide", () => saveAllTripsToLocalStorage());
+  setInterval(retryDirtyTrips, 15000);
 }
 
 function isCloudReady() {
@@ -1800,8 +1924,24 @@ function pushTripToFirestore(tripObj, _retried = false) {
   return next;
 }
 
+let syncInFlight = 0;
+let lastSyncFailed = false;
+
 async function pushTripToFirestoreNow(tripObj, _retried = false) {
   if (!isCloudReady() || !tripObj || !tripObj.id) return false;
+  syncInFlight++;
+  updateSyncStatus();
+  try {
+    const ok = await pushTripToFirestoreInner(tripObj, _retried);
+    lastSyncFailed = !ok;
+    return ok;
+  } finally {
+    syncInFlight = Math.max(0, syncInFlight - 1);
+    updateSyncStatus();
+  }
+}
+
+async function pushTripToFirestoreInner(tripObj, _retried = false) {
   ensureTripCollaborationFields(tripObj);
   const owned = isTripOwnedByCurrentUser(tripObj);
 
@@ -1820,6 +1960,7 @@ async function pushTripToFirestoreNow(tripObj, _retried = false) {
       Object.assign(payload, buildTripMembershipPayload(tripObj));
       await setDoc(ref, payload, { merge: true });
       tripObj._base = tripContentOf(tripObj);
+      tripObj._metaBase = ownerMetaOf(payload);
     } else {
       let merged = null;
       try {
@@ -1842,17 +1983,17 @@ async function pushTripToFirestoreNow(tripObj, _retried = false) {
           merged = { content, local, activityLog: payload.activityLog };
         });
       } catch (txErr) {
-        if (txErr && txErr.code === "permission-denied") throw txErr;
-        // Uten nett: lagre vanlig (Firestore sender endringen når nettet er tilbake)
-        await setDoc(ref, buildTripContentPayload(tripObj), { merge: true });
-        merged = null;
+        // Uten nett: endringen ligger trygt på enheten og sendes (slått sammen) når nettet er tilbake
+        throw txErr;
       }
       if (merged) {
         tripObj._base = merged.content;
-        tripObj.activityLog = merged.activityLog;
+        tripObj.activityLog = mergeActivityLogs(tripObj.activityLog, merged.activityLog);
         if (!sameJson(merged.content, merged.local)) {
-          applyContentToTrip(tripObj, merged.content);
-          showToast("Endringer slått sammen", "Noen andre endret reisen samtidig. Begge endringene er tatt vare på.", "git-merge");
+          // Ta vare på endringer du gjorde mens lagringen pågikk
+          const current = tripContentOf(tripObj);
+          const next = sameJson(current, merged.local) ? merged.content : mergeTripContent(merged.local, current, merged.content);
+          if (!sameJson(next, current)) applyContentToTrip(tripObj, next);
         }
       }
     }
@@ -1868,7 +2009,7 @@ async function pushTripToFirestoreNow(tripObj, _retried = false) {
       reassignTripId(tripObj);
       tripObj._cloudCreated = false;
       syncUrlWithActiveTrip();
-      return pushTripToFirestoreNow(tripObj, true);
+      return pushTripToFirestoreInner(tripObj, true);
     }
     console.warn("Kunne ikke synkronisere reise til Firestore:", err);
     return false;
@@ -1880,10 +2021,12 @@ async function pushTripMembershipToFirestore(tripObj) {
   if (!isCloudReady() || !tripObj || !isTripOwnedByCurrentUser(tripObj)) return false;
   if (!tripObj._cloudCreated) return pushTripToFirestore(tripObj);
   try {
+    const payload = buildTripMembershipPayload(tripObj);
     await setDoc(doc(db, "trips", tripObj.id), {
-      ...buildTripMembershipPayload(tripObj),
+      ...payload,
       updatedAt: new Date().toISOString()
     }, { merge: true });
+    tripObj._metaBase = ownerMetaOf(payload);
     await ensureShareCodeDoc(tripObj);
     return true;
   } catch (err) {
@@ -1909,104 +2052,105 @@ function requireTripOwner(tripObj) {
   return false;
 }
 
+// Alle reiser har nå egne lyttere (startTripListeners). Beholdt for eldre kall.
 export function subscribeToActiveSharedTrip() {
   if (activeTripUnsubscribe) {
     activeTripUnsubscribe();
     activeTripUnsubscribe = null;
   }
-
-  const active = allTrips.find(t => t.id === activeTripId);
-  if (!active || active.visibility !== "shared" || !isCloudReady()) {
-    return;
-  }
-
-  try {
-    const docRef = doc(db, "trips", active.id);
-    activeTripUnsubscribe = onSnapshot(docRef, (snap) => {
-      if (!snap.exists()) return;
-      const cloudData = snap.data();
-      if (!cloudData || !cloudData.trip) return;
-      delete cloudData.expenses;
-
-      const currentActive = allTrips.find(t => t.id === active.id);
-      if (!currentActive) return;
-      const remoteContent = tripContentOf(cloudData);
-      const localContent = tripContentOf(currentActive);
-      const base = currentActive._base;
-      let newContent = remoteContent;
-      let needsPush = false;
-      if (base && !sameJson(localContent, base) && !sameJson(localContent, remoteContent)) {
-        // Du har endringer som ikke er lagret ennå: slå sammen med det som kom fra skyen
-        newContent = mergeTripContent(base, localContent, remoteContent);
-        needsPush = !sameJson(newContent, remoteContent);
-      }
-
-      isApplyingRemoteSnapshot = true;
-      try {
-        const merged = ensureTripCollaborationFields({
-          ...currentActive,
-          ...cloudData,
-          ...newContent,
-          trip: { ...newContent.trip },
-          id: active.id,
-          _base: remoteContent
-        });
-        if (isTripOwnedByCurrentUser(merged)) merged._cloudCreated = true;
-
-        // Always keep current traveler's own personal budget & expenses (never overwrite from shared trip)
-        const myBudget = getPersonalBudgetForTrip(merged);
-        if (!merged.trip) merged.trip = {};
-        merged.trip.totalBudget = myBudget.totalBudget;
-        merged.expenses = myBudget.expenses;
-
-        const idx = allTrips.findIndex(t => t.id === active.id);
-        if (idx !== -1) {
-          allTrips[idx] = merged;
-        }
-        if (activeTripId === active.id) {
-          appState.trip = JSON.parse(JSON.stringify(merged.trip));
-          appState.stops = JSON.parse(JSON.stringify(merged.stops || []));
-          appState.trains = JSON.parse(JSON.stringify(merged.trains || []));
-          appState.expenses = JSON.parse(JSON.stringify(myBudget.expenses));
-          appState.packingList = JSON.parse(JSON.stringify(merged.packingList || []));
-          saveAllTripsToLocalStorage();
-          renderAll();
-          updateMapLayers();
-          renderShareAndCollabModal();
-        }
-        if (needsPush && canEditTrip(merged)) pushTripToFirestore(merged);
-      } finally {
-        isApplyingRemoteSnapshot = false;
-      }
-    }, (err) => {
-      console.warn("Sanntidslytting avvist (mangler tilgang?):", err);
-    });
-  } catch (e) {
-    console.warn("Sanntidslytting feilet:", e);
-  }
 }
 
+// Legger en reise fra skyen inn lokalt. Har du endringer som ikke er sendt ennå,
+// slås de sammen med versjonen fra skyen i stedet for at noe overskrives.
+const TRIP_META_KEYS = ["ownerUid", "owner", "memberUids", "editorUids", "members", "visibility", "sharePermission",
+  "shareCode", "updatedAt", "lastUpdatedBy", "createdAt"];
+// Innstillinger bare eieren endrer. Eierens endringer som ikke er sendt ennå, beholdes.
+const OWNER_META_KEYS = ["owner", "members", "visibility", "sharePermission", "shareCode"];
+function ownerMetaOf(t) {
+  const o = {};
+  OWNER_META_KEYS.forEach(k => { o[k] = t && t[k] !== undefined ? JSON.parse(JSON.stringify(t[k])) : null; });
+  return o;
+}
+
+function applyRemoteTripData(id, raw) {
+  if (!raw || !raw.trip) return null;
+  const data = { ...raw };
+  delete data.expenses;
+  const remoteContent = tripContentOf(data);
+  const idx = allTrips.findIndex(t => t.id === id);
+
+  if (idx === -1) {
+    const trip = ensureTripCollaborationFields({ ...data, id, title: remoteContent.title || "Min reise" });
+    trip._base = remoteContent;
+    trip._metaBase = ownerMetaOf(data);
+    if (isTripOwnedByCurrentUser(trip)) trip._cloudCreated = true;
+    const myBudget = getPersonalBudgetForTrip(trip);
+    trip.trip = { ...remoteContent.trip, totalBudget: myBudget.totalBudget };
+    trip.expenses = myBudget.expenses;
+    allTrips.push(trip);
+    return { isNew: true, changed: true, needsPush: false };
+  }
+
+  const local = allTrips[idx];
+  const localContent = tripContentOf(local);
+  const beforeSig = JSON.stringify([localContent, TRIP_META_KEYS.map(k => local[k]), local.activityLog]);
+
+  let content = remoteContent;
+  let needsPush = false;
+  // Den som bare kan se, får alltid versjonen fra skyen
+  const mayEdit = isTripOwnedByCurrentUser({ ...local, ...data }) || canEditTrip({ ...local, ...data });
+  const localDirty = mayEdit && local._base ? !sameJson(localContent, local._base) : false;
+  if (localDirty && !sameJson(localContent, remoteContent)) {
+    content = mergeTripContent(local._base, localContent, remoteContent);
+    needsPush = !sameJson(content, remoteContent);
+  }
+
+  const ownsTrip = isTripOwnedByCurrentUser({ ...local, ...data });
+  const localMeta = ownerMetaOf(local);
+  const remoteMeta = ownerMetaOf(data);
+  const metaDirty = ownsTrip && local._metaBase && !sameJson(localMeta, local._metaBase) && !sameJson(localMeta, remoteMeta);
+  TRIP_META_KEYS.forEach(k => { if (k in data) local[k] = data[k]; });
+  if (metaDirty) {
+    const mergedMeta = mergeObjectFields(local._metaBase, localMeta, remoteMeta);
+    Object.assign(local, mergedMeta);
+    if (!sameJson(mergedMeta, remoteMeta)) {
+      const tripRef = local;
+      setTimeout(() => pushTripMembershipToFirestore(tripRef), 0);
+    }
+  }
+  local._metaBase = remoteMeta;
+  local.activityLog = localDirty ? mergeActivityLogs(local.activityLog, data.activityLog) : (data.activityLog || []);
+  local._base = remoteContent;
+  if (isTripOwnedByCurrentUser(local)) local._cloudCreated = true;
+  ensureTripCollaborationFields(local);
+  setTripContent(local, content);
+
+  const afterSig = JSON.stringify([tripContentOf(local), TRIP_META_KEYS.map(k => local[k]), local.activityLog]);
+  return { isNew: false, changed: beforeSig !== afterSig, needsPush };
+}
+
+// Brukes av eldre kall
 function mergeCloudTripDoc(docSnap) {
   if (!docSnap || !docSnap.exists()) return;
-  const data = docSnap.data();
-  if (!data || !data.trip) return;
-  delete data.expenses;
-  const cloudTrip = ensureTripCollaborationFields({
-    ...data,
-    id: docSnap.id,
-    title: data.trip.title || data.title || "Min Reise"
-  });
-  if (isTripOwnedByCurrentUser(cloudTrip)) cloudTrip._cloudCreated = true;
-  cloudTrip._base = tripContentOf(cloudTrip);
-  const myBudget = getPersonalBudgetForTrip(cloudTrip);
-  cloudTrip.trip.totalBudget = myBudget.totalBudget;
-  cloudTrip.expenses = myBudget.expenses;
-  const existingIdx = allTrips.findIndex(local => local.id === docSnap.id);
-  if (existingIdx === -1) {
-    allTrips.push(cloudTrip);
-  } else if (cloudTrip.updatedAt && (!allTrips[existingIdx].updatedAt || cloudTrip.updatedAt > allTrips[existingIdx].updatedAt)) {
-    allTrips[existingIdx] = cloudTrip;
-  }
+  applyRemoteTripData(docSnap.id, docSnap.data());
+}
+
+function setTripContent(tripObj, content) {
+  const myBudget = getPersonalBudgetForTrip(tripObj);
+  tripObj.title = content.title || tripObj.title;
+  tripObj.trip = { ...JSON.parse(JSON.stringify(content.trip)), totalBudget: myBudget.totalBudget };
+  tripObj.stops = JSON.parse(JSON.stringify(content.stops));
+  tripObj.trains = JSON.parse(JSON.stringify(content.trains));
+  tripObj.packingList = JSON.parse(JSON.stringify(content.packingList));
+}
+
+// Har reisen endringer som ikke er lagret i skyen ennå?
+function isTripDirty(t) {
+  if (!t || t.id === "eksempel-1") return false;
+  if (isTripOwnedByCurrentUser(t) && !t._cloudCreated) return true;
+  if (!isTripOwnedByCurrentUser(t) && !canEditTrip(t)) return false;
+  if (!t._base) return false;
+  return !sameJson(tripContentOf(t), t._base);
 }
 
 export async function syncAllUserTripsWithCloud(silent = false) {
@@ -2018,40 +2162,64 @@ export async function syncAllUserTripsWithCloud(silent = false) {
   try {
     const uid = currentUser.uid;
 
-    // 1. Last opp egne reiser og delte reiser jeg er med på
+    // 1. Hent det nyeste fra skyen først – skyen er fasiten
+    const [snapOwned, snapMember] = await Promise.all([
+      getDocs(query(collection(db, "trips"), where("ownerUid", "==", uid))),
+      getDocs(query(collection(db, "trips"), where("memberUids", "array-contains", uid)))
+    ]);
+    const seen = new Set();
+    const toPush = new Set();
+    [...snapOwned.docs, ...snapMember.docs].forEach(d => {
+      if (seen.has(d.id)) return;
+      seen.add(d.id);
+      const res = applyRemoteTripData(d.id, d.data());
+      if (res && res.needsPush) toPush.add(d.id);
+    });
+
+    // 2. Lokale reiser som ikke finnes i skyen
     for (const t of [...allTrips]) {
       ensureTripCollaborationFields(t);
-      // Den urørte eksempelreisen lastes ikke opp (den får egen ID først når den endres eller deles)
-      if (t.id === "eksempel-1") continue;
-      if (isTripOwnedByCurrentUser(t) || t.visibility === "shared") {
-        await pushTripToFirestore(t);
+      if (seen.has(t.id) || t.id === "eksempel-1") continue;
+      if (isTripOwnedByCurrentUser(t) && !t._cloudCreated) {
+        toPush.add(t.id); // ny reise laget før innlogging eller uten nett
+      } else {
+        // Slettet eller fjernet fra reisefølget mens du var borte
+        allTrips = allTrips.filter(x => x.id !== t.id);
       }
     }
-
-    // 2. Hent reiser jeg eier eller er medlem av
-    const snapOwned = await getDocs(query(collection(db, "trips"), where("ownerUid", "==", uid)));
-    snapOwned.forEach(mergeCloudTripDoc);
-
-    const snapMember = await getDocs(query(collection(db, "trips"), where("memberUids", "array-contains", uid)));
-    snapMember.forEach(mergeCloudTripDoc);
+    if (allTrips.length === 0) createNewTrip();
+    if (!allTrips.some(t => t.id === activeTripId)) activeTripId = allTrips[0].id;
 
     saveAllTripsToLocalStorage();
     syncActiveTripToState();
     renderAll();
     updateMapLayers();
 
-    if (!silent) {
-      showToast("Reisene er oppdatert", `${allTrips.length} reiser er hentet fra kontoen din.`, "check");
+    // 3. Send det som ikke er lagret i skyen ennå
+    for (const id of toPush) {
+      const t = allTrips.find(x => x.id === id);
+      if (t && (isTripOwnedByCurrentUser(t) || canEditTrip(t))) await pushTripToFirestore(t);
     }
+    updateSyncStatus();
+
+    if (!silent) {
+      showToast("Reisene er oppdatert", `${allTrips.length} ${allTrips.length === 1 ? "reise" : "reiser"} er hentet fra kontoen din.`, "check");
+    }
+    return true;
   } catch (err) {
     console.warn("Sky-synkronisering feilet:", err);
+    updateSyncStatus();
     if (!silent) {
-      showToast("Kunne ikke oppdatere", "Fikk ikke kontakt med serveren. Endringene dine er lagret og sendes når nettet er tilbake.", "alert-triangle");
+      showToast("Kunne ikke oppdatere", "Fikk ikke kontakt med serveren. Endringene dine er lagret på denne enheten og sendes når nettet er tilbake.", "alert-triangle");
     }
+    return false;
   }
 }
 
+let isLoggingOut = false;
+
 export function saveAllTripsToLocalStorage() {
+  if (isLoggingOut) return;
   try {
     const payload = {
       activeTripId,
@@ -7185,6 +7353,7 @@ window.cancelFriendRequest = cancelFriendRequest;
 window.setTripMemberRole = setTripMemberRole;
 window.confirmRemoveTripMember = confirmRemoveTripMember;
 window.applyEditMode = applyEditMode;
+window.updateSyncStatus = updateSyncStatus;
 window.newTripFromPage = newTripFromPage;
 window.switchTripManagerTab = switchTripManagerTab;
 window.syncAllUserTripsWithCloud = syncAllUserTripsWithCloud;
