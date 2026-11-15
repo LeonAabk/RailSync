@@ -1570,6 +1570,7 @@ export function updateSyncStatus() {
   let state;
   if (!currentUser) state = "";
   else if (syncInFlight > 0) state = "saving";
+  else if (allTrips.some(t => t._syncError && isTripDirty(t))) state = "error";
   else if (allTrips.some(isTripDirty) || pendingBudgetPushes.size > 0 || sharedOutbox.length > 0) state = online ? (lastSyncFailed ? "retry" : "saving") : "offline";
   else state = "saved";
   if (state === syncStatusState) return;
@@ -1578,7 +1579,8 @@ export function updateSyncStatus() {
     saving: ["Lagrer …", "bg-amber-400 animate-pulse", "Endringene sendes til kontoen din."],
     saved: ["Lagret", "bg-emerald-500", "Alt er lagret på kontoen din."],
     offline: ["Ikke på nett", "bg-slate-400", "Endringene er lagret på denne enheten og sendes når nettet er tilbake."],
-    retry: ["Prøver igjen …", "bg-amber-500", "Fikk ikke lagret med en gang. Prøver igjen automatisk."]
+    retry: ["Prøver igjen …", "bg-amber-500", "Fikk ikke lagret med en gang. Prøver igjen automatisk."],
+    error: ["Ikke lagret", "bg-rose-500", "Noe kunne ikke lagres på kontoen. Endringene ligger på denne enheten."]
   };
   document.querySelectorAll("[data-sync-status]").forEach(el => {
     if (!state) { el.classList.add("hidden"); return; }
@@ -1616,6 +1618,35 @@ if (typeof window !== "undefined") {
     else retryDirtyTrips();
   });
   setInterval(retryDirtyTrips, 15000);
+}
+
+// ---------------------------------------------------------------------------
+// Ny versjon av siden: faner som har stått åpne lenge skal ikke kjøre gammel kode
+// ---------------------------------------------------------------------------
+export const APP_VERSION = "20261115-1";
+let newVersionAvailable = false;
+
+async function checkForNewVersion() {
+  if (newVersionAvailable || typeof fetch !== "function") return;
+  try {
+    const res = await fetch(`${location.pathname}?versjon=${Date.now()}`, { cache: "no-store" });
+    const text = await res.text();
+    const m = text.match(/app\.js\?v=([0-9A-Za-z.-]+)/);
+    if (!m || m[1] === APP_VERSION) return;
+    newVersionAvailable = true;
+    const nothingPending = !allTrips.some(isTripDirty) && pendingBudgetPushes.size === 0 && sharedOutbox.length === 0;
+    if (document.visibilityState === "hidden" && nothingPending) {
+      location.reload();
+      return;
+    }
+    const bar = document.getElementById("update-banner");
+    if (bar) bar.classList.remove("hidden");
+  } catch (e) { /* uten nett: prøv senere */ }
+}
+
+if (typeof window !== "undefined") {
+  setInterval(checkForNewVersion, 5 * 60 * 1000);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") checkForNewVersion(); });
 }
 
 function isCloudReady() {
@@ -1668,6 +1699,41 @@ function claimLocalOwnership(tripObj) {
 // endret noe, slås endringene sammen per stopp/tog/pakkeliste-punkt i stedet
 // for at den siste som lagrer overskriver den andre.
 // ---------------------------------------------------------------------------
+// Firestore godtar ikke lister inne i lister. Togruter lagres derfor som [{ lat, lng }, ...].
+export function normalizeGeometry(g) {
+  if (!Array.isArray(g)) return [];
+  return g.map(p => {
+    if (Array.isArray(p)) return { lat: Number(p[0]), lng: Number(p[1]) };
+    if (p && typeof p === "object") return { lat: Number(p.lat), lng: Number(p.lng) };
+    return null;
+  }).filter(p => p && Number.isFinite(p.lat) && Number.isFinite(p.lng));
+}
+
+function normalizeTrains(trains) {
+  return (Array.isArray(trains) ? trains : []).map(t => (t && typeof t === "object" && "routeGeometry" in t)
+    ? { ...t, routeGeometry: normalizeGeometry(t.routeGeometry) }
+    : t);
+}
+
+// Gjør en verdi trygg å lagre i Firestore: ingen lister i lister, ingen undefined eller NaN
+export function firestoreSafe(v, inArray = false) {
+  if (v === undefined) return null;
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  if (Array.isArray(v)) {
+    const arr = v.map(x => firestoreSafe(x, true));
+    if (!inArray) return arr;
+    // liste inne i liste: gjør om til objekt
+    if (v.length === 2 && v.every(x => typeof x === "number")) return { lat: v[0], lng: v[1] };
+    return { items: arr.map(x => (Array.isArray(x) ? { items: x } : x)) };
+  }
+  if (v && typeof v === "object") {
+    const o = {};
+    Object.keys(v).forEach(k => { if (v[k] !== undefined) o[k] = firestoreSafe(v[k], false); });
+    return o;
+  }
+  return v;
+}
+
 const sameJson = (a, b) => JSON.stringify(a === undefined ? null : a) === JSON.stringify(b === undefined ? null : b);
 
 function tripContentOf(t) {
@@ -1680,7 +1746,7 @@ function tripContentOf(t) {
     title,
     trip,
     stops: Array.isArray(src.stops) ? src.stops : [],
-    trains: Array.isArray(src.trains) ? src.trains : [],
+    trains: normalizeTrains(src.trains),
     packingList: Array.isArray(src.packingList) ? src.packingList : []
   }));
 }
@@ -1793,10 +1859,10 @@ function buildTripContentPayload(tripObj) {
     // Personlige budsjetter og utgifter lagres aldri på reisen – kun privat i users/{uid}
     trip: { ...trip, totalBudget: deleteField() },
     expenses: deleteField(),
-    stops: Array.isArray(clone.stops) ? clone.stops : [],
-    trains: Array.isArray(clone.trains) ? clone.trains : [],
-    packingList: Array.isArray(clone.packingList) ? clone.packingList : [],
-    activityLog: Array.isArray(clone.activityLog) ? clone.activityLog.slice(0, 12) : [],
+    stops: firestoreSafe(Array.isArray(clone.stops) ? clone.stops : []),
+    trains: firestoreSafe(normalizeTrains(clone.trains)),
+    packingList: firestoreSafe(Array.isArray(clone.packingList) ? clone.packingList : []),
+    activityLog: firestoreSafe(Array.isArray(clone.activityLog) ? clone.activityLog.slice(0, 12) : []),
     createdAt: clone.createdAt || new Date().toISOString(),
     updatedAt: clone.updatedAt || new Date().toISOString(),
     lastUpdatedBy: clone.lastUpdatedBy || "Reisende",
@@ -1809,7 +1875,7 @@ function buildTripMembershipPayload(tripObj) {
   return {
     ownerUid,
     owner: tripObj.owner,
-    members: JSON.parse(JSON.stringify(tripObj.members || [])),
+    members: firestoreSafe(JSON.parse(JSON.stringify(tripObj.members || []))),
     memberUids,
     editorUids,
     visibility: tripObj.visibility === "shared" ? "shared" : "private",
@@ -1849,6 +1915,21 @@ function pushTripToFirestore(tripObj, _retried = false) {
 }
 
 let syncInFlight = 0;
+const reportedSyncErrors = new Set();
+
+// Feil som ikke går over av seg selv ved å prøve igjen (ugyldige data, manglende tilgang)
+function isPermanentSyncError(err) {
+  const code = err && err.code;
+  if (["invalid-argument", "permission-denied", "out-of-range", "unimplemented"].includes(code)) return true;
+  return !code && /invalid data|not supported|Unsupported field/i.test(String(err && err.message));
+}
+
+function reportSyncError(tripObj, err) {
+  tripObj._syncError = String((err && (err.code || err.message)) || "ukjent").slice(0, 200);
+  if (reportedSyncErrors.has(tripObj.id)) return;
+  reportedSyncErrors.add(tripObj.id);
+  showToast("Kunne ikke lagre i skyen", `«${tripObj.title || "Reisen"}» er lagret på denne enheten, men ikke på kontoen. Last inn siden på nytt, og si fra hvis det fortsetter.`, "alert-triangle");
+}
 let lastSyncFailed = false;
 
 async function pushTripToFirestoreNow(tripObj, _retried = false) {
@@ -1885,6 +1966,7 @@ async function pushTripToFirestoreInner(tripObj, _retried = false) {
       await setDoc(ref, payload, { merge: true });
       tripObj._base = tripContentOf(tripObj);
       tripObj._metaBase = ownerMetaOf(payload);
+      delete tripObj._syncError;
     } else {
       let merged = null;
       try {
@@ -1911,6 +1993,7 @@ async function pushTripToFirestoreInner(tripObj, _retried = false) {
         throw txErr;
       }
       if (merged) {
+        delete tripObj._syncError;
         tripObj._base = merged.content;
         tripObj.activityLog = mergeActivityLogs(tripObj.activityLog, merged.activityLog);
         if (!sameJson(merged.content, merged.local)) {
@@ -1929,12 +2012,23 @@ async function pushTripToFirestoreInner(tripObj, _retried = false) {
     if (tripObj.id === activeTripId) startBudgetListeners();
     return true;
   } catch (err) {
-    // Reiser i eldre format (uten eier) kan ikke oppdateres – lagre dem på nytt med ny ID
-    if (owned && !_retried && err && err.code === "permission-denied") {
-      reassignTripId(tripObj);
-      tripObj._cloudCreated = false;
-      syncUrlWithActiveTrip();
-      return pushTripToFirestoreInner(tripObj, true);
+    const code = err && err.code;
+    if (code === "permission-denied") {
+      if (tripObj._base) {
+        // Reisen var synket før: den er slettet eller du er fjernet – ikke lag den på nytt
+        removeLocalTrip(tripObj.id, true);
+        return false;
+      }
+      // Reiser i eldre format (uten eier) kan ikke oppdateres – lagre dem på nytt med ny ID
+      if (owned && !_retried) {
+        reassignTripId(tripObj);
+        tripObj._cloudCreated = false;
+        syncUrlWithActiveTrip();
+        return pushTripToFirestoreInner(tripObj, true);
+      }
+    }
+    if (isPermanentSyncError(err)) {
+      reportSyncError(tripObj, err);
     }
     console.warn("Kunne ikke synkronisere reise til Firestore:", err);
     return false;
@@ -2185,8 +2279,15 @@ export async function loadAppState() {
     if (joined) return;
   }
 
-  // Eksempelreisen er fjernet: urørt slettes, endret beholdes som brukerens egen reise
+  // Togruter lagret som lister i lister (kunne ikke lagres i skyen) gjøres om
   let migrated = false;
+  allTrips.forEach(t => {
+    if ((t.trains || []).some(tr => Array.isArray(tr && tr.routeGeometry) && tr.routeGeometry.some(p => Array.isArray(p)))) {
+      t.trains = normalizeTrains(t.trains);
+      migrated = true;
+    }
+  });
+  // Eksempelreisen er fjernet: urørt slettes, endret beholdes som brukerens egen reise
   const untouchedCopies = allTrips.filter(t => t.id !== "eksempel-1" && isUntouchedExampleTrip(t));
   if (untouchedCopies.length) {
     migrated = true;
@@ -3455,7 +3556,7 @@ async function pushMyBudgetNow(tid) {
         uid,
         name: String(userProfile.displayName || "Reisende").slice(0, 60),
         totalBudget: content.totalBudget,
-        expenses: content.expenses.slice(0, 500),
+        expenses: firestoreSafe(content.expenses.slice(0, 500)),
         updatedAt: new Date().toISOString()
       });
       result = { content, local };
@@ -3609,7 +3710,7 @@ async function flushSharedOutbox() {
       try {
         const ref = doc(db, "trips", op.tripId, "sharedExpenses", op.id);
         if (op.op === "delete") await deleteDoc(ref);
-        else await setDoc(ref, op.data);
+        else await setDoc(ref, firestoreSafe(op.data));
         sharedOutbox = sharedOutbox.filter(o => o !== op);
         // Vis skrivingen med en gang, før lytteren melder fra
         const list = sharedExpensesByTrip[op.tripId] || [];
@@ -6487,8 +6588,14 @@ export function handleSaveStop(e) {
   const country = document.getElementById("stop-country").value.trim();
   const arrival = document.getElementById("stop-arrival").value;
   const departure = document.getElementById("stop-departure").value;
-  const lat = parseFloat(document.getElementById("stop-lat").value) || 48.0;
-  const lng = parseFloat(document.getElementById("stop-lng").value) || 12.0;
+  let lat = parseFloat(document.getElementById("stop-lat").value);
+  let lng = parseFloat(document.getElementById("stop-lng").value);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    // Skrevet inn for hånd: finn byen i stasjonslisten, ellers ingen kartposisjon (ikke en falsk en)
+    const st = findStationByName(city);
+    lat = st ? st.lat : null;
+    lng = st ? st.lng : null;
+  }
   const accomStatus = document.getElementById("stop-accom-status").value;
   const accomNote = document.getElementById("stop-accom-note").value.trim();
 
@@ -7702,7 +7809,7 @@ export function importLiveJourneyToTrip(idx) {
     duration: j.duration,
     isTravelDay: true,
     legsSummary: j.legsSummary || [],
-    routeGeometry: j.routeGeometry || []
+    routeGeometry: normalizeGeometry(j.routeGeometry)
   };
 
   appState.trains.push(newTrain);
@@ -7813,7 +7920,7 @@ export async function fetchRealTrackForSingleTrain(trainId, silent = false) {
     });
 
     if (combined.length > 1) {
-      train.routeGeometry = downsampleCoords(combined, 120);
+      train.routeGeometry = normalizeGeometry(downsampleCoords(combined, 120));
       const transitLegs = (best.legs || []).filter(l => l.mode && l.mode !== "WALK");
       train.transfers = Math.max(0, transitLegs.length - 1);
       if (!silent) {
@@ -7967,6 +8074,7 @@ window.setTripMemberRole = setTripMemberRole;
 window.confirmRemoveTripMember = confirmRemoveTripMember;
 window.applyEditMode = applyEditMode;
 window.updateSyncStatus = updateSyncStatus;
+window.checkForNewVersion = checkForNewVersion;
 window.openNewTripPage = openNewTripPage;
 window.handleCreateTripFromForm = handleCreateTripFromForm;
 window.joinFromWelcome = joinFromWelcome;

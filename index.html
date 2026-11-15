@@ -2223,6 +2223,11 @@
   <!-- ========================================================================= -->
   <!-- DIALOG: BEKREFT / SKRIV INN (erstatter nettleserens confirm/prompt)       -->
   <!-- ========================================================================= -->
+  <div id="update-banner" class="hidden fixed bottom-20 lg:bottom-6 left-1/2 -translate-x-1/2 z-[70] w-[calc(100%-2rem)] max-w-md bg-slate-900 text-white rounded-xl shadow-xl px-4 py-3 flex items-center justify-between gap-3" role="status">
+    <p class="text-sm">En ny versjon av RailSync er klar.</p>
+    <button type="button" onclick="location.reload()" class="shrink-0 px-3 py-1.5 rounded-lg bg-white text-slate-900 text-xs font-semibold">Oppdater</button>
+  </div>
+
   <div id="modal-app-dialog" class="fixed inset-0 z-[60] hidden bg-slate-900/50 flex items-center justify-center p-4">
     <form id="app-dialog-form" class="bg-white rounded-2xl max-w-md w-full shadow-xl border border-slate-200" role="dialog" aria-modal="true" aria-labelledby="app-dialog-title">
       <div class="p-5 sm:p-6 space-y-3">
@@ -2374,7 +2379,7 @@
   <!-- ========================================================================= -->
   <!-- MODULAR JAVASCRIPT ENTRYPOINT                                             -->
   <!-- ========================================================================= -->
-  <script type="module" src="./app.js?v=20261111-16"></script>
+  <script type="module" src="./app.js?v=20261115-1"></script>
 
 </body>
 </html>
