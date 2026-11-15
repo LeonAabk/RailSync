@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -42,6 +42,16 @@ jobs:
           grep -q 'assets/railsync.css' _site/index.html
           ! grep -q 'cdn.tailwindcss.com' _site/index.html
           ls -la _site _site/assets
+
+      - name: Midlertidig forhåndsvisning (kun under verifisering)
+        if: github.ref == 'refs/heads/css-build'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir preview && cp _site/assets/railsync.css preview/
+          cd preview && git init -q && git checkout -q -b css-preview
+          git -c user.name=ci -c user.email=ci@example.invalid add . && git -c user.name=ci -c user.email=ci@example.invalid commit -qm "preview"
+          git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" css-preview
 
       - uses: actions/upload-pages-artifact@v3
         with:
