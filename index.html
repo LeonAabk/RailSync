@@ -221,7 +221,7 @@
             <p class="text-3xl xl:text-4xl font-semibold leading-tight tracking-tight">Planlegg Interrail-reisen sammen med reisefølget ditt.</p>
             <p class="text-sm text-white/75 leading-relaxed">Ruter, togtider, budsjett og pakkeliste på ett sted – oppdatert i sanntid for alle som er med.</p>
           </div>
-          <p class="text-xs text-white/50">Et prosjekt fra Aabak Studio</p>
+          <p class="text-xs text-white/70">Et prosjekt fra Aabak Studio</p>
         </div>
       </div>
 
@@ -242,7 +242,7 @@
 
           <div class="grid grid-cols-2 p-1 rounded-lg bg-slate-100 text-sm" role="tablist" aria-label="Velg innlogging eller ny konto">
             <button type="button" id="auth-mode-login" role="tab" aria-selected="true" onclick="setAuthMode('login')" class="py-2 rounded-md font-semibold bg-white text-slate-900 shadow-sm transition">Logg inn</button>
-            <button type="button" id="auth-mode-signup" role="tab" aria-selected="false" onclick="setAuthMode('signup')" class="py-2 rounded-md font-medium text-slate-500 hover:text-slate-800 transition">Opprett konto</button>
+            <button type="button" id="auth-mode-signup" role="tab" aria-selected="false" onclick="setAuthMode('signup')" class="py-2 rounded-md font-medium text-slate-600 hover:text-slate-900 transition">Opprett konto</button>
           </div>
 
           <button type="button" id="btn-google-auth" onclick="handleGoogleSignIn()" class="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-lg bg-white hover:bg-slate-50 border border-slate-300 text-sm font-semibold text-slate-800 transition">
@@ -257,7 +257,7 @@
 
           <div class="flex items-center gap-3">
             <div class="flex-1 h-px bg-slate-200"></div>
-            <span class="text-xs text-slate-400">eller med brukernavn</span>
+            <span class="text-xs text-slate-500">eller med brukernavn</span>
             <div class="flex-1 h-px bg-slate-200"></div>
           </div>
 
@@ -279,7 +279,7 @@
             <button type="submit" id="btn-auth-submit" class="w-full py-2.5 px-4 rounded-lg bg-fjord-800 hover:bg-fjord-700 disabled:opacity-60 text-white text-sm font-semibold transition">Logg inn</button>
           </form>
 
-          <p class="text-xs text-slate-400 leading-relaxed">Brukernavn-kontoer har ikke e-post, så passordet kan ikke tilbakestilles. Bruk Google-innlogging hvis du vil være sikker på å ikke miste tilgangen.</p>
+          <p class="text-xs text-slate-500 leading-relaxed">Brukernavn-kontoer har ikke e-post, så passordet kan ikke tilbakestilles. Bruk Google-innlogging hvis du vil være sikker på å ikke miste tilgangen.</p>
         </div>
       </div>
     </div>
@@ -2146,8 +2146,8 @@
   <!-- ========================================================================= -->
   <!-- MODAL: LEGG TIL UTGIFT                                                    -->
   <!-- ========================================================================= -->
-  <div id="modal-shared-expense" class="fixed inset-0 z-50 hidden bg-slate-900/50 flex items-center justify-center p-4">
-    <form id="form-shared-expense" onsubmit="handleSaveSharedExpense(event)" class="bg-white rounded-2xl max-w-md w-full shadow-xl border border-slate-200 max-h-[92vh] flex flex-col" role="dialog" aria-modal="true" aria-labelledby="shared-expense-modal-title">
+  <div id="modal-shared-expense" class="fixed inset-0 z-50 hidden bg-slate-900/50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="shared-expense-modal-title">
+    <form id="form-shared-expense" onsubmit="handleSaveSharedExpense(event)" class="bg-white rounded-2xl max-w-md w-full shadow-xl border border-slate-200 max-h-[92vh] flex flex-col">
       <div class="px-5 sm:px-6 pt-5 pb-4 border-b border-slate-100 flex items-start justify-between gap-4">
         <div>
           <h3 id="shared-expense-modal-title" class="text-base font-semibold text-slate-900">Ny felles utgift</h3>
@@ -2355,8 +2355,8 @@
     <button type="button" onclick="location.reload()" class="shrink-0 px-3 py-1.5 rounded-lg bg-white text-slate-900 text-xs font-semibold">Oppdater</button>
   </div>
 
-  <div id="modal-app-dialog" class="fixed inset-0 z-[60] hidden bg-slate-900/50 flex items-center justify-center p-4">
-    <form id="app-dialog-form" class="bg-white rounded-2xl max-w-md w-full shadow-xl border border-slate-200" role="dialog" aria-modal="true" aria-labelledby="app-dialog-title">
+  <div id="modal-app-dialog" class="fixed inset-0 z-[60] hidden bg-slate-900/50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="app-dialog-title">
+    <form id="app-dialog-form" class="bg-white rounded-2xl max-w-md w-full shadow-xl border border-slate-200">
       <div class="p-5 sm:p-6 space-y-3">
         <h3 id="app-dialog-title" class="text-base font-semibold text-slate-900">Bekreft</h3>
         <p id="app-dialog-message" class="text-sm text-slate-600 leading-relaxed"></p>

@@ -826,7 +826,7 @@ export function setAuthMode(mode) {
   const loginTab = document.getElementById("auth-mode-login");
   const signupTab = document.getElementById("auth-mode-signup");
   const activeCls = "py-2 rounded-md font-semibold bg-white text-slate-900 shadow-sm transition";
-  const idleCls = "py-2 rounded-md font-medium text-slate-500 hover:text-slate-800 transition";
+  const idleCls = "py-2 rounded-md font-medium text-slate-600 hover:text-slate-900 transition";
   if (loginTab) { loginTab.className = isSignup ? idleCls : activeCls; loginTab.setAttribute("aria-selected", String(!isSignup)); }
   if (signupTab) { signupTab.className = isSignup ? activeCls : idleCls; signupTab.setAttribute("aria-selected", String(isSignup)); }
 
