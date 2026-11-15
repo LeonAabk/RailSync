@@ -35,6 +35,11 @@ jobs:
       - name: Bygg CSS med Tailwind
         run: npx --yes tailwindcss@3.4.17 -c tailwind.config.cjs -i styles/tailwind.css -o _site/assets/railsync.css --minify
 
+      - name: Bygg ikonfil (bare Lucide-ikonene appen bruker)
+        run: |
+          (cd "$RUNNER_TEMP" && npm pack lucide@1.71.0 --silent && tar -xzf lucide-1.71.0.tgz)
+          node scripts/build-icons.cjs "$RUNNER_TEMP/package/dist/umd/lucide.min.js" _site/assets/icons.js
+
       - name: Sett versjonsnummer (tvinger nettlesere til å hente nye filer)
         run: |
           VER="$(date -u +%Y%m%d)-${GITHUB_SHA::7}"
@@ -42,6 +47,7 @@ jobs:
           sed -i -E "s/const APP_VERSION = \"dev\"/const APP_VERSION = \"${VER}\"/" _site/app.js
           grep -q "app.js?v=${VER}" _site/index.html
           grep -q "railsync.css?v=${VER}" _site/index.html
+          grep -q "icons.js?v=${VER}" _site/index.html
           grep -q "const APP_VERSION = \"${VER}\"" _site/app.js
           echo "Versjon: ${VER}"
 
@@ -52,8 +58,9 @@ jobs:
             grep -qF "$cls" _site/assets/railsync.css || { echo "Mangler $cls i CSS-en"; exit 1; }
           done
           grep -q 'assets/railsync.css' _site/index.html
-          for f in icon.svg favicon-32.png apple-touch-icon.png icon-192.png icon-512.png og-image.png; do test -s "_site/assets/$f"; done
+          for f in icons.js icon.svg favicon-32.png apple-touch-icon.png icon-192.png icon-512.png og-image.png; do test -s "_site/assets/$f"; done
           ! grep -q 'cdn.tailwindcss.com' _site/index.html
+          ! grep -q 'unpkg.com/lucide' _site/index.html
           ls -la _site _site/assets
 
       - uses: actions/upload-pages-artifact@v5
