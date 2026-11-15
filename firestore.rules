@@ -158,10 +158,22 @@ service cloud.firestore {
         && request.resource.data.get('editorUids', []) == resource.data.get('editorUids', []).removeAll([uid]);
     }
 
+    // Personens Interrail-pass (null = ingen pass)
+    function validPass(p) {
+      return p == null || (p is map
+        && p.keys().hasOnly(['kind', 'travelDays', 'periodDays', 'periodMonths', 'startDate'])
+        && p.kind in ['flexi', 'continuous', 'custom']
+        && p.travelDays is int && p.travelDays >= 0 && p.travelDays <= 90
+        && p.periodDays is int && p.periodDays >= 0 && p.periodDays <= 400
+        && p.periodMonths is int && p.periodMonths >= 0 && p.periodMonths <= 12
+        && p.startDate is string && p.startDate.size() <= 10);
+    }
+
     function validBudget(budgetUid) {
       let d = request.resource.data;
-      return d.keys().hasOnly(['uid', 'name', 'totalBudget', 'expenses', 'updatedAt'])
+      return d.keys().hasOnly(['uid', 'name', 'totalBudget', 'expenses', 'pass', 'updatedAt'])
         && d.uid == budgetUid
+        && (!('pass' in d) || validPass(d.pass))
         && d.totalBudget is number && d.totalBudget >= 0 && d.totalBudget <= 10000000
         && d.expenses is list && d.expenses.size() <= 500
         && (!('name' in d) || (d.name is string && d.name.size() <= 60));

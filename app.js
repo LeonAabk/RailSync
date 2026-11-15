@@ -1623,7 +1623,7 @@ if (typeof window !== "undefined") {
 // ---------------------------------------------------------------------------
 // Ny versjon av siden: faner som har stått åpne lenge skal ikke kjøre gammel kode
 // ---------------------------------------------------------------------------
-export const APP_VERSION = "20261115-1";
+export const APP_VERSION = "20261115-2";
 let newVersionAvailable = false;
 
 async function checkForNewVersion() {
@@ -2872,7 +2872,7 @@ export function handleCreateTripFromForm(e) {
   const start = val("new-trip-start");
   const end = val("new-trip-end");
   const stationText = val("new-trip-start-station").trim();
-  const passDays = parseInt(val("new-trip-pass-days"), 10) || 0;
+  const passChoice = val("new-trip-pass");
   const fail = (msg, focusId) => {
     if (err) { err.textContent = msg; err.classList.remove("hidden"); }
     const f = document.getElementById(focusId);
@@ -2884,11 +2884,20 @@ export function handleCreateTripFromForm(e) {
   const station = stationText ? findStationByName(stationText) : null;
   if (stationText && !station) return fail("Fant ikke stasjonen. Velg en fra listen, eller la feltet stå tomt.", "new-trip-start-station");
 
-  createNewTrip({ title, startDate: start, endDate: end, passDays, startStation: station });
+  const created = createNewTrip({ title, startDate: start, endDate: end, passDays: 0, startStation: station });
   persistState(`Opprettet «${title}»`);
+  const newTripId = (created && created.id) || activeTripId;
+  if (passChoice && passChoice !== "custom") {
+    const [kind, travelDays, periodDays, periodMonths] = passChoice.split(":");
+    setMyPass(newTripId, { kind, travelDays, periodDays, periodMonths, startDate: start });
+  } else if (passChoice !== "custom") {
+    setMyPass(newTripId, null);
+  }
   const form = document.getElementById("form-new-trip");
   if (form) form.reset();
   switchTab("overview");
+  renderAll();
+  if (passChoice === "custom") { openPassModal("custom"); return; }
   showToast("Reisen er opprettet", "Neste steg: legg til stoppene dine.", "check");
 }
 
@@ -3088,28 +3097,24 @@ export function renderOverview() {
   const statCountriesSub = document.getElementById("stat-countries-sub");
   if (statCountriesSub) statCountriesSub.textContent = countriesList || "Ingen land registrert";
 
-  // Pass days
-  const usedPassDays = appState.trains.filter(t => t.isTravelDay).length;
-  const totalPassDays = Number(appState.trip.totalPassDays) || 0;
-  const passPct = totalPassDays > 0 ? Math.min(100, Math.round((usedPassDays / totalPassDays) * 100)) : 0;
-
-  const statPassDays = document.getElementById("stat-pass-days");
-  if (statPassDays) statPassDays.textContent = totalPassDays > 0 ? `${usedPassDays} / ${totalPassDays} dager` : "Ikke satt";
-
+  // Mitt pass
+  const passInfo = passDisplay(getMyPassStatus());
+  const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+  setText("stat-pass-days", passInfo.main);
+  setText("stat-pass-sub", passInfo.warn || passInfo.sub);
+  const statPassSub = document.getElementById("stat-pass-sub");
+  if (statPassSub) statPassSub.classList.toggle("text-amber-700", Boolean(passInfo.warn));
   const statPassBar = document.getElementById("stat-pass-bar");
-  if (statPassBar) statPassBar.style.width = `${passPct}%`;
-
-  const sidebarPassText = document.getElementById("sidebar-pass-days-text");
-  if (sidebarPassText) sidebarPassText.textContent = totalPassDays > 0 ? `${usedPassDays} av ${totalPassDays}` : "Ikke satt";
-
+  if (statPassBar) {
+    statPassBar.style.width = `${passInfo.pct}%`;
+    statPassBar.classList.toggle("bg-amber-500", Boolean(passInfo.warn));
+    statPassBar.classList.toggle("bg-brand-600", !passInfo.warn);
+  }
+  setText("sidebar-pass-days-text", passInfo.main);
   const sidebarPassBar = document.getElementById("sidebar-pass-progress-bar");
-  if (sidebarPassBar) sidebarPassBar.style.width = `${passPct}%`;
-
-  const sidebarPassRemaining = document.getElementById("sidebar-pass-remaining");
-  if (sidebarPassRemaining) sidebarPassRemaining.textContent = totalPassDays > 0 ? `${Math.max(0, totalPassDays - usedPassDays)} dager` : "–";
-
-  const mobilePassEl = document.getElementById("mobile-subbar-pass");
-  if (mobilePassEl) mobilePassEl.textContent = totalPassDays > 0 ? `${usedPassDays}/${totalPassDays} dgr` : "Pass";
+  if (sidebarPassBar) sidebarPassBar.style.width = `${passInfo.pct}%`;
+  setText("sidebar-pass-remaining", passInfo.warn || passInfo.sub);
+  setText("mobile-subbar-pass", passInfo.short);
 
   // Budget
   const totalSpent = appState.expenses.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
@@ -3233,6 +3238,7 @@ export function renderOverview() {
 }
 
 export function renderTrains() {
+  const trainPassStatus = getMyPassStatus();
   renderLiveRouteChips();
 
   const filterEl = document.getElementById("train-filter");
@@ -3287,8 +3293,12 @@ export function renderTrains() {
       `;
     }
 
+    const passDate = passTravelDateOfTrain(train);
+    const passOutside = passDate && trainPassStatus.pass && trainPassStatus.outside.includes(passDate);
     const travelDayBadge = train.isTravelDay 
-      ? `<span class="px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-bold bg-brand-50 text-brand-700 border border-brand-200">Reisedag</span>`
+      ? (passOutside
+        ? `<span class="px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200" title="Denne reisedagen er utenfor perioden passet ditt gjelder">Utenfor passet</span>`
+        : `<span class="px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-bold bg-brand-50 text-brand-700 border border-brand-200"${passDate && passDate !== train.date ? ' title="Direkte nattog etter kl. 19 teller på ankomstdagen"' : ""}>Reisedag${passDate && passDate !== train.date ? ` (${formatDate(passDate)})` : ""}</span>`)
       : `<span class="px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-medium bg-slate-100 text-slate-500">Lokal</span>`;
 
     const hasTrack = Array.isArray(train.routeGeometry) && train.routeGeometry.length > 1;
@@ -3399,6 +3409,174 @@ export function renderTrains() {
   if (window.lucide) lucide.createIcons();
 }
 
+
+// ---------------------------------------------------------------------------
+// Interrail-pass – hver person har sitt eget (trips/{id}/budgets/{uid}.pass)
+// kind: flexi (N reisedager innen en periode), continuous (fri reise hele perioden), custom
+// travelDays 0 = ubegrenset · periodDays / periodMonths 0 = hele reisen
+// ---------------------------------------------------------------------------
+export const PASS_FLEXI_PRESETS = [
+  { travelDays: 4, periodMonths: 1 }, { travelDays: 5, periodMonths: 1 }, { travelDays: 7, periodMonths: 1 },
+  { travelDays: 10, periodMonths: 2 }, { travelDays: 15, periodMonths: 2 }
+];
+export const PASS_CONTINUOUS_PRESETS = [
+  { periodDays: 15 }, { periodDays: 22 }, { periodMonths: 1 }, { periodMonths: 2 }, { periodMonths: 3 }
+];
+
+export function normalizePass(p) {
+  if (!p || typeof p !== "object") return null;
+  const kind = ["flexi", "continuous", "custom"].includes(p.kind) ? p.kind : null;
+  if (!kind) return null;
+  const int = (v, max) => { const n = Math.round(Number(v)); return Number.isFinite(n) && n > 0 ? Math.min(max, n) : 0; };
+  let travelDays = int(p.travelDays, 90);
+  let periodMonths = int(p.periodMonths, 12);
+  let periodDays = periodMonths ? 0 : int(p.periodDays, 400);
+  if (kind === "continuous") travelDays = 0;
+  if (kind === "flexi" && !travelDays) return null;
+  if (kind === "continuous" && !periodDays && !periodMonths) return null;
+  const startDate = /^\d{4}-\d{2}-\d{2}$/.test(String(p.startDate || "")) ? String(p.startDate) : "";
+  return { kind, travelDays, periodDays, periodMonths, startDate };
+}
+
+function passPeriodText(p, short) {
+  if (p.periodMonths) return short ? `${p.periodMonths} mnd` : `${p.periodMonths} ${p.periodMonths === 1 ? "måned" : "måneder"}`;
+  if (p.periodDays) return `${p.periodDays} dager`;
+  return "hele reisen";
+}
+
+export function passLabel(pass) {
+  const p = normalizePass(pass);
+  if (!p) return "Ikke satt";
+  const per = passPeriodText(p, false);
+  if (p.kind === "continuous") return `Sammenhengende pass, ${per}`;
+  const days = p.travelDays ? `${p.travelDays} reisedager innen ${per}` : `Ubegrenset med reisedager i ${per}`;
+  return p.kind === "flexi" ? `Fleksipass, ${days}` : `Eget pass, ${days}`;
+}
+
+export function passShortLabel(pass) {
+  const p = normalizePass(pass);
+  if (!p) return "–";
+  const per = passPeriodText(p, true);
+  if (!p.travelDays) return `Fri reise, ${per}`;
+  return `${p.travelDays} dager på ${per}`;
+}
+
+function isoAddDays(iso, n) {
+  const d = new Date(iso + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+function isoAddMonths(iso, m) {
+  const [y, mo, da] = iso.split("-").map(Number);
+  const lastDay = new Date(Date.UTC(y, mo - 1 + m + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(y, mo - 1 + m, Math.min(da, lastDay))).toISOString().slice(0, 10);
+}
+function isoDiffDays(a, b) {
+  return Math.round((Date.parse(b + "T00:00:00Z") - Date.parse(a + "T00:00:00Z")) / 86400000);
+}
+function todayISO() {
+  if (typeof window !== "undefined" && window.__today) return window.__today;
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+// Hvilken dato et tog bruker av passet. Direkte nattog etter kl. 19 som kommer fram neste dag, teller på ankomstdagen.
+export function passTravelDateOfTrain(t) {
+  if (!t || !t.isTravelDay || !/^\d{4}-\d{2}-\d{2}$/.test(String(t.date || ""))) return null;
+  const dep = String(t.departureTime || ""), arr = String(t.arrivalTime || "");
+  const direct = !(Number(t.transfers) > 0);
+  if (direct && /^\d{2}:\d{2}/.test(dep) && /^\d{2}:\d{2}/.test(arr) && dep >= "19:00" && arr < dep) return isoAddDays(t.date, 1);
+  return t.date;
+}
+
+export function computePassStatus(pass, trains, trip, today = todayISO()) {
+  const p = normalizePass(pass);
+  const dates = [...new Set((trains || []).map(passTravelDateOfTrain).filter(Boolean))].sort();
+  const base = { pass: p, dates, used: dates.length, outside: [], start: "", end: "", length: 0, state: "none", daysLeft: null, unlimited: false, total: 0, remaining: null, over: 0 };
+  if (!p) return base;
+  const tr = trip || {};
+  const start = p.startDate || tr.startDate || dates[0] || "";
+  let end = "";
+  if (start) {
+    if (p.periodMonths) end = isoAddDays(isoAddMonths(start, p.periodMonths), -1);
+    else if (p.periodDays) end = isoAddDays(start, p.periodDays - 1);
+    else if (tr.endDate && tr.endDate >= start) end = tr.endDate;
+  }
+  const inPeriod = d => (!start || d >= start) && (!end || d <= end);
+  const usedDates = dates.filter(inPeriod);
+  const unlimited = !p.travelDays;
+  const length = start && end ? isoDiffDays(start, end) + 1 : 0;
+  let state = "nodates", daysLeft = null;
+  if (start && end) {
+    if (today < start) { state = "before"; daysLeft = length; }
+    else if (today > end) { state = "expired"; daysLeft = 0; }
+    else { state = "active"; daysLeft = isoDiffDays(today, end) + 1; }
+  }
+  return {
+    ...base, start, end, length, state, daysLeft, unlimited,
+    used: usedDates.length, outside: dates.filter(d => !inPeriod(d)),
+    total: p.travelDays, remaining: unlimited ? null : Math.max(0, p.travelDays - usedDates.length),
+    over: unlimited ? 0 : Math.max(0, usedDates.length - p.travelDays)
+  };
+}
+
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+
+// Tekster til oversikten, sidemenyen og mobilen
+export function passDisplay(s) {
+  if (!s || !s.pass) return { main: "Ikke satt", sub: "Legg til passet ditt", pct: 0, short: "Pass", warn: "" };
+  let warn = "";
+  if (s.over > 0) warn = `${plural(s.over, "reisedag", "reisedager")} for mye`;
+  else if (s.outside.length) warn = `${plural(s.outside.length, "reisedag", "reisedager")} utenfor passperioden`;
+  if (!s.unlimited) {
+    const pct = s.total ? Math.min(100, Math.round((s.used / s.total) * 100)) : 0;
+    let sub = `${s.remaining} igjen`;
+    if (s.state === "active") sub += ` · gyldig til ${formatDate(s.end)}`;
+    else if (s.state === "before") sub += ` · fra ${formatDate(s.start)}`;
+    else if (s.state === "expired") sub = `Gikk ut ${formatDate(s.end)}`;
+    return { main: `${s.used} / ${s.total} dager`, sub, pct, short: `${s.used}/${s.total} dgr`, warn };
+  }
+  if (s.state === "active") {
+    const elapsed = s.length - s.daysLeft;
+    return { main: `${plural(s.daysLeft, "dag", "dager")} igjen`, sub: `av ${s.length} · til ${formatDate(s.end)}`, pct: Math.round((elapsed / s.length) * 100), short: `${s.daysLeft} d igjen`, warn };
+  }
+  if (s.state === "before") return { main: `${s.length} dager`, sub: `Fri reise fra ${formatDate(s.start)}`, pct: 0, short: `${s.length} d`, warn };
+  if (s.state === "expired") return { main: "Utløpt", sub: `Gikk ut ${formatDate(s.end)}`, pct: 100, short: "Utløpt", warn };
+  return { main: "Fri reise", sub: "Sett startdato på passet", pct: 0, short: "Fri reise", warn };
+}
+
+// Gamle reiser hadde ett felles tall for reisedager på selve reisen
+function legacyPassFromTrip(tripObj) {
+  const n = Number(tripObj && tripObj.trip && tripObj.trip.totalPassDays) || 0;
+  if (!n) return null;
+  const preset = PASS_FLEXI_PRESETS.find(x => x.travelDays === n);
+  return preset ? normalizePass({ kind: "flexi", ...preset }) : normalizePass({ kind: "custom", travelDays: n });
+}
+
+export function getMyPass(tripObj) {
+  if (!tripObj) return null;
+  const entry = personalBudgetsByTrip[tripObj.id];
+  if (entry && Object.prototype.hasOwnProperty.call(entry, "pass")) return normalizePass(entry.pass);
+  return legacyPassFromTrip(tripObj);
+}
+
+export function getMyPassStatus(tripObj) {
+  const t = tripObj || getActiveTripObject();
+  if (!t) return computePassStatus(null, [], {});
+  const isActive = t.id === activeTripId;
+  return computePassStatus(getMyPass(t), isActive ? appState.trains : t.trains, isActive ? appState.trip : t.trip);
+}
+
+export function setMyPass(tid, pass) {
+  if (!tid) return;
+  const entry = personalBudgetsByTrip[tid] || { totalBudget: 0, expenses: [] };
+  entry.pass = normalizePass(pass);
+  entry.updatedAt = new Date().toISOString();
+  personalBudgetsByTrip[tid] = entry;
+  savePersonalBudgetsToStorage();
+  pushMyBudget(tid);
+}
+
 // ---------------------------------------------------------------------------
 // Budsjett i reisefølget
 // - Hver person: trips/{id}/budgets/{uid} – alle i reisefølget kan se, bare eieren endrer
@@ -3436,10 +3614,23 @@ function isTripInCloud(t) {
 
 function budgetContentOf(entry) {
   const e = entry || {};
-  return JSON.parse(JSON.stringify({
+  const out = {
     totalBudget: Math.max(0, Number(e.totalBudget) || 0),
     expenses: Array.isArray(e.expenses) ? e.expenses : []
-  }));
+  };
+  if (Object.prototype.hasOwnProperty.call(e, "pass")) out.pass = normalizePass(e.pass);
+  return JSON.parse(JSON.stringify(out));
+}
+
+// Tre-veis sammenslåing av eget budsjett og pass (lokalt mot skyen, med forrige felles versjon som base)
+function mergeBudgetContent(base, local, remote) {
+  const out = {
+    totalBudget: local.totalBudget !== base.totalBudget ? local.totalBudget : remote.totalBudget,
+    expenses: mergeItemList(base.expenses, local.expenses, remote.expenses)
+  };
+  const pick = !sameJson(local.pass, base.pass) ? local : remote;
+  if (Object.prototype.hasOwnProperty.call(pick, "pass")) out.pass = pick.pass;
+  return out;
 }
 
 function myUidOrLocal() {
@@ -3486,7 +3677,7 @@ function applyMyRemoteBudget(tid, remoteDoc) {
   const local = budgetContentOf(entry);
   if (!remoteDoc) {
     // Ikke i skyen ennå: last opp hvis det finnes noe (også budsjetter fra før denne versjonen)
-    const meaningful = local.totalBudget > 0 || local.expenses.length > 0;
+    const meaningful = local.totalBudget > 0 || local.expenses.length > 0 || Boolean(local.pass);
     if (meaningful && !pendingBudgetPushes.has(tid)) pushMyBudget(tid);
     return;
   }
@@ -3495,15 +3686,20 @@ function applyMyRemoteBudget(tid, remoteDoc) {
   let next = remote;
   let needsPush = false;
   if (base && !sameJson(local, base) && !sameJson(local, remote)) {
-    next = {
-      totalBudget: local.totalBudget !== base.totalBudget ? local.totalBudget : remote.totalBudget,
-      expenses: mergeItemList(base.expenses, local.expenses, remote.expenses)
-    };
+    next = mergeBudgetContent(base, local, remote);
     needsPush = !sameJson(next, remote);
   }
+  const passBefore = entry ? budgetContentOf(entry).pass : undefined;
   personalBudgetsByTrip[tid] = { ...(entry || {}), ...next, _base: remote, updatedAt: remoteDoc.updatedAt || new Date().toISOString() };
+  if (!Object.prototype.hasOwnProperty.call(next, "pass") && entry && Object.prototype.hasOwnProperty.call(entry, "pass") && !needsPush) {
+    // Skyen har ikke pass, men vi har et lokalt: send det
+    needsPush = true;
+  }
+  const passChanged = !sameJson(passBefore, personalBudgetsByTrip[tid].pass);
   savePersonalBudgetsToStorage();
-  if (tid === activeTripId && !sameJson(next, budgetContentOf({ totalBudget: appState.trip.totalBudget, expenses: appState.expenses }))) {
+  const budgetPart = { totalBudget: next.totalBudget, expenses: next.expenses };
+  if (tid === activeTripId && passChanged && sameJson(budgetPart, budgetContentOf({ totalBudget: appState.trip.totalBudget, expenses: appState.expenses }))) renderAll();
+  if (tid === activeTripId && !sameJson(budgetPart, budgetContentOf({ totalBudget: appState.trip.totalBudget, expenses: appState.expenses }))) {
     isApplyingRemoteBudget = true;
     try {
       appState.trip.totalBudget = next.totalBudget;
@@ -3546,19 +3742,20 @@ async function pushMyBudgetNow(tid) {
         const remote = budgetContentOf(snap.data());
         const base = entry._base || null;
         if (base && !sameJson(remote, base)) {
-          content = {
-            totalBudget: local.totalBudget !== base.totalBudget ? local.totalBudget : remote.totalBudget,
-            expenses: mergeItemList(base.expenses, local.expenses, remote.expenses)
-          };
+          content = mergeBudgetContent(base, local, remote);
+        } else if (!Object.prototype.hasOwnProperty.call(local, "pass") && Object.prototype.hasOwnProperty.call(remote, "pass")) {
+          content = { ...local, pass: remote.pass };
         }
       }
-      tx.set(ref, {
+      const payload = {
         uid,
         name: String(userProfile.displayName || "Reisende").slice(0, 60),
         totalBudget: content.totalBudget,
         expenses: firestoreSafe(content.expenses.slice(0, 500)),
         updatedAt: new Date().toISOString()
-      });
+      };
+      if (Object.prototype.hasOwnProperty.call(content, "pass")) payload.pass = content.pass;
+      tx.set(ref, payload);
       result = { content, local };
     });
     pendingBudgetPushes.delete(tid);
@@ -3567,16 +3764,14 @@ async function pushMyBudgetNow(tid) {
     entry._base = result.content;
     if (!sameJson(result.content, result.local)) {
       const current = budgetContentOf(entry);
-      const merged = sameJson(current, result.local) ? result.content : {
-        totalBudget: current.totalBudget !== result.local.totalBudget ? current.totalBudget : result.content.totalBudget,
-        expenses: mergeItemList(result.local.expenses, current.expenses, result.content.expenses)
-      };
+      const merged = sameJson(current, result.local) ? result.content : mergeBudgetContent(result.local, current, result.content);
       Object.assign(entry, merged);
       if (tid === activeTripId) {
         isApplyingRemoteBudget = true;
         try {
           appState.trip.totalBudget = merged.totalBudget;
           appState.expenses = JSON.parse(JSON.stringify(merged.expenses));
+          personalBudgetsByTrip[tid] = entry;
           renderAll();
         } finally { isApplyingRemoteBudget = false; }
       }
@@ -4499,7 +4694,7 @@ export function renderTripManagerList() {
     const members = Array.isArray(tripItem.members) ? tripItem.members : [];
     const stopsCount = Array.isArray(tripItem.stops) ? tripItem.stops.length : 0;
     const trainsCount = Array.isArray(tripItem.trains) ? tripItem.trains.length : 0;
-    const passDays = Number(tripItem.trip && tripItem.trip.totalPassDays) || 0;
+    const myPassShort = passShortLabel(getMyPass(tripItem));
     const ownerName = (tripItem.owner && tripItem.owner.name) || "Ukjent";
     const others = members.filter(m => (m.uid || m.id) !== myUid).length;
 
@@ -4546,7 +4741,7 @@ export function renderTripManagerList() {
           <dl class="grid grid-cols-3 gap-2 text-center rounded-xl bg-slate-50 py-2.5">
             <div><dt class="text-[11px] text-slate-500">Stopp</dt><dd class="text-sm font-semibold text-slate-900">${stopsCount}</dd></div>
             <div><dt class="text-[11px] text-slate-500">Togreiser</dt><dd class="text-sm font-semibold text-slate-900">${trainsCount}</dd></div>
-            <div><dt class="text-[11px] text-slate-500">Passdager</dt><dd class="text-sm font-semibold text-slate-900">${passDays || "–"}</dd></div>
+            <div class="min-w-0"><dt class="text-[11px] text-slate-500">Mitt pass</dt><dd class="text-sm font-semibold text-slate-900 truncate">${escapeHtml(myPassShort)}</dd></div>
           </dl>
         </div>
         <div class="px-5 py-3.5 border-t border-slate-100 flex items-center justify-between gap-3">
@@ -6644,28 +6839,140 @@ export function deleteStop(id) {
   renderAll();
 }
 
+
+// --- Vinduet «Mitt pass» ---------------------------------------------------
+function passPresetValue(p) { return `${p.travelDays || 0}:${p.periodDays || 0}:${p.periodMonths || 0}`; }
+
+export function openPassModal(forceKind) {
+  const t = getActiveTripObject();
+  if (!t) return;
+  const p = getMyPass(t);
+  const kind = forceKind || (p ? p.kind : "none");
+  const form = document.getElementById("form-pass");
+  if (!form) return;
+  form.querySelectorAll('input[name="pass-kind"]').forEach(r => { r.checked = r.value === kind; });
+  const flexi = document.getElementById("pass-flexi-preset");
+  const cont = document.getElementById("pass-continuous-preset");
+  flexi.value = p && p.kind === "flexi" && PASS_FLEXI_PRESETS.some(x => passPresetValue({ ...x }) === passPresetValue(p)) ? passPresetValue(p) : "7:0:1";
+  cont.value = p && p.kind === "continuous" ? passPresetValue(p) : "0:0:1";
+  if (![...cont.options].some(o => o.value === cont.value)) cont.value = "0:0:1";
+  const custom = p && (p.kind === "custom" || (p.kind === "flexi" && flexi.value !== passPresetValue(p))) ? p : null;
+  document.getElementById("pass-custom-days").value = custom && custom.travelDays ? custom.travelDays : "";
+  document.getElementById("pass-custom-period").value = custom ? (custom.periodMonths || custom.periodDays || "") : "";
+  document.getElementById("pass-custom-unit").value = custom && custom.periodMonths ? "months" : "days";
+  if (custom && p.kind === "flexi") form.querySelectorAll('input[name="pass-kind"]').forEach(r => { r.checked = r.value === "custom"; });
+  document.getElementById("pass-start-date").value = (p && p.startDate) || (t.trip && t.trip.startDate) || "";
+  renderPassGroupList(t);
+  updatePassForm();
+  openModal("modal-pass");
+}
+
+function readPassForm() {
+  const form = document.getElementById("form-pass");
+  const kindEl = form.querySelector('input[name="pass-kind"]:checked');
+  const kind = kindEl ? kindEl.value : "none";
+  const startDate = document.getElementById("pass-start-date").value;
+  const fromPreset = (v) => { const [travelDays, periodDays, periodMonths] = String(v).split(":").map(Number); return { travelDays, periodDays, periodMonths }; };
+  if (kind === "flexi") return normalizePass({ kind, ...fromPreset(document.getElementById("pass-flexi-preset").value), startDate });
+  if (kind === "continuous") return normalizePass({ kind, ...fromPreset(document.getElementById("pass-continuous-preset").value), startDate });
+  if (kind === "custom") {
+    const n = parseInt(document.getElementById("pass-custom-period").value, 10) || 0;
+    const months = document.getElementById("pass-custom-unit").value === "months";
+    return normalizePass({ kind, travelDays: parseInt(document.getElementById("pass-custom-days").value, 10) || 0, periodDays: months ? 0 : n, periodMonths: months ? n : 0, startDate });
+  }
+  return null;
+}
+
+export function updatePassForm() {
+  const form = document.getElementById("form-pass");
+  if (!form) return;
+  const kindEl = form.querySelector('input[name="pass-kind"]:checked');
+  const kind = kindEl ? kindEl.value : "none";
+  document.getElementById("pass-flexi-fields").classList.toggle("hidden", kind !== "flexi");
+  document.getElementById("pass-continuous-fields").classList.toggle("hidden", kind !== "continuous");
+  document.getElementById("pass-custom-fields").classList.toggle("hidden", kind !== "custom");
+  document.getElementById("pass-start-field").classList.toggle("hidden", kind === "none");
+  const preview = document.getElementById("pass-preview");
+  const t = getActiveTripObject();
+  const p = readPassForm();
+  if (!preview) return;
+  if (!p) {
+    preview.innerHTML = kind === "none"
+      ? `<p class="text-slate-600">Ingen pass registrert. Togene telles fortsatt, men uten grense.</p>`
+      : `<p class="text-amber-800">Fyll ut passet for å se hvor lenge det gjelder.</p>`;
+    return;
+  }
+  const s = computePassStatus(p, appState.trains, t ? t.trip : {});
+  const d = passDisplay(s);
+  const period = s.start && s.end ? `${formatDate(s.start)} – ${formatDate(s.end)} (${s.length} dager)` : (s.start ? `Fra ${formatDate(s.start)}` : "Sett en startdato");
+  const lines = [
+    `<p class="font-semibold text-slate-900">${escapeHtml(passLabel(p))}</p>`,
+    `<p class="text-slate-600">Gyldig: ${escapeHtml(period)}</p>`,
+    `<p class="text-slate-600">${s.unlimited ? `Ubegrenset med reisedager · ${plural(s.used, "reisedag", "reisedager")} planlagt` : `${s.used} av ${s.total} reisedager planlagt · ${s.remaining} igjen`}</p>`
+  ];
+  if (s.unlimited && s.state === "active") lines.push(`<p class="text-slate-600">${plural(s.daysLeft, "dag", "dager")} igjen av perioden</p>`);
+  if (d.warn) lines.push(`<p class="text-amber-800 font-medium">${escapeHtml(d.warn)}</p>`);
+  if (s.outside.length) lines.push(`<p class="text-xs text-amber-800">Utenfor: ${s.outside.map(formatDate).join(", ")}</p>`);
+  preview.innerHTML = lines.join("");
+}
+
+function renderPassGroupList(t) {
+  const box = document.getElementById("pass-group-list");
+  if (!box) return;
+  const docs = (tripBudgets[t.id]) || {};
+  const myUid = myUidOrLocal();
+  const others = Object.entries(docs).filter(([uid]) => uid !== myUid);
+  if (!others.length) { box.innerHTML = ""; box.classList.add("hidden"); return; }
+  box.classList.remove("hidden");
+  box.innerHTML = `<p class="field-label">Reisefølget</p><ul class="divide-y divide-slate-100 rounded-xl border border-slate-200">${others.map(([uid, d]) => {
+    const s = computePassStatus(d.pass, t.id === activeTripId ? appState.trains : t.trains, t.id === activeTripId ? appState.trip : t.trip);
+    const info = passDisplay(s);
+    return `<li class="flex items-center justify-between gap-3 px-3 py-2 text-sm"><span class="font-medium text-slate-800 truncate">${escapeHtml(d.name || "Reisende")}</span><span class="text-right text-slate-600 text-xs">${escapeHtml(d.pass ? passShortLabel(d.pass) : "Ikke satt")}${d.pass ? ` · ${escapeHtml(info.main)}` : ""}</span></li>`;
+  }).join("")}</ul>`;
+}
+
+export function handleSavePass(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  if (!hasActiveTrip()) return;
+  const form = document.getElementById("form-pass");
+  const kindEl = form.querySelector('input[name="pass-kind"]:checked');
+  const kind = kindEl ? kindEl.value : "none";
+  const p = readPassForm();
+  if (kind !== "none" && !p) {
+    showToast("Passet mangler noe", kind === "custom" ? "Skriv inn antall reisedager eller en periode." : "Velg et pass.", "alert-triangle");
+    return;
+  }
+  setMyPass(activeTripId, p);
+  closeModal("modal-pass");
+  renderAll();
+  showToast("Passet er lagret", p ? passLabel(p) : "Ingen pass registrert", "check");
+}
+
 export function openTripSettingsModal() {
   const trip = appState.trip;
   document.getElementById("settings-title").value = trip.title;
   document.getElementById("settings-start-date").value = trip.startDate;
   document.getElementById("settings-end-date").value = trip.endDate;
-  document.getElementById("settings-pass-days").value = trip.totalPassDays;
+  const passLabelEl = document.getElementById("settings-pass-label");
+  if (passLabelEl) passLabelEl.textContent = passLabel(getMyPass(getActiveTripObject()));
   document.getElementById("settings-total-budget").value = trip.totalBudget;
   openModal('modal-trip-settings');
-}
-
-export function setPresetPassDays(days) {
-  document.getElementById("settings-pass-days").value = days;
 }
 
 export function handleSaveTripSettings(e) {
   e.preventDefault();
   if (!requireEditPermission()) return;
-  appState.trip.title = document.getElementById("settings-title").value.trim() || "Sommerens Europaturné";
-  appState.trip.startDate = document.getElementById("settings-start-date").value;
-  appState.trip.endDate = document.getElementById("settings-end-date").value;
-  appState.trip.totalPassDays = parseInt(document.getElementById("settings-pass-days").value, 10) || 7;
-  appState.trip.totalBudget = parseFloat(document.getElementById("settings-total-budget").value) || 20000;
+  const newStart = document.getElementById("settings-start-date").value;
+  const newEnd = document.getElementById("settings-end-date").value;
+  if (newStart && newEnd && newEnd < newStart) {
+    showToast("Sjekk datoene", "Sluttdatoen kan ikke være før startdatoen.", "alert-triangle");
+    return;
+  }
+  appState.trip.title = document.getElementById("settings-title").value.trim() || appState.trip.title || "Min reise";
+  appState.trip.startDate = newStart;
+  appState.trip.endDate = newEnd;
+  const budgetVal = parseFloat(document.getElementById("settings-total-budget").value);
+  if (Number.isFinite(budgetVal) && budgetVal >= 0) appState.trip.totalBudget = Math.round(budgetVal);
 
   persistState(`Oppdaterte reiseinnstillinger for «${appState.trip.title}»`);
   renderAll();
@@ -8032,7 +8339,9 @@ function setupLiveTrainSearch() {
 // =============================================================================
 window.switchTab = switchTab;
 window.openTripSettingsModal = openTripSettingsModal;
-window.setPresetPassDays = setPresetPassDays;
+window.openPassModal = openPassModal;
+window.handleSavePass = handleSavePass;
+window.updatePassForm = updatePassForm;
 window.handleSaveTripSettings = handleSaveTripSettings;
 window.openAddStopModal = openAddStopModal;
 window.openEditStopModal = openEditStopModal;
