@@ -1623,7 +1623,7 @@ if (typeof window !== "undefined") {
 // ---------------------------------------------------------------------------
 // Ny versjon av siden: faner som har stått åpne lenge skal ikke kjøre gammel kode
 // ---------------------------------------------------------------------------
-export const APP_VERSION = "20261115-4";
+export const APP_VERSION = "20261115-5";
 let newVersionAvailable = false;
 
 async function checkForNewVersion() {
@@ -2966,7 +2966,7 @@ function renderOnboarding() {
       </div>
       <button type="button" onclick="dismissOnboarding()" class="text-xs font-medium text-slate-500 hover:text-slate-900 transition">Skjul</button>
     </div>
-    <div class="mt-3 w-full bg-slate-100 rounded-full h-1.5 overflow-hidden"><div class="bg-slate-900 h-1.5 rounded-full" style="width:${Math.round(doneCount / steps.length * 100)}%"></div></div>
+    <div class="mt-3 w-full bg-slate-100 rounded-full h-1.5 overflow-hidden"><div class="bg-brand-600 h-1.5 rounded-full" style="width:${Math.round(doneCount / steps.length * 100)}%"></div></div>
     <ol class="mt-3 grid gap-1 sm:grid-cols-2 lg:grid-cols-5">
       ${steps.map(st => `
         <li>
@@ -3010,13 +3010,13 @@ export function switchTab(tabId) {
   }
 
   document.querySelectorAll(".nav-item").forEach(btn => {
-    btn.classList.remove("text-white", "bg-slate-800", "shadow-sm", "border-slate-700/60");
-    btn.classList.add("text-slate-300", "hover:bg-slate-800/60");
+    btn.classList.remove("text-white", "bg-white/10", "shadow-sm", "font-semibold");
+    btn.classList.add("text-fjord-200", "hover:bg-white/10", "font-medium");
   });
   const activeNavBtn = document.getElementById(`nav-btn-${tabId}`);
   if (activeNavBtn) {
-    activeNavBtn.classList.add("text-white", "bg-slate-800", "shadow-sm", "border-slate-700/60");
-    activeNavBtn.classList.remove("text-slate-300");
+    activeNavBtn.classList.add("text-white", "bg-white/10", "shadow-sm", "font-semibold");
+    activeNavBtn.classList.remove("text-fjord-200", "font-medium");
   }
 
   document.querySelectorAll(".mobile-nav-btn").forEach(btn => {
@@ -3102,6 +3102,8 @@ export function renderOverview() {
   const statCountriesSub = document.getElementById("stat-countries-sub");
   if (statCountriesSub) statCountriesSub.textContent = countriesList || "Ingen land registrert";
 
+  renderOverviewHero();
+
   // Mitt pass
   const passInfo = passDisplay(getMyPassStatus());
   const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
@@ -3164,7 +3166,7 @@ export function renderOverview() {
       <div class="relative pl-7 pb-3 group">
         ${!isEnd ? '<div class="absolute left-3 top-3.5 bottom-0 w-0.5 bg-slate-200 group-hover:bg-brand-300 transition-colors"></div>' : ''}
         
-        <div class="absolute left-0 top-1.5 w-6 h-6 rounded-full ${isStart ? 'bg-slate-900' : (isEnd ? 'bg-rail-accent' : 'bg-brand-600')} text-white flex items-center justify-center text-xs font-bold shadow-xs">
+        <div class="absolute left-0 top-1.5 w-6 h-6 rounded-full ${isStart ? 'bg-fjord-800' : (isEnd ? 'bg-rail-accent' : 'bg-brand-600')} text-white flex items-center justify-center text-xs font-bold shadow-xs">
           ${idx + 1}
         </div>
 
@@ -4115,7 +4117,7 @@ export function renderBudget() {
     el.classList.toggle("hidden", !(inCloud && accountPeople.length > 1) || budgetViewMode !== "personal");
     el.innerHTML = accountPeople.map(p => {
       const on = p.id === budgetViewUid;
-      return `<button type="button" onclick="selectBudgetPerson(${jsArg(p.id)})" class="shrink-0 inline-flex items-center gap-2 pl-1 pr-3 py-1 rounded-full border text-sm transition ${on ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}">
+      return `<button type="button" onclick="selectBudgetPerson(${jsArg(p.id)})" class="shrink-0 inline-flex items-center gap-2 pl-1 pr-3 py-1 rounded-full border text-sm transition ${on ? "border-slate-900 bg-fjord-800 text-white" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}">
         ${socialAvatarHtml({ displayName: p.name, avatarColor: p.avatarColor, photo: p.id === me ? userProfile.photo : ((userProfile.friends || []).find(f => f.uid === p.id) || {}).photo }, "w-6 h-6 text-[10px]", "#0d9488")}
         <span>${escapeHtml(p.id === me ? "Meg" : p.name)}</span></button>`;
     }).join("");
@@ -4159,7 +4161,7 @@ export function renderBudget() {
             <span class="flex items-center gap-2 text-slate-700"><i data-lucide="${cat.icon}" class="w-4 h-4 text-slate-400"></i>${cat.name}</span>
             <span class="font-medium text-slate-900">${formatMoney(sum / 100)} <span class="text-slate-400 font-normal">· ${pct} %</span></span>
           </div>
-          <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden"><div class="bg-slate-900 h-1.5 rounded-full" style="width: ${pct}%"></div></div>
+          <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden"><div class="bg-brand-600 h-1.5 rounded-full" style="width: ${pct}%"></div></div>
         </div>`;
     }).join("");
   });
@@ -4308,7 +4310,7 @@ export function renderPacking() {
         <p class="text-sm font-semibold text-slate-900">Pakkelisten er tom</p>
         <p class="text-sm text-slate-500 mt-1 max-w-sm mx-auto">Legg til det du skal ha med, eller start med en liste over det de fleste trenger på Interrail.</p>
         <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
-          <button type="button" onclick="addPackingSuggestions()" class="px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold transition">Bruk forslag</button>
+          <button type="button" onclick="addPackingSuggestions()" class="px-4 py-2 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white text-sm font-semibold transition">Bruk forslag</button>
           <button type="button" onclick="openAddPackingItemModal()" class="px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">Legg til selv</button>
         </div>
       </div>`;
@@ -4480,7 +4482,7 @@ export function showAppDialog({ title = "Bekreft", message = "", confirmLabel = 
   confirmBtn.textContent = confirmLabel;
   confirmBtn.className = danger
     ? "px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-sm font-semibold transition"
-    : "px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold transition";
+    : "px-4 py-2 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white text-sm font-semibold transition";
 
   const wrap = document.getElementById("app-dialog-input-wrap");
   const field = document.getElementById("app-dialog-input");
@@ -4686,7 +4688,7 @@ export function renderTripManagerList() {
         <p class="text-sm text-slate-500 mt-1 max-w-sm mx-auto">${shared
           ? "Når noen deler en reise med deg, eller du blir med via en kode, dukker den opp her."
           : "Start en ny reise for å planlegge stopp, tog og pakkeliste."}</p>
-        <button type="button" onclick="${shared ? "focusJoinTripInput()" : "newTripFromPage()"}" class="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg ${shared ? "border border-slate-200 text-slate-700 hover:bg-slate-50" : "bg-slate-900 hover:bg-slate-800 text-white"} text-sm font-semibold transition">
+        <button type="button" onclick="${shared ? "focusJoinTripInput()" : "newTripFromPage()"}" class="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg ${shared ? "border border-slate-200 text-slate-700 hover:bg-slate-50" : "bg-fjord-800 hover:bg-fjord-700 text-white"} text-sm font-semibold transition">
           ${shared ? "Bli med via kode" : "Ny reise"}
         </button>
       </div>`;
@@ -4759,7 +4761,7 @@ export function renderTripManagerList() {
             <div class="flex items-center -space-x-1.5 shrink-0">${tripMemberAvatarsHtml(members)}</div>
             <span class="text-xs text-slate-500 truncate">${escapeHtml(peopleText)}</span>
           </div>
-          <button type="button" onclick="openTripFromList(${jsArg(id)})" class="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-semibold transition ${isActive ? "border border-slate-200 text-slate-700 hover:bg-slate-50" : "bg-slate-900 hover:bg-slate-800 text-white"}">
+          <button type="button" onclick="openTripFromList(${jsArg(id)})" class="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-semibold transition ${isActive ? "border border-slate-200 text-slate-700 hover:bg-slate-50" : "bg-fjord-800 hover:bg-fjord-700 text-white"}">
             <span>${isActive ? "Gå til reisen" : "Åpne"}</span><i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
           </button>
         </div>
@@ -5881,7 +5883,7 @@ function friendActionButtonHtml(traveler, extraClass = "") {
   }
   return `
     <button type="button" onclick="addOrAcceptFriend(${jsArg(traveler.uid)})"
-      class="px-3.5 py-1.5 rounded-lg font-semibold text-xs transition flex items-center gap-1.5 ${extraClass} bg-slate-900 hover:bg-slate-800 text-white">
+      class="px-3.5 py-1.5 rounded-lg font-semibold text-xs transition flex items-center gap-1.5 ${extraClass} bg-fjord-800 hover:bg-fjord-700 text-white">
       <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
       <span>${escapeHtml(label)}</span>
     </button>`;
@@ -5935,7 +5937,7 @@ export function setSocialDiscoverFilter(filterType) {
     const btn = document.getElementById(`discover-filter-${f}`);
     if (!btn) return;
     btn.className = f === socialDiscoverFilter
-      ? "px-3 py-1.5 rounded-lg font-semibold bg-slate-900 text-white transition"
+      ? "px-3 py-1.5 rounded-lg font-semibold bg-fjord-800 text-white transition"
       : "px-3 py-1.5 rounded-lg font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 transition";
   });
   renderSocialDiscoverGrid();
@@ -6068,7 +6070,7 @@ export function renderSocialHub() {
       const isSelected = visitedCountries.some(vc => vc.toLowerCase() === c.name.toLowerCase());
       return `
         <button type="button" onclick="toggleVisitedCountry(${jsArg(c.name)})" aria-pressed="${isSelected ? "true" : "false"}"
-          class="px-3 py-2 rounded-lg text-xs font-medium border text-left flex items-center justify-between gap-1.5 transition ${isSelected ? "bg-slate-900 text-white border-slate-900" : "bg-white hover:bg-slate-50 text-slate-700 border-slate-200"}">
+          class="px-3 py-2 rounded-lg text-xs font-medium border text-left flex items-center justify-between gap-1.5 transition ${isSelected ? "bg-fjord-800 text-white border-fjord-800" : "bg-white hover:bg-slate-50 text-slate-700 border-slate-200"}">
           <span class="truncate">${escapeHtml(c.name)}</span>
           ${isSelected ? `<i data-lucide="check" class="w-3.5 h-3.5 shrink-0"></i>` : ""}
         </button>`;
@@ -6135,7 +6137,7 @@ export function renderSocialHub() {
           </div>
         </button>
         <div class="flex items-center gap-1.5 shrink-0">
-          <button type="button" onclick="addOrAcceptFriend(${jsArg(req.uid)})" class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition">Godta</button>
+          <button type="button" onclick="addOrAcceptFriend(${jsArg(req.uid)})" class="px-3 py-1.5 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white font-semibold text-xs transition">Godta</button>
           <button type="button" onclick="declineFriendRequest(${jsArg(req.uid)})" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium text-xs transition">Avslå</button>
         </div>
       </div>`).join("");
@@ -6149,7 +6151,7 @@ export function renderSocialHub() {
         <div class="col-span-full rounded-xl border border-dashed border-slate-200 p-8 text-center space-y-3">
           <p class="text-sm font-semibold text-slate-800">Ingen reisevenner ennå</p>
           <p class="text-xs text-slate-500 max-w-md mx-auto">Søk opp venner på navn eller @brukernavn og send en forespørsel. Når den er godtatt, kan dere dele reiser.</p>
-          <button type="button" onclick="switchSocialSubTab('discover')" class="px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition">Finn reisende</button>
+          <button type="button" onclick="switchSocialSubTab('discover')" class="px-4 py-2 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white font-semibold text-xs transition">Finn reisende</button>
         </div>`;
     } else {
       const allKnown = getAllKnownTravelers();
@@ -7074,6 +7076,35 @@ export function toggleLiveSearch() {
     card.scrollIntoView({ behavior: "smooth", block: "start" });
     setTimeout(() => { const f = document.getElementById("live-from-input"); if (f) f.focus({ preventScroll: true }); }, 250);
   }
+}
+
+
+// Reisekortet øverst på oversikten: nedtelling og rute
+export function renderOverviewHero() {
+  const kicker = document.getElementById("overview-hero-kicker");
+  const main = document.getElementById("overview-hero-main");
+  const route = document.getElementById("overview-hero-route");
+  if (!kicker || !main || !route) return;
+  const trip = appState.trip || {};
+  const today = todayISO();
+  const start = /^\d{4}-\d{2}-\d{2}$/.test(String(trip.startDate || "")) ? trip.startDate : "";
+  const end = /^\d{4}-\d{2}-\d{2}$/.test(String(trip.endDate || "")) ? trip.endDate : "";
+  let k = "Neste reise", m = "Sett datoer for reisen";
+  if (start && today < start) {
+    const n = isoDiffDays(today, start);
+    m = n === 1 ? "Avreise i morgen" : `Avreise om ${n} dager`;
+  } else if (start && (!end || today <= end)) {
+    k = "På reise nå";
+    m = start === today ? "Avreise i dag" : (end ? `Dag ${isoDiffDays(start, today) + 1} av ${isoDiffDays(start, end) + 1}` : `Dag ${isoDiffDays(start, today) + 1}`);
+  } else if (end && today > end) {
+    k = "Reisen er over";
+    m = "Velkommen hjem";
+  }
+  if (start) k += ` · ${formatDate(start)}${start.slice(0, 4) !== today.slice(0, 4) ? " " + start.slice(0, 4) : ""}`;
+  const cities = (appState.stops || []).map(s => String(s.city || "").trim()).filter(Boolean);
+  kicker.textContent = k;
+  main.textContent = m;
+  route.textContent = cities.length ? cities.join(" → ") : "Legg til stopp for å se ruten";
 }
 
 export function openTripSettingsModal() {
@@ -8147,7 +8178,7 @@ function renderLiveSearchResults(usedFallbackDate, requestedDate, effectiveSearc
           <div class="bg-slate-50/70 hover:bg-white rounded-2xl border border-slate-200/90 hover:border-brand-300 p-3.5 sm:p-4 transition space-y-2.5 shadow-2xs">
             <div class="flex items-center justify-between gap-2 pb-2 border-b border-slate-200/60 flex-wrap">
               <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="px-2 py-0.5 rounded-lg bg-slate-900 text-white text-xs font-extrabold">${escapeHtml(j.trainNumber)}</span>
+                <span class="px-2 py-0.5 rounded-lg bg-fjord-800 text-white text-xs font-extrabold">${escapeHtml(j.trainNumber)}</span>
                 <span class="text-xs font-semibold text-slate-600">${escapeHtml(j.trainType)}</span>
                 ${transferBadge}
               </div>
