@@ -857,7 +857,7 @@
           </button>
 
           <div class="flex items-center gap-2 w-full sm:w-auto">
-            <select id="train-filter" onchange="renderTrains()" class="bg-slate-50 border border-slate-200 text-xs sm:text-sm font-medium rounded-xl px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <select id="train-filter" onchange="renderTrains()" aria-label="Filtrer togreiser" class="flex-1 min-w-0 sm:flex-none bg-slate-50 border border-slate-200 text-xs sm:text-sm font-medium rounded-xl px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
               <option value="all">Alle togreiser</option>
               <option value="needs_reservation">Krever reservasjon</option>
               <option value="confirmed">Bekreftet reservasjon</option>
@@ -865,7 +865,7 @@
             </select>
             <button onclick="openAddTrainModal()" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs sm:text-sm transition whitespace-nowrap">
               <i data-lucide="plus" class="w-4 h-4"></i>
-              <span>Manuell etappe</span>
+              <span class="sm:hidden">Legg til</span><span class="hidden sm:inline">Manuell etappe</span>
             </button>
           </div>
         </div>
@@ -1063,7 +1063,7 @@
             <!-- SCENIC COVER CARD + FLOATING 3-COLUMN STAT BAR (Reference Image 1) -->
             <div class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
               <!-- Scenic Mountain Cover Header -->
-              <div class="relative h-52 sm:h-68 bg-slate-900 overflow-hidden">
+              <div class="relative h-52 sm:h-[272px] bg-slate-900 overflow-hidden">
                 <img 
                   id="social-hero-cover"
                   src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1000&q=80" 
@@ -1085,7 +1085,7 @@
                 <!-- Centered Avatar, Name, Location & Overlapping Friend Avatars (Reference Image 1) -->
                 <div class="absolute inset-x-0 top-7 flex flex-col items-center text-center px-4 z-10">
                   <div class="relative">
-                    <div id="social-hero-avatar" class="w-18 h-18 sm:w-20 sm:h-20 rounded-full bg-slate-800 text-white font-bold text-2xl flex items-center justify-center ring-4 ring-white shadow-lg">
+                    <div id="social-hero-avatar" class="w-[72px] h-[72px] sm:w-20 sm:h-20 rounded-full overflow-hidden bg-slate-800 text-white font-bold text-2xl flex items-center justify-center ring-4 ring-white shadow-lg">
                       R
                     </div>
                     <button type="button" onclick="openUserProfileModal()" title="Endre profil" class="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full bg-brand-600 hover:bg-brand-500 text-white ring-2 ring-white flex items-center justify-center shadow-xs transition">
@@ -2505,7 +2505,7 @@
   <!-- ========================================================================= -->
   <!-- MODULAR JAVASCRIPT ENTRYPOINT                                             -->
   <!-- ========================================================================= -->
-  <script type="module" src="./app.js?v=20261115-3"></script>
+  <script type="module" src="./app.js?v=20261115-4"></script>
 
 </body>
 </html>
