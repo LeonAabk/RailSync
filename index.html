@@ -362,8 +362,8 @@
 
         <button onclick="switchTab('social')" id="nav-btn-social" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all duration-150 text-fjord-200 hover:text-white hover:bg-white/5">
           <i data-lucide="user-round" class="w-4 h-4 text-fjord-200"></i>
-          <span>Profil & Kontakter</span>
-          <span id="sidebar-social-badge" class="ml-auto text-[11px] font-semibold px-2 py-0.5 rounded-md bg-white/10 text-fjord-100">2</span>
+          <span class="truncate">Profil og kontakter</span>
+          <span id="sidebar-social-badge" class="ml-auto whitespace-nowrap text-[11px] font-semibold px-2 py-0.5 rounded-md bg-white/10 text-fjord-100">2</span>
         </button>
 
         <button onclick="switchTab('trips')" id="nav-btn-trips" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all duration-150 text-fjord-200 hover:text-white hover:bg-white/5 mt-0.5">
@@ -417,7 +417,7 @@
                 <i data-lucide="pencil" class="hidden sm:block w-3 h-3 text-slate-400 group-hover:text-brand-600 transition shrink-0"></i>
                 <i data-lucide="chevron-down" class="sm:hidden w-4 h-4 text-slate-400 shrink-0"></i>
               </button>
-              <span id="header-visibility-badge" onclick="handleSaveAndShareTrip()" class="hidden sm:inline-flex cursor-pointer items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-600 hover:bg-slate-200/70 transition shrink-0">
+              <span id="header-visibility-badge" onclick="handleSaveAndShareTrip()" class="hidden lg:inline-flex cursor-pointer items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-600 hover:bg-slate-200/70 transition shrink-0">
                 Privat
               </span>
             </div>
@@ -425,7 +425,7 @@
               <p id="header-trip-dates" class="text-[11px] sm:text-xs text-slate-500 truncate"></p>
               <span data-sync-status role="status" class="hidden inline-flex items-center gap-1.5 text-[11px] text-slate-500 shrink-0"></span>
               <!-- Reisefølge Avatar Bubbles (Desktop/Tablet) -->
-              <div id="header-collab-bar" class="hidden sm:flex items-center gap-2 pl-2 border-l border-slate-200 shrink-0">
+              <div id="header-collab-bar" class="hidden lg:flex items-center gap-2 pl-2 border-l border-slate-200 shrink-0">
                 <div id="header-members-avatars" class="flex items-center -space-x-1.5"></div>
                 <button onclick="handleSaveAndShareTrip()" class="text-[11px] font-medium text-slate-600 hover:text-slate-900 transition flex items-center gap-1">
                   <span id="header-members-count-label">Reisefølge</span>
@@ -450,8 +450,8 @@
           <div id="auth-header-container" class="relative shrink-0">
             <button id="user-profile-pill" type="button" onclick="toggleAccountMenu(event)" aria-haspopup="menu" aria-expanded="false" aria-controls="account-menu" class="flex items-center gap-2 p-1 sm:pl-1 sm:pr-2.5 rounded-full hover:bg-slate-100 text-slate-800 text-xs font-semibold transition">
               <span id="header-user-avatar" class="w-7 h-7 rounded-full bg-brand-600 text-white text-[11px] font-semibold flex items-center justify-center overflow-hidden">R</span>
-              <span id="user-display-name" class="hidden sm:inline truncate max-w-[120px]">Min profil</span>
-              <i data-lucide="chevron-down" class="hidden sm:block w-3.5 h-3.5 text-slate-400"></i>
+              <span id="user-display-name" class="hidden lg:inline truncate max-w-[120px]">Min profil</span>
+              <i data-lucide="chevron-down" class="hidden lg:block w-3.5 h-3.5 text-slate-400"></i>
             </button>
             <div id="account-menu" role="menu" class="hidden absolute right-0 mt-2 w-60 bg-white rounded-xl border border-slate-200 shadow-lg py-1.5 z-50">
               <div class="px-3.5 py-2.5 border-b border-slate-100">
@@ -2530,7 +2530,7 @@
   <!-- ========================================================================= -->
   <!-- MODULAR JAVASCRIPT ENTRYPOINT                                             -->
   <!-- ========================================================================= -->
-  <script type="module" src="./app.js?v=20261115-5"></script>
+  <script type="module" src="./app.js?v=20261115-6"></script>
 
 </body>
 </html>

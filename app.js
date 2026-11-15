@@ -1623,7 +1623,7 @@ if (typeof window !== "undefined") {
 // ---------------------------------------------------------------------------
 // Ny versjon av siden: faner som har stått åpne lenge skal ikke kjøre gammel kode
 // ---------------------------------------------------------------------------
-export const APP_VERSION = "20261115-5";
+export const APP_VERSION = "20261115-6";
 let newVersionAvailable = false;
 
 async function checkForNewVersion() {
@@ -5997,7 +5997,7 @@ export function renderSocialHub() {
   setText("social-stat-wishlist", `${wishlist.length} reisemål`);
   setText("social-top-friends-count", String(friendsCount));
   setText("social-subtab-friends-badge", pendingReqCount > 0 ? `${friendsCount} · ${pendingReqCount} ny` : String(friendsCount));
-  setText("sidebar-social-badge", pendingReqCount > 0 ? `${friendsCount} (+${pendingReqCount})` : `${friendsCount} venner`);
+  setText("sidebar-social-badge", pendingReqCount > 0 ? `${friendsCount} (+${pendingReqCount})` : `${friendsCount} ${friendsCount === 1 ? "venn" : "venner"}`);
   const mobileReqDot = document.getElementById("mobile-social-req-dot");
   if (mobileReqDot) mobileReqDot.classList.toggle("hidden", pendingReqCount === 0);
 
