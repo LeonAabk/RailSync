@@ -1623,7 +1623,7 @@ if (typeof window !== "undefined") {
 // ---------------------------------------------------------------------------
 // Ny versjon av siden: faner som har stått åpne lenge skal ikke kjøre gammel kode
 // ---------------------------------------------------------------------------
-export const APP_VERSION = "20261115-8";
+export const APP_VERSION = "dev" /* settes automatisk ved publisering (deploy.yml) */;
 let newVersionAvailable = false;
 
 async function checkForNewVersion() {

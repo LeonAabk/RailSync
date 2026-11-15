@@ -1,18 +1,35 @@
 <!DOCTYPE html>
-<html lang="no" class="h-full bg-slate-50">
+<html lang="no" class="h-full bg-sand-100">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
-  <title>RailSync - Interrail Planlegger</title>
-  <meta name="description" content="Moderne og responsiv interrail-planlegger for Europa med interaktivt kart, tidslinje, togoversikt, budsjett og pakkeliste." />
-  <meta property="og:title" content="RailSync - Interrail Planlegger" />
-  <meta property="og:description" content="Moderne og responsiv interrail-planlegger for Europa med interaktivt kart, tidslinje, togoversikt, budsjett og pakkeliste." />
-  <meta property="og:type" content="website" />
-  <meta name="twitter:card" content="summary_large_image" />
+  <title>RailSync – Planlegg Interrail sammen</title>
+  <meta name="description" content="Planlegg Interrail-reisen sammen med vennene dine: rute på kart, togtider, Interrail-pass, budsjett og pakkeliste – alt synkronisert i reisefølget." />
+  <link rel="canonical" href="https://aabakstudio.com/RailSync/" />
 
-  <!-- Mobile & PWA Optimization Meta Tags -->
-  <meta name="theme-color" content="#0f172a" />
+  <!-- Ikoner -->
+  <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
+  <link rel="icon" href="./assets/favicon-32.png" type="image/png" sizes="32x32" />
+  <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
+
+  <!-- Forhåndsvisning når lenken deles (Snap, Messenger, iMessage o.l.) -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="RailSync" />
+  <meta property="og:locale" content="nb_NO" />
+  <meta property="og:url" content="https://aabakstudio.com/RailSync/" />
+  <meta property="og:title" content="RailSync – Planlegg Interrail sammen" />
+  <meta property="og:description" content="Rute på kart, togtider, Interrail-pass og budsjett – delt med reisefølget." />
+  <meta property="og:image" content="https://aabakstudio.com/RailSync/assets/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="RailSync – Planlegg Interrail sammen" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://aabakstudio.com/RailSync/assets/og-image.png" />
+
+  <!-- Mobil -->
+  <meta name="theme-color" content="#0f4c4a" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="RailSync" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="mobile-web-app-capable" content="yes" />
 
@@ -168,7 +185,7 @@
   </style>
 
   <!-- Tailwind, bygget til en vanlig CSS-fil (se tailwind.config.cjs) -->
-  <link rel="stylesheet" href="./assets/railsync.css?v=20261115-8">
+  <link rel="stylesheet" href="./assets/railsync.css?v=dev">
 </head>
 <body data-auth="pending" class="min-h-screen md:h-full text-slate-800 antialiased bg-sand-100 flex flex-col md:flex-row w-full max-w-full overflow-x-hidden">
 
@@ -2482,7 +2499,7 @@
   <!-- ========================================================================= -->
   <!-- MODULAR JAVASCRIPT ENTRYPOINT                                             -->
   <!-- ========================================================================= -->
-  <script type="module" src="./app.js?v=20261115-8"></script>
+  <script type="module" src="./app.js?v=dev"></script>
 
 </body>
 </html>
