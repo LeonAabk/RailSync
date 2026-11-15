@@ -1623,7 +1623,7 @@ if (typeof window !== "undefined") {
 // ---------------------------------------------------------------------------
 // Ny versjon av siden: faner som har stått åpne lenge skal ikke kjøre gammel kode
 // ---------------------------------------------------------------------------
-export const APP_VERSION = "20261115-6";
+export const APP_VERSION = "20261115-7";
 let newVersionAvailable = false;
 
 async function checkForNewVersion() {
@@ -4401,13 +4401,13 @@ export function renderHeaderCollaborationBar() {
 
   if (visBadge) {
     if (!isEditable) {
-      visBadge.className = "hidden sm:inline-flex cursor-pointer items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 transition shrink-0";
+      visBadge.className = "hidden xl:inline-flex cursor-pointer items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 transition shrink-0";
       visBadge.innerHTML = `👁️ Kun visning`;
     } else if (active.visibility === "shared") {
-      visBadge.className = "hidden sm:inline-flex cursor-pointer items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 transition shrink-0";
+      visBadge.className = "hidden xl:inline-flex cursor-pointer items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 transition shrink-0";
       visBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span> Delt reise (${escapeHtml(active.shareCode || 'Live')})`;
     } else {
-      visBadge.className = "hidden sm:inline-flex cursor-pointer items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 hover:border-brand-300 transition shrink-0";
+      visBadge.className = "hidden xl:inline-flex cursor-pointer items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 hover:border-brand-300 transition shrink-0";
       visBadge.innerHTML = `🔒 Privat reise`;
     }
   }
