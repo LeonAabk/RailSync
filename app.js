@@ -1623,7 +1623,7 @@ if (typeof window !== "undefined") {
 // ---------------------------------------------------------------------------
 // Ny versjon av siden: faner som har stått åpne lenge skal ikke kjøre gammel kode
 // ---------------------------------------------------------------------------
-export const APP_VERSION = "20261115-2";
+export const APP_VERSION = "20261115-3";
 let newVersionAvailable = false;
 
 async function checkForNewVersion() {
@@ -2811,10 +2811,11 @@ export function resetMapView() {
 
 export function centerMapOnStop(lat, lng) {
   if (!map) return;
-  if (window.innerWidth < 1024) {
-    const mapEl = document.getElementById("rail-map");
-    if (mapEl) mapEl.scrollIntoView({ behavior: "smooth", block: "center" });
+  if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng)) || (Number(lat) === 0 && Number(lng) === 0)) {
+    showToast("Ukjent posisjon", "Stoppet har ingen plass på kartet. Endre stoppet og velg byen fra listen.", "map-pin");
+    return;
   }
+  if (window.innerWidth < 1024) setOverviewView("map", { keepMap: true });
   map.flyTo([lat, lng], 8, { duration: 1.0 });
   const targetMarker = mapMarkers.find(m => {
     const pos = m.getLatLng();
@@ -3022,10 +3023,13 @@ export function switchTab(tabId) {
     btn.classList.remove("text-brand-600", "font-bold", "bg-brand-50/70");
     btn.classList.add("text-slate-400", "font-medium");
   });
-  const activeMobileBtn = document.getElementById(`mobile-tab-${tabId}`);
+  document.querySelectorAll(".mobile-nav-btn").forEach(btn => btn.removeAttribute("aria-current"));
+  const mobileTabFor = { account: "social", welcome: "overview" };
+  const activeMobileBtn = document.getElementById(`mobile-tab-${mobileTabFor[tabId] || tabId}`);
   if (activeMobileBtn) {
     activeMobileBtn.classList.add("text-brand-600", "font-bold", "bg-brand-50/70");
     activeMobileBtn.classList.remove("text-slate-400", "font-medium");
+    activeMobileBtn.setAttribute("aria-current", "page");
   }
 
   // On mobile, scroll smoothly to the top when switching main tabs
@@ -3033,6 +3037,7 @@ export function switchTab(tabId) {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  if (tabId === "overview") setOverviewView(overviewView, { keepMap: true });
   if (tabId === "overview" && map) {
     setTimeout(() => {
       map.invalidateSize();
@@ -3141,6 +3146,8 @@ export function renderOverview() {
     return;
   }
 
+  const segCount = document.getElementById("ov-seg-stops-count");
+  if (segCount) segCount.textContent = appState.stops.length ? `(${appState.stops.length})` : "";
   container.innerHTML = appState.stops.map((stop, idx) => {
     const isStart = idx === 0;
     const isEnd = idx === appState.stops.length - 1;
@@ -3184,7 +3191,7 @@ export function renderOverview() {
 
           <!-- Row 2: Clean Action Toolbar & Next Leg Train Search -->
           <div class="flex items-center justify-between flex-wrap gap-1.5 pt-2 border-t border-slate-200/50">
-            <div class="flex items-center gap-1">
+            <div class="hidden sm:flex items-center gap-1">
               <button 
                 title="Flytt opp i reiseruten" 
                 onclick="moveStopOrder(${jsArg(stop.id)}, -1)" 
@@ -3225,9 +3232,12 @@ export function renderOverview() {
                 title="Søk reelle togtider fra ${escapeHtml(stop.city)} til ${escapeHtml(appState.stops[idx + 1].city)}"
               >
                 <i data-lucide="train" class="w-3 h-3 text-brand-600 shrink-0"></i>
-                <span class="truncate max-w-[130px] sm:max-w-none">Tog → ${escapeHtml(appState.stops[idx + 1].city)}</span>
+                <span class="truncate max-w-[170px] sm:max-w-none">Tog → ${escapeHtml(appState.stops[idx + 1].city)}</span>
               </button>
             ` : ''}
+            <button type="button" onclick="openStopMenu(${jsArg(stop.id)})" class="sm:hidden ml-auto w-9 h-8 flex items-center justify-center rounded-lg text-slate-600 bg-white border border-slate-200/80 shadow-2xs" aria-label="Flere valg for ${escapeHtml(stop.city)}">
+              <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+            </button>
           </div>
         </div>
       </div>
@@ -6948,6 +6958,124 @@ export function handleSavePass(e) {
   showToast("Passet er lagret", p ? passLabel(p) : "Ingen pass registrert", "check");
 }
 
+
+// ---------------------------------------------------------------------------
+// Mobil: handlingsark («⋯»), stopp/kart-valg, togsøk bak knapp, topplinje
+// ---------------------------------------------------------------------------
+let actionSheetItems = [];
+let actionSheetReturnFocus = null;
+
+export function openActionSheet(title, items) {
+  const sheet = document.getElementById("action-sheet");
+  const list = document.getElementById("action-sheet-list");
+  if (!sheet || !list) return;
+  actionSheetItems = items.filter(Boolean);
+  actionSheetReturnFocus = document.activeElement;
+  document.getElementById("action-sheet-title").textContent = title || "";
+  list.innerHTML = actionSheetItems.map((it, i) => `
+    <button type="button" onclick="runActionSheetItem(${i})" ${it.disabled ? "disabled" : ""} class="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left text-sm font-medium transition ${it.danger ? "text-rose-600 hover:bg-rose-50" : "text-slate-800 hover:bg-slate-50"} disabled:opacity-40 disabled:cursor-not-allowed">
+      <i data-lucide="${escapeHtml(it.icon || "circle")}" class="w-4 h-4 shrink-0 ${it.danger ? "" : "text-slate-500"}"></i>
+      <span class="flex-1 min-w-0 truncate">${escapeHtml(it.label)}</span>
+      ${it.hint ? `<span class="text-xs text-slate-400 shrink-0">${escapeHtml(it.hint)}</span>` : ""}
+    </button>`).join("");
+  sheet.classList.remove("hidden");
+  if (window.lucide) lucide.createIcons();
+  const first = list.querySelector("button:not([disabled])");
+  if (first) first.focus();
+}
+
+export function closeActionSheet() {
+  const sheet = document.getElementById("action-sheet");
+  if (!sheet || sheet.classList.contains("hidden")) return;
+  sheet.classList.add("hidden");
+  actionSheetItems = [];
+  if (actionSheetReturnFocus && document.body.contains(actionSheetReturnFocus)) {
+    try { actionSheetReturnFocus.focus(); } catch (e) {}
+  }
+}
+
+export function runActionSheetItem(i) {
+  const it = actionSheetItems[i];
+  closeActionSheet();
+  if (it && !it.disabled && typeof it.run === "function") it.run();
+}
+
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeActionSheet(); });
+
+export function openStopMenu(stopId) {
+  const idx = appState.stops.findIndex(s => s.id === stopId);
+  if (idx < 0) return;
+  const stop = appState.stops[idx];
+  const edit = canEditActiveTrip();
+  openActionSheet(stop.city || "Stoppested", [
+    edit && { label: "Endre stopp", icon: "pencil", run: () => openEditStopModal(stopId) },
+    { label: "Vis på kartet", icon: "map-pin", run: () => centerMapOnStop(Number(stop.lat), Number(stop.lng)) },
+    idx < appState.stops.length - 1 && { label: `Finn tog til ${appState.stops[idx + 1].city}`, icon: "train", run: () => quickSearchBetweenStops(idx, idx + 1) },
+    edit && { label: "Flytt opp", icon: "chevron-up", disabled: idx === 0, run: () => moveStopOrder(stopId, -1) },
+    edit && { label: "Flytt ned", icon: "chevron-down", disabled: idx === appState.stops.length - 1, run: () => moveStopOrder(stopId, 1) },
+    edit && { label: "Slett stopp", icon: "trash-2", danger: true, run: () => deleteStop(stopId) }
+  ]);
+}
+
+export function openTripActionsSheet() {
+  const active = getActiveTripObject();
+  if (!active) { switchTab("trips"); return; }
+  const passInfo = passDisplay(getMyPassStatus());
+  openActionSheet(appState.trip.title || "Reisen", [
+    { label: "Mitt pass", icon: "ticket", hint: passInfo.short, run: () => openPassModal() },
+    { label: "Del reisen og reisefølget", icon: "users", run: () => handleSaveAndShareTrip() },
+    canEditActiveTrip() && { label: "Reiseinnstillinger", icon: "sliders-horizontal", run: () => openTripSettingsModal() },
+    { label: "Alle reiser", icon: "folder", hint: String(allTrips.length), run: () => switchTab("trips") }
+  ]);
+}
+
+export function handleHeaderTitleClick() {
+  if (window.innerWidth < 640 || !hasActiveTrip() || !canEditActiveTrip()) switchTab("trips");
+  else openTripSettingsModal();
+}
+
+let overviewView = "stops";
+export function setOverviewView(view, opts = {}) {
+  overviewView = view === "map" ? "map" : "stops";
+  const stops = document.getElementById("ov-panel-stops");
+  const mapPanel = document.getElementById("ov-panel-map");
+  if (stops) stops.classList.toggle("max-lg:hidden", overviewView === "map");
+  if (mapPanel) mapPanel.classList.toggle("max-lg:hidden", overviewView !== "map");
+  [["ov-seg-stops", overviewView === "stops"], ["ov-seg-map", overviewView === "map"]].forEach(([id, on]) => {
+    const b = document.getElementById(id);
+    if (!b) return;
+    b.setAttribute("aria-selected", on ? "true" : "false");
+    b.classList.toggle("bg-white", on);
+    b.classList.toggle("shadow-xs", on);
+    b.classList.toggle("text-slate-900", on);
+    b.classList.toggle("text-slate-500", !on);
+  });
+  if (overviewView === "map" && map) {
+    map.invalidateSize();
+    if (!opts.keepMap) setTimeout(() => { map.invalidateSize(); resetMapView(); }, 60);
+  }
+}
+
+export function setLiveSearchOpen(open) {
+  const card = document.getElementById("live-search-card");
+  const btn = document.getElementById("btn-toggle-live-search");
+  const label = document.getElementById("btn-toggle-live-search-label");
+  if (!card) return;
+  card.classList.toggle("max-sm:hidden", !open);
+  if (btn) btn.setAttribute("aria-expanded", open ? "true" : "false");
+  if (label) label.textContent = open ? "Skjul søk" : "Søk etter tog";
+}
+
+export function toggleLiveSearch() {
+  const card = document.getElementById("live-search-card");
+  const open = card ? card.classList.contains("max-sm:hidden") : true;
+  setLiveSearchOpen(open);
+  if (open) {
+    card.scrollIntoView({ behavior: "smooth", block: "start" });
+    setTimeout(() => { const f = document.getElementById("live-from-input"); if (f) f.focus({ preventScroll: true }); }, 250);
+  }
+}
+
 export function openTripSettingsModal() {
   const trip = appState.trip;
   document.getElementById("settings-title").value = trip.title;
@@ -7591,6 +7719,7 @@ export function swapLiveSearchStations() {
 }
 
 export function focusLiveTrainSearch() {
+  setLiveSearchOpen(true);
   setTimeout(() => {
     const fromInput = document.getElementById("live-from-input");
     if (fromInput) {
@@ -7658,6 +7787,7 @@ export function renderLiveRouteChips() {
 }
 
 export async function quickSearchRouteChip(fromName, fromLat, fromLng, toName, toLat, toLng, dateStr) {
+  setLiveSearchOpen(true);
   const fromInput = document.getElementById("live-from-input");
   const toInput = document.getElementById("live-to-input");
   const dateInput = document.getElementById("live-date-input");
@@ -8192,8 +8322,7 @@ export function focusTrainTrackOnMap(trainId) {
   setTimeout(() => {
     if (!map) return;
     if (window.innerWidth < 1024) {
-      const mapEl = document.getElementById("rail-map");
-      if (mapEl) mapEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      setOverviewView("map", { keepMap: true });
     }
     const bounds = L.latLngBounds(train.routeGeometry);
     map.fitBounds(bounds, { padding: [60, 60] });
@@ -8340,6 +8469,14 @@ function setupLiveTrainSearch() {
 window.switchTab = switchTab;
 window.openTripSettingsModal = openTripSettingsModal;
 window.openPassModal = openPassModal;
+window.openActionSheet = openActionSheet;
+window.closeActionSheet = closeActionSheet;
+window.runActionSheetItem = runActionSheetItem;
+window.openStopMenu = openStopMenu;
+window.openTripActionsSheet = openTripActionsSheet;
+window.handleHeaderTitleClick = handleHeaderTitleClick;
+window.setOverviewView = setOverviewView;
+window.toggleLiveSearch = toggleLiveSearch;
 window.handleSavePass = handleSavePass;
 window.updatePassForm = updatePassForm;
 window.handleSaveTripSettings = handleSaveTripSettings;
@@ -8472,6 +8609,7 @@ async function initializeApplet() {
   await loadAppState();
   initMap();
   renderAll();
+  setOverviewView("stops", { keepMap: true });
   setupNominatimSearch();
   setupLiveTrainSearch();
   if (window.lucide) {

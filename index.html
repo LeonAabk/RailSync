@@ -395,16 +395,13 @@
       <div class="flex items-center justify-between gap-2 w-full min-w-0">
         <!-- Left: Logo & Trip Title -->
         <div class="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-          <!-- Mobile Logo Icon -->
-          <div class="md:hidden w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center text-white shrink-0">
-            <i data-lucide="train" class="w-4 h-4"></i>
-          </div>
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2 min-w-0">
-              <div onclick="openTripSettingsModal()" class="cursor-pointer group select-none flex items-center gap-1.5 min-w-0" title="Rediger reiseinnstillinger">
-                <h1 id="header-trip-title" class="text-sm sm:text-base font-bold text-slate-900 leading-tight truncate group-hover:text-brand-600 transition">RailSync</h1>
-                <i data-lucide="pencil" class="w-3 h-3 text-slate-400 group-hover:text-brand-600 transition shrink-0"></i>
-              </div>
+              <button type="button" onclick="handleHeaderTitleClick()" class="group select-none flex items-center gap-1.5 min-w-0 text-left rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500" aria-label="Bytt reise eller endre reiseinnstillinger">
+                <h1 id="header-trip-title" class="text-[15px] sm:text-base font-bold text-slate-900 leading-tight truncate group-hover:text-brand-600 transition">RailSync</h1>
+                <i data-lucide="pencil" class="hidden sm:block w-3 h-3 text-slate-400 group-hover:text-brand-600 transition shrink-0"></i>
+                <i data-lucide="chevron-down" class="sm:hidden w-4 h-4 text-slate-400 shrink-0"></i>
+              </button>
               <span id="header-visibility-badge" onclick="handleSaveAndShareTrip()" class="hidden sm:inline-flex cursor-pointer items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-600 hover:bg-slate-200/70 transition shrink-0">
                 Privat
               </span>
@@ -432,6 +429,9 @@
 
         <!-- Right: Action buttons (Profile, Settings, Save & Share) -->
         <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <button type="button" id="mobile-trip-menu-btn" data-needs-trip onclick="openTripActionsSheet()" class="sm:hidden w-9 h-9 flex items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 shrink-0" aria-label="Flere valg for reisen">
+            <i data-lucide="more-horizontal" class="w-5 h-5"></i>
+          </button>
           <div id="auth-header-container" class="relative shrink-0">
             <button id="user-profile-pill" type="button" onclick="toggleAccountMenu(event)" aria-haspopup="menu" aria-expanded="false" aria-controls="account-menu" class="flex items-center gap-2 p-1 sm:pl-1 sm:pr-2.5 rounded-full hover:bg-slate-100 text-slate-800 text-xs font-semibold transition">
               <span id="header-user-avatar" class="w-7 h-7 rounded-full bg-brand-600 text-white text-[11px] font-semibold flex items-center justify-center overflow-hidden">R</span>
@@ -468,28 +468,6 @@
         </div>
       </div>
 
-      <!-- Mobile Sub-bar: Clean, non-overlapping action strip -->
-      <div class="sm:hidden flex items-center justify-between pt-2 mt-2 border-t border-slate-100 text-xs gap-1.5 overflow-x-auto no-scrollbar">
-        <div class="flex items-center gap-1.5 min-w-0 shrink-0">
-          <button onclick="switchTab('trips')" class="flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-100 text-slate-800 font-semibold text-[11px] transition shrink-0">
-            <i data-lucide="folder" class="w-3 h-3 text-slate-500"></i>
-            <span>Reiser</span>
-            <span id="header-trip-count-badge-mobile" class="px-1 rounded bg-white text-slate-700 font-bold text-[10px]">1</span>
-          </button>
-          <span id="header-visibility-badge-mobile" onclick="handleSaveAndShareTrip()" class="cursor-pointer inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium bg-slate-100 text-slate-600 shrink-0">
-            Privat
-          </span>
-          <div id="mobile-members-avatars" onclick="handleSaveAndShareTrip()" class="flex items-center -space-x-1.5 pl-0.5 cursor-pointer shrink-0"></div>
-        </div>
-        <div class="flex items-center gap-1 shrink-0">
-          <button onclick="openPassModal()" id="mobile-subbar-pass" class="text-[11px] font-medium text-slate-600 bg-slate-100 px-2 py-1 rounded-md shrink-0">
-            3 / 7 dgr
-          </button>
-          <button onclick="openTripSettingsModal()" class="p-1 rounded-md text-slate-500 bg-slate-100 shrink-0" title="Reiseinnstillinger">
-            <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i>
-          </button>
-        </div>
-      </div>
     </header>
 
     <!-- READ-ONLY VIEW BANNER (Shown when viewing a shared trip with view-only permission) -->
@@ -506,7 +484,7 @@
     </div>
 
     <!-- CONTENT CONTAINERS FOR 5 TABS -->
-    <div class="p-3 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-5 min-w-0 overflow-x-hidden">
+    <div class="p-3 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto min-w-0 overflow-x-hidden">
 
       <!-- ===================================================================== -->
       <!-- TAB 1: OVERSIKT & KART                                                -->
@@ -598,7 +576,7 @@
         </div>
       </section>
 
-      <section id="tab-overview" class="tab-content space-y-5 w-full max-w-full">
+      <section id="tab-overview" class="tab-content flex flex-col gap-4 sm:gap-5 w-full max-w-full">
         <div id="getting-started-card" class="hidden bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-5"></div>
         
         <!-- Clean Unified Metrics Bar (Inspired by Reference Image 1 & 2) -->
@@ -635,11 +613,21 @@
           </div>
         </div>
 
+        <!-- Mobil/nettbrett: velg stopp eller kart -->
+        <div data-needs-trip class="lg:hidden grid grid-cols-2 gap-1 p-1 rounded-xl bg-slate-100 border border-slate-200/80" role="tablist" aria-label="Vis stopp eller kart">
+          <button type="button" role="tab" id="ov-seg-stops" aria-controls="ov-panel-stops" onclick="setOverviewView('stops')" class="flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition">
+            <i data-lucide="list" class="w-4 h-4"></i><span>Stopp</span><span id="ov-seg-stops-count" class="text-xs font-medium text-slate-400"></span>
+          </button>
+          <button type="button" role="tab" id="ov-seg-map" aria-controls="ov-panel-map" onclick="setOverviewView('map')" class="flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition">
+            <i data-lucide="map" class="w-4 h-4"></i><span>Kart</span>
+          </button>
+        </div>
+
         <!-- Main Grid: Timeline + Map Layout -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
           
           <!-- LEFT: Timeline of stops (5 cols on lg) -->
-          <div class="lg:col-span-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs p-4 sm:p-5 space-y-4">
+          <div id="ov-panel-stops" role="tabpanel" class="lg:col-span-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs p-4 sm:p-5 space-y-4">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100 gap-2">
               <div class="min-w-0">
                 <h2 class="text-sm sm:text-base font-bold text-slate-900">Stoppesteder</h2>
@@ -663,7 +651,7 @@
           </div>
 
           <!-- RIGHT: Interactive Leaflet Map (7 cols on lg) -->
-          <div class="lg:col-span-7 bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden flex flex-col">
+          <div id="ov-panel-map" role="tabpanel" class="max-lg:hidden lg:col-span-7 bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden flex flex-col">
             <div class="px-4 py-3.5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
               <div>
                 <h2 class="text-sm sm:text-base font-bold text-slate-900">Rutekart</h2>
@@ -679,7 +667,7 @@
             </div>
 
             <!-- Map Container -->
-            <div class="relative w-full h-[340px] sm:h-[460px] lg:h-[600px] bg-slate-100">
+            <div class="relative w-full h-[62vh] min-h-[320px] sm:h-[460px] lg:h-[600px] bg-slate-100">
               <div id="rail-map" class="w-full h-full z-10"></div>
               
               <!-- Map Legend Overlay (Tablet/Desktop only) -->
@@ -723,10 +711,10 @@
       <!-- ===================================================================== -->
       <!-- TAB 2: TOG & REISEDAGER                                               -->
       <!-- ===================================================================== -->
-      <section id="tab-trains" class="tab-content hidden space-y-6">
+      <section id="tab-trains" class="tab-content hidden flex-col gap-4 sm:gap-6 [&:not(.hidden)]:flex">
 
-        <!-- LIVE EUROPEAN TRAIN TIMETABLE SEARCH (Transitous / MOTIS 2) -->
-        <div class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs relative overflow-hidden">
+        <!-- LIVE EUROPEAN TRAIN TIMETABLE SEARCH (Transitous / MOTIS 2) – på mobil skjult bak «Søk etter tog» -->
+        <div id="live-search-card" class="max-sm:hidden bg-white rounded-2xl border border-slate-200/90 shadow-2xs relative overflow-hidden">
           <div class="px-5 sm:px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50">
             <div class="space-y-0.5">
               <div class="flex items-center gap-2.5 flex-wrap">
@@ -855,13 +843,18 @@
         </div>
         
         <!-- Header & Filter Bar -->
-        <div class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
           <div>
             <h2 class="text-base sm:text-lg font-bold text-slate-900">
-              Lagrede togreiser & plassreservasjoner
+              <span class="sm:hidden">Planlagte tog</span>
+              <span class="hidden sm:inline">Lagrede togreiser & plassreservasjoner</span>
             </h2>
-            <p class="text-xs text-slate-500">Oversikt over avgangstider, togoperatører og obligatoriske setereservasjoner</p>
+            <p class="hidden sm:block text-xs text-slate-500">Oversikt over avgangstider, togoperatører og obligatoriske setereservasjoner</p>
           </div>
+
+          <button type="button" id="btn-toggle-live-search" onclick="toggleLiveSearch()" aria-controls="live-search-card" aria-expanded="false" class="sm:hidden w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm transition">
+            <i data-lucide="search" class="w-4 h-4"></i><span id="btn-toggle-live-search-label">Søk etter tog</span>
+          </button>
 
           <div class="flex items-center gap-2 w-full sm:w-auto">
             <select id="train-filter" onchange="renderTrains()" class="bg-slate-50 border border-slate-200 text-xs sm:text-sm font-medium rounded-xl px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
@@ -1027,10 +1020,10 @@
       <!-- ===================================================================== -->
       <!-- TAB 5: PROFIL, REISEPASS, ØNSKELISTE & KONTAKTER (EDITORIAL LAYOUT)   -->
       <!-- ===================================================================== -->
-      <section id="tab-social" class="tab-content hidden space-y-6 w-full max-w-full">
+      <section id="tab-social" class="tab-content hidden space-y-4 sm:space-y-6 w-full max-w-full">
 
         <!-- TOP EDITORIAL BAR (Inspired by Reference Image 2: Search + Clean Text Navigation) -->
-        <div class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs px-4 sm:px-6 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div class="max-sm:hidden bg-white rounded-2xl border border-slate-200/90 shadow-2xs px-4 sm:px-6 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3">
           <!-- Quick Global Traveler Search Bar -->
           <div class="relative flex-1 max-w-md">
             <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
@@ -1059,7 +1052,7 @@
         </div>
 
         <!-- MAIN 2-COLUMN EDITORIAL PROFILE LAYOUT (Reference Image 1 + Image 2 + Image 4) -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start">
 
           <!-- ================================================================= -->
           <!-- LEFT COLUMN (lg:col-span-4): SCENIC CARD + FLOATING 3-STAT BAR     -->
@@ -1070,7 +1063,7 @@
             <!-- SCENIC COVER CARD + FLOATING 3-COLUMN STAT BAR (Reference Image 1) -->
             <div class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
               <!-- Scenic Mountain Cover Header -->
-              <div class="relative h-64 sm:h-68 bg-slate-900 overflow-hidden">
+              <div class="relative h-52 sm:h-68 bg-slate-900 overflow-hidden">
                 <img 
                   id="social-hero-cover"
                   src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1000&q=80" 
@@ -1104,7 +1097,7 @@
                   <p id="social-hero-station" class="text-[11px] font-medium text-white/80 uppercase tracking-widest mt-0.5"></p>
 
                   <!-- Overlapping Circular Friend Avatars Row (Reference Image 1: avatars + count bubble) -->
-                  <div id="social-hero-friend-avatars" class="flex items-center justify-center -space-x-2 mt-3">
+                  <div id="social-hero-friend-avatars" class="max-sm:hidden flex items-center justify-center -space-x-2 mt-3">
                     <!-- Populated dynamically by renderSocialHub() -->
                   </div>
                 </div>
@@ -1127,7 +1120,7 @@
               </div>
 
               <!-- LEFT COLUMN EDITORIAL SECTIONS (Reference Image 2: Uppercase Label + Hairline + Structured List) -->
-              <div class="px-5 pb-5 pt-1 space-y-5">
+              <div class="max-lg:hidden px-5 pb-5 pt-1 space-y-5">
                 <!-- Section 1: Sist besøkte steder (Image 2 "WORK" style) -->
                 <div>
                   <div class="flex items-center gap-3 mb-3">
@@ -1158,7 +1151,7 @@
           <!-- RIGHT MAIN COLUMN (lg:col-span-8): EDITORIAL HEADER, UNDERLINED    -->
           <!-- TABS, 2-COL SPECIFICATION GRID & PHOTO ACTIVITY CARDS              -->
           <!-- ================================================================= -->
-          <div class="lg:col-span-8 space-y-6">
+          <div class="lg:col-span-8 space-y-4 sm:space-y-6">
 
             <!-- PROFILE IDENTITY, BIO & UNDERLINED TABS CARD (Reference Image 2 & Image 4) -->
             <div class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-7 pb-0 sm:pb-0">
@@ -1178,13 +1171,13 @@
                     <span class="text-slate-300">•</span>
                     <span id="social-hero-status" class="text-xs font-medium text-slate-500">Synlig for andre reisende</span>
                   </div>
-                  <p id="social-hero-bio" class="text-xs sm:text-sm text-slate-600 pt-1.5 max-w-2xl leading-relaxed">
+                  <p id="social-hero-bio" class="text-xs sm:text-sm text-slate-600 pt-1.5 max-w-2xl leading-relaxed line-clamp-3 sm:line-clamp-none">
                     Planlegger togreiser gjennom Europa.
                   </p>
                 </div>
 
                 <!-- Right Status Pill (Reference Image 4: Green dot + Available for Collaboration) -->
-                <div class="flex flex-col sm:items-end gap-2 shrink-0">
+                <div class="max-sm:hidden flex flex-col sm:items-end gap-2 shrink-0">
                   <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-800 border border-emerald-200/80 self-start sm:self-end">
                     <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
                     <span>Åpen for felles reiseplanlegging</span>
@@ -1193,7 +1186,7 @@
               </div>
 
               <!-- Action Row (Reference Image 2: Clean action buttons row) -->
-              <div class="flex items-center flex-wrap gap-2.5 mt-5">
+              <div class="max-sm:hidden flex items-center flex-wrap gap-2.5 mt-5">
                 <button type="button" onclick="handleSaveAndShareTrip()" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs transition flex items-center gap-1.5 shadow-2xs">
                   <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
                   <span>Del aktiv reise med venn</span>
@@ -1209,7 +1202,7 @@
               </div>
 
               <!-- UNDERLINED HORIZONTAL TABS (Reference Image 2: Timeline | About with bottom border indicator) -->
-              <div class="flex items-center gap-6 sm:gap-8 border-t border-slate-100 mt-6 -mx-5 sm:-mx-7 px-5 sm:px-7 overflow-x-auto">
+              <div class="flex items-center justify-between sm:justify-start gap-2 sm:gap-8 border-t border-slate-100 mt-4 sm:mt-6 -mx-5 sm:-mx-7 px-5 sm:px-7 overflow-x-auto" role="tablist" aria-label="Profil">
                 <button 
                   type="button" 
                   id="social-subtab-btn-passport" 
@@ -1217,7 +1210,7 @@
                   class="py-3.5 text-xs sm:text-sm font-semibold border-b-2 border-brand-600 text-slate-900 transition flex items-center gap-2 whitespace-nowrap"
                 >
                   <i data-lucide="user" class="w-4 h-4 text-brand-600"></i>
-                  <span>Oversikt & Steder</span>
+                  <span class="sm:hidden">Profil</span><span class="hidden sm:inline">Oversikt & Steder</span>
                 </button>
 
                 <button 
@@ -1227,7 +1220,7 @@
                   class="py-3.5 text-xs sm:text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition flex items-center gap-2 whitespace-nowrap"
                 >
                   <i data-lucide="users" class="w-4 h-4"></i>
-                  <span>Mine kontakter</span>
+                  <span class="sm:hidden">Kontakter</span><span class="hidden sm:inline">Mine kontakter</span>
                   <span id="social-subtab-friends-badge" class="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-semibold">0</span>
                 </button>
 
@@ -1238,7 +1231,7 @@
                   class="py-3.5 text-xs sm:text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition flex items-center gap-2 whitespace-nowrap"
                 >
                   <i data-lucide="search" class="w-4 h-4"></i>
-                  <span>Finn reisende</span>
+                  <span class="sm:hidden">Finn</span><span class="hidden sm:inline">Finn reisende</span>
                 </button>
               </div>
             </div>
@@ -1721,6 +1714,19 @@
       <span id="mobile-social-req-dot" class="hidden absolute top-1.5 right-3.5 w-2 h-2 rounded-full bg-rail-accent"></span>
     </button>
   </nav>
+
+  <!-- ========================================================================= -->
+  <!-- HANDLINGSARK («⋯»-meny, nedenfra på mobil)                                -->
+  <!-- ========================================================================= -->
+  <div id="action-sheet" class="fixed inset-0 z-[60] hidden" role="dialog" aria-modal="true" aria-labelledby="action-sheet-title">
+    <div class="absolute inset-0 bg-slate-900/50" onclick="closeActionSheet()"></div>
+    <div class="absolute inset-x-0 bottom-0 sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-80 bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl px-2 pt-2 pb-safe">
+      <div class="mx-auto mb-2 h-1 w-10 rounded-full bg-slate-200 sm:hidden" aria-hidden="true"></div>
+      <p id="action-sheet-title" class="px-3 pb-2 text-sm font-bold text-slate-900 truncate"></p>
+      <div id="action-sheet-list" class="flex flex-col border-t border-slate-100 pt-1"></div>
+      <button type="button" onclick="closeActionSheet()" class="mt-1 mb-2 w-full py-3 rounded-xl text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition">Avbryt</button>
+    </div>
+  </div>
 
   <!-- ========================================================================= -->
   <!-- MODAL: LEGG TIL / REDIGER STOPPESTED                                      -->
@@ -2499,7 +2505,7 @@
   <!-- ========================================================================= -->
   <!-- MODULAR JAVASCRIPT ENTRYPOINT                                             -->
   <!-- ========================================================================= -->
-  <script type="module" src="./app.js?v=20261115-2"></script>
+  <script type="module" src="./app.js?v=20261115-3"></script>
 
 </body>
 </html>
