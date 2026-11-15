@@ -191,6 +191,10 @@
   <link rel="stylesheet" href="./assets/railsync.css?v=dev">
 </head>
 <body data-auth="pending" class="min-h-screen md:h-full text-slate-800 antialiased bg-sand-100 flex flex-col md:flex-row w-full max-w-full overflow-x-hidden">
+  <script>
+    // Aldri logget inn på denne enheten: vis innloggingssiden med en gang i stedet for å vente på Firebase.
+    try { if (!localStorage.getItem("railsync_account_uid")) document.body.dataset.auth = "out"; } catch (e) {}
+  </script>
 
   <!-- ========================================================================= -->
   <!-- INNLOGGING (appen krever konto)                                           -->
@@ -257,7 +261,7 @@
             <div class="flex-1 h-px bg-slate-200"></div>
           </div>
 
-          <form id="form-auth" onsubmit="handleUsernameAuth(event)" class="space-y-4" novalidate>
+          <form id="form-auth" onsubmit="event.preventDefault(); if (window.handleUsernameAuth) { handleUsernameAuth(event); } else { var e = document.getElementById('auth-error'); if (e) { e.textContent = 'Siden laster fortsatt. Prøv igjen om et øyeblikk.'; e.classList.remove('hidden'); } }" class="space-y-4" novalidate>
             <input type="checkbox" id="auth-is-new-user" class="hidden" tabindex="-1" aria-hidden="true">
             <div>
               <label for="auth-username" class="field-label">Brukernavn</label>

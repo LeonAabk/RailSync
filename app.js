@@ -799,7 +799,7 @@ function showAuthScreen() {
 
 // Vis innloggingssiden hvis innloggingen ikke er avklart etter noen sekunder (f.eks. uten nett)
 setTimeout(() => {
-  if (!authStateResolved && document.body.dataset.auth === "pending") {
+  if (!authStateResolved && (document.body.dataset.auth === "pending" || document.body.dataset.auth === "out")) {
     showAuthScreen();
     if (!auth) showAuthError("Innlogging er ikke tilgjengelig akkurat nå. Prøv å laste siden på nytt.");
   }
