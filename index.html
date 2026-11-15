@@ -21,57 +21,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-  <!-- Tailwind CSS via CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'],
-          },
-          colors: {
-            brand: {
-              50: '#f0fdfa',
-              100: '#ccfbf1',
-              200: '#99f6e4',
-              500: '#14b8a6',
-              600: '#0d9488',
-              700: '#0f766e',
-              800: '#115e59',
-              900: '#134e4a',
-              950: '#042f2e',
-            },
-            fjord: {
-              100: '#d5ebe7',
-              200: '#a7d3cc',
-              300: '#7fb8af',
-              700: '#155e5a',
-              800: '#0f4c4a',
-              900: '#0b3b39',
-              950: '#082b2a',
-            },
-            sand: {
-              50: '#fbf9f5',
-              100: '#f6f3ee',
-              200: '#ece6db',
-              300: '#dfd6c6',
-            },
-            rail: {
-              navy: '#0f172a',
-              petrol: '#0a3641',
-              accent: '#f97316',
-              accentHover: '#ea580c',
-              coral: '#fb7185',
-              surface: '#ffffff',
-              muted: '#64748b'
-            }
-          }
-        }
-      }
-    }
-  </script>
-
   <!-- Leaflet CSS & JS via CDN -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -217,6 +166,9 @@
     .field-input { width: 100%; border-radius: 0.5rem; border: 1px solid rgb(226 232 240); background: #fff; padding: 0.5rem 0.75rem; font-size: 0.875rem; color: rgb(15 23 42); transition: border-color .15s, box-shadow .15s; }
     .field-input:focus { outline: none; border-color: rgb(13 148 136); box-shadow: 0 0 0 3px rgb(13 148 136 / 0.15); }
   </style>
+
+  <!-- Tailwind, bygget til en vanlig CSS-fil (se tailwind.config.cjs) -->
+  <link rel="stylesheet" href="./assets/railsync.css?v=20261115-8">
 </head>
 <body data-auth="pending" class="min-h-screen md:h-full text-slate-800 antialiased bg-sand-100 flex flex-col md:flex-row w-full max-w-full overflow-x-hidden">
 
@@ -2530,7 +2482,7 @@
   <!-- ========================================================================= -->
   <!-- MODULAR JAVASCRIPT ENTRYPOINT                                             -->
   <!-- ========================================================================= -->
-  <script type="module" src="./app.js?v=20261115-7"></script>
+  <script type="module" src="./app.js?v=20261115-8"></script>
 
 </body>
 </html>

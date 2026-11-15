@@ -1,0 +1,59 @@
+# Bygger RailSync og publiserer til GitHub Pages (aabakstudio.com/RailSync/).
+# - Alle grener: bygger og sjekker at alt er på plass (ingen publisering).
+# - main: bygger og publiserer.
+name: Bygg og publiser
+
+on:
+  push:
+    branches: ["**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Bygg CSS med Tailwind
+        run: npx --yes tailwindcss@3.4.17 -c tailwind.config.cjs -i styles/tailwind.css -o _site/assets/railsync.css --minify
+
+      - name: Kopier nettsidens filer
+        run: cp index.html app.js _site/
+
+      - name: Sjekk bygget
+        run: |
+          test -s _site/assets/railsync.css
+          for cls in '.bg-fjord-800' '.bg-sand-100' '.max-lg\:hidden' '.text-fjord-200' '.bg-white\/10' '.peer:checked'; do
+            grep -qF "$cls" _site/assets/railsync.css || { echo "Mangler $cls i CSS-en"; exit 1; }
+          done
+          grep -q 'assets/railsync.css' _site/index.html
+          ! grep -q 'cdn.tailwindcss.com' _site/index.html
+          ls -la _site _site/assets
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
