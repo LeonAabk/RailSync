@@ -1571,14 +1571,16 @@ export function updateSyncStatus() {
   if (!currentUser) state = "";
   else if (syncInFlight > 0) state = "saving";
   else if (allTrips.some(t => t._syncError && isTripDirty(t))) state = "error";
-  else if (allTrips.some(isTripDirty) || pendingBudgetPushes.size > 0 || sharedOutbox.length > 0) state = online ? (lastSyncFailed ? "retry" : "saving") : "offline";
+  else if (!online) state = "offline";
+  else if (allTrips.some(isTripDirty) || pendingBudgetPushes.size > 0 || sharedOutbox.length > 0) state = lastSyncFailed ? "retry" : "saving";
   else state = "saved";
+  updateOfflineBanner(online);
   if (state === syncStatusState) return;
   syncStatusState = state;
   const labels = {
     saving: ["Lagrer …", "bg-amber-400 animate-pulse", "Endringene sendes til kontoen din."],
     saved: ["Lagret", "bg-emerald-500", "Alt er lagret på kontoen din."],
-    offline: ["Ikke på nett", "bg-slate-400", "Endringene er lagret på denne enheten og sendes når nettet er tilbake."],
+    offline: ["Uten nett", "bg-amber-500", "Du er uten nett. Endringer lagres på denne enheten og sendes når nettet er tilbake."],
     retry: ["Prøver igjen …", "bg-amber-500", "Fikk ikke lagret med en gang. Prøver igjen automatisk."],
     error: ["Ikke lagret", "bg-rose-500", "Noe kunne ikke lagres på kontoen. Endringene ligger på denne enheten."]
   };
@@ -1590,6 +1592,74 @@ export function updateSyncStatus() {
     el.setAttribute("aria-label", title);
     el.innerHTML = `<span class="w-1.5 h-1.5 rounded-full ${dot}"></span><span>${text}</span>`;
   });
+}
+
+// ---------------------------------------------------------------------------
+// Offline-app: banner, service worker og «Legg på hjemskjermen»
+// ---------------------------------------------------------------------------
+function updateOfflineBanner(online) {
+  const bar = document.getElementById("offline-banner");
+  if (!bar) return;
+  const show = !online && !!currentUser;
+  bar.classList.toggle("hidden", !show);
+  bar.classList.toggle("flex", show);
+}
+
+let deferredInstallPrompt = null;
+
+function isStandaloneApp() {
+  try {
+    return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+  } catch (e) { return false; }
+}
+
+function isIOSDevice() {
+  const ua = navigator.userAgent || "";
+  return /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+}
+
+function updateInstallItems() {
+  document.querySelectorAll("[data-install-item]").forEach(el => el.classList.toggle("hidden", isStandaloneApp()));
+}
+
+export async function openInstallHelp() {
+  if (isStandaloneApp()) {
+    showToast("Allerede på hjemskjermen", "Du bruker RailSync som app.", "check");
+    return;
+  }
+  if (deferredInstallPrompt) {
+    const promptEvent = deferredInstallPrompt;
+    deferredInstallPrompt = null;
+    try {
+      promptEvent.prompt();
+      await promptEvent.userChoice;
+    } catch (e) {}
+    return;
+  }
+  const message = isIOSDevice()
+    ? "1. Trykk på Del-knappen (firkanten med pil opp) i Safari.\n2. Velg «Legg til på Hjem-skjerm».\n3. Trykk «Legg til».\n\nDa åpnes RailSync som en egen app, og den virker også uten nett."
+    : "Åpne nettleserens meny (⋮ eller ⋯) og velg «Installer app» eller «Legg til på startskjermen».\n\nDa åpnes RailSync som en egen app, og den virker også uten nett.";
+  await showAppDialog({ title: "Legg RailSync på hjemskjermen", message, confirmLabel: "Skjønner" });
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+  });
+  window.addEventListener("appinstalled", () => {
+    deferredInstallPrompt = null;
+    updateInstallItems();
+    showToast("RailSync er lagt til", "Du finner appen på hjemskjermen.", "check");
+  });
+  window.addEventListener("online", () => updateSyncStatus());
+  window.addEventListener("offline", () => updateSyncStatus());
+  // Service worker: lar appen åpnes uten nett. Bare på https (og localhost under utvikling).
+  if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./sw.js").catch(err => console.warn("Service worker ble ikke registrert:", err));
+    });
+  }
 }
 
 function retryDirtyTrips() {
@@ -7027,7 +7097,8 @@ export function openTripActionsSheet() {
     { label: "Mitt pass", icon: "ticket", hint: passInfo.short, run: () => openPassModal() },
     { label: "Del reisen og reisefølget", icon: "users", run: () => handleSaveAndShareTrip() },
     canEditActiveTrip() && { label: "Reiseinnstillinger", icon: "sliders-horizontal", run: () => openTripSettingsModal() },
-    { label: "Alle reiser", icon: "folder", hint: String(allTrips.length), run: () => switchTab("trips") }
+    { label: "Alle reiser", icon: "folder", hint: String(allTrips.length), run: () => switchTab("trips") },
+    !isStandaloneApp() && { label: "Legg på hjemskjermen", icon: "smartphone", run: () => openInstallHelp() }
   ]);
 }
 
@@ -8501,6 +8572,7 @@ window.switchTab = switchTab;
 window.openTripSettingsModal = openTripSettingsModal;
 window.openPassModal = openPassModal;
 window.openActionSheet = openActionSheet;
+window.openInstallHelp = openInstallHelp;
 window.closeActionSheet = closeActionSheet;
 window.runActionSheetItem = runActionSheetItem;
 window.openStopMenu = openStopMenu;
@@ -8641,6 +8713,7 @@ async function initializeApplet() {
   initMap();
   renderAll();
   setOverviewView("stops", { keepMap: true });
+  updateInstallItems();
   setupNominatimSearch();
   setupLiveTrainSearch();
   if (window.lucide) {

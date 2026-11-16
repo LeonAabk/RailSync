@@ -1,0 +1,19 @@
+{
+  "name": "RailSync – Planlegg Interrail sammen",
+  "short_name": "RailSync",
+  "description": "Planlegg Interrail-reisen sammen med vennene dine: rute på kart, togtider, Interrail-pass, budsjett og pakkeliste.",
+  "lang": "nb",
+  "dir": "ltr",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f3ee",
+  "theme_color": "#0f4c4a",
+  "categories": ["travel", "navigation"],
+  "icons": [
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

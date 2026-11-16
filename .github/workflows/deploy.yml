@@ -30,7 +30,7 @@ jobs:
       - name: Kopier nettsidens filer
         run: |
           mkdir -p _site
-          cp -r index.html app.js assets _site/
+          cp -r index.html app.js sw.js manifest.webmanifest assets _site/
 
       - name: Bygg CSS med Tailwind
         run: npx --yes tailwindcss@3.4.17 -c tailwind.config.cjs -i styles/tailwind.css -o _site/assets/railsync.css --minify
@@ -45,10 +45,12 @@ jobs:
           VER="$(date -u +%Y%m%d)-${GITHUB_SHA::7}"
           sed -i -E "s/\?v=dev\"/?v=${VER}\"/g" _site/index.html
           sed -i -E "s/const APP_VERSION = \"dev\"/const APP_VERSION = \"${VER}\"/" _site/app.js
+          sed -i -E "s/^const VERSION = \"dev\";/const VERSION = \"${VER}\";/" _site/sw.js
           grep -q "app.js?v=${VER}" _site/index.html
           grep -q "railsync.css?v=${VER}" _site/index.html
           grep -q "icons.js?v=${VER}" _site/index.html
           grep -q "const APP_VERSION = \"${VER}\"" _site/app.js
+          grep -q "^const VERSION = \"${VER}\";" _site/sw.js
           echo "Versjon: ${VER}"
 
       - name: Sjekk bygget
@@ -58,6 +60,7 @@ jobs:
             grep -qF "$cls" _site/assets/railsync.css || { echo "Mangler $cls i CSS-en"; exit 1; }
           done
           grep -q 'assets/railsync.css' _site/index.html
+          test -s _site/sw.js && node -e "JSON.parse(require('fs').readFileSync('_site/manifest.webmanifest','utf8'))"
           for f in icons.js icon.svg favicon-32.png apple-touch-icon.png icon-192.png icon-512.png og-image.png; do test -s "_site/assets/$f"; done
           ! grep -q 'cdn.tailwindcss.com' _site/index.html
           ! grep -q 'unpkg.com/lucide' _site/index.html

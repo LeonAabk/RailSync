@@ -30,7 +30,8 @@
   <meta name="theme-color" content="#0f4c4a" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="RailSync" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <link rel="manifest" href="./manifest.webmanifest" />
   <meta name="mobile-web-app-capable" content="yes" />
 
   <!-- Google Fonts: Plus Jakarta Sans -->
@@ -441,6 +442,9 @@
                 <i data-lucide="settings" class="w-4 h-4 text-slate-400"></i><span>Kontoinnstillinger</span>
               </button>
               <div class="my-1 border-t border-slate-100"></div>
+              <button type="button" role="menuitem" data-install-item onclick="closeAccountMenu(); openInstallHelp()" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                <i data-lucide="smartphone" class="w-4 h-4 text-slate-400"></i> Legg på hjemskjermen
+              </button>
               <button type="button" role="menuitem" onclick="closeAccountMenu(); handleLogout()" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50">
                 <i data-lucide="log-out" class="w-4 h-4 text-slate-400"></i><span>Logg ut</span>
               </button>
@@ -460,6 +464,10 @@
       </div>
 
     </header>
+    <div id="offline-banner" class="hidden items-center gap-2 bg-amber-50 border-b border-amber-200 text-amber-900 text-xs sm:text-sm px-3 sm:px-6 py-2" role="status">
+      <i data-lucide="wifi-off" class="w-4 h-4 shrink-0"></i>
+      <span><strong class="font-semibold">Uten nett.</strong> Du ser siste lagrede versjon. Endringer lagres på enheten og sendes når du får nett igjen.</span>
+    </div>
 
     <!-- READ-ONLY VIEW BANNER (Shown when viewing a shared trip with view-only permission) -->
     <div id="readonly-trip-banner" class="hidden bg-amber-50/90 border-b border-amber-200 px-4 sm:px-6 py-2.5 text-xs text-amber-900">
@@ -2359,7 +2367,7 @@
     <form id="app-dialog-form" class="bg-white rounded-2xl max-w-md w-full shadow-xl border border-slate-200">
       <div class="p-5 sm:p-6 space-y-3">
         <h3 id="app-dialog-title" class="text-base font-semibold text-slate-900">Bekreft</h3>
-        <p id="app-dialog-message" class="text-sm text-slate-600 leading-relaxed"></p>
+        <p id="app-dialog-message" class="text-sm text-slate-600 leading-relaxed whitespace-pre-line"></p>
         <div id="app-dialog-input-wrap" class="hidden">
           <label for="app-dialog-input" id="app-dialog-input-label" class="field-label">Navn</label>
           <input type="text" id="app-dialog-input" maxlength="80" autocomplete="off" class="field-input">
