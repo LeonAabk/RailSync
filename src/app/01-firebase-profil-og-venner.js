@@ -46,6 +46,23 @@ const firebaseConfig = {
   appId: "1:608711815759:web:a18449c1dd8aca0f3d303a"
 };
 
+// Firebase App Check med Fraud Defense (reCAPTCHA Enterprise): viser Firebase at forespørslene kommer fra
+// RailSync-siden, så andre ikke kan bruke databasen med nøklene over. Tom nøkkel = av.
+// Dette er den offentlige nettstedsnøkkelen (site key) fra Google Cloud-prosjektet RailSync.
+// Registrert i Firebase-konsollen → App Check. Står i overvåkingsmodus til den håndheves der.
+const APP_CHECK_SITE_KEY = "6LeUgyMuAAAAACbbsscSec-yVbdHmfxInyWGRR8o";
+
+function startAppCheck(app) {
+  if (!APP_CHECK_SITE_KEY) return;
+  if (["localhost", "127.0.0.1"].includes(location.hostname)) return;
+  import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app-check.js")
+    .then(({ initializeAppCheck, ReCaptchaEnterpriseProvider }) => {
+      initializeAppCheck(app, { provider: new ReCaptchaEnterpriseProvider(APP_CHECK_SITE_KEY), isTokenAutoRefreshEnabled: true });
+      document.documentElement.classList.add("app-check-on");
+    })
+    .catch(err => console.warn("App Check ble ikke startet:", err));
+}
+
 function isFirebaseConfigured() {
   return firebaseConfig.apiKey && 
          firebaseConfig.apiKey !== "YOUR_API_KEY" && 
@@ -717,6 +734,7 @@ function removeLocalTrip(id, notify) {
 if (isFirebaseConfigured()) {
   try {
     const app = initializeApp(firebaseConfig);
+    startAppCheck(app);
     db = getFirestore(app);
     auth = getAuth(app);
     console.log("Firebase Firestore og Auth initialisert vellykket.");

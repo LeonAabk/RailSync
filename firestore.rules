@@ -261,5 +261,25 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/trips/$(request.resource.data.tripId)).data.ownerUid == request.auth.uid;
       allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
     }
+
+    // -------------------------------------------------------------------
+    // Feilrapporter fra appen (src/app/00-feilrapporter.js).
+    // Innloggede kan opprette korte rapporter om egne feil; ingen kan lese, endre eller slette fra appen.
+    // -------------------------------------------------------------------
+    match /errorReports/{reportId} {
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['uid', 'at', 'version', 'source', 'message', 'stack', 'extra', 'tab', 'path', 'ua'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.at is string && request.resource.data.at.size() <= 30
+        && request.resource.data.version is string && request.resource.data.version.size() <= 40
+        && request.resource.data.source is string && request.resource.data.source.size() <= 40
+        && request.resource.data.message is string && request.resource.data.message.size() <= 500
+        && request.resource.data.stack is string && request.resource.data.stack.size() <= 2000
+        && request.resource.data.extra is string && request.resource.data.extra.size() <= 300
+        && request.resource.data.tab is string && request.resource.data.tab.size() <= 40
+        && request.resource.data.path is string && request.resource.data.path.size() <= 200
+        && request.resource.data.ua is string && request.resource.data.ua.size() <= 300;
+      allow read, update, delete: if false;
+    }
   }
 }

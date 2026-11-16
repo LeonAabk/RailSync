@@ -186,6 +186,10 @@
     .field-label { display: block; font-size: 0.8125rem; font-weight: 500; color: rgb(51 65 85); margin-bottom: 0.375rem; }
     .field-input { width: 100%; border-radius: 0.5rem; border: 1px solid rgb(226 232 240); background: #fff; padding: 0.5rem 0.75rem; font-size: 0.875rem; color: rgb(15 23 42); transition: border-color .15s, box-shadow .15s; }
     .field-input:focus { outline: none; border-color: rgb(13 148 136); box-shadow: 0 0 0 3px rgb(13 148 136 / 0.15); }
+    /* reCAPTCHA (App Check): skjul merket nede i hjørnet (ligger over bunnmenyen); teksten under innloggingen gir den påkrevde opplysningen */
+    .grecaptcha-badge { visibility: hidden !important; }
+    .recaptcha-note { display: none; }
+    .app-check-on .recaptcha-note { display: block; }
   </style>
 
   <!-- Tailwind, bygget til en vanlig CSS-fil (se tailwind.config.cjs) -->
@@ -281,6 +285,7 @@
           </form>
 
           <p class="text-xs text-slate-500 leading-relaxed">Brukernavn-kontoer har ikke e-post, så passordet kan ikke tilbakestilles. Bruk Google-innlogging hvis du vil være sikker på å ikke miste tilgangen.</p>
+          <p class="recaptcha-note text-[11px] text-slate-500 leading-relaxed">Siden er beskyttet av reCAPTCHA, og Googles <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" class="underline">personvernerklæring</a> og <a href="https://policies.google.com/terms" target="_blank" rel="noopener" class="underline">vilkår</a> gjelder.</p>
         </div>
       </div>
     </div>

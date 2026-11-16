@@ -603,6 +603,7 @@ function reportSyncError(tripObj, err) {
   tripObj._syncError = String((err && (err.code || err.message)) || "ukjent").slice(0, 200);
   if (reportedSyncErrors.has(tripObj.id)) return;
   reportedSyncErrors.add(tripObj.id);
+  reportAppError("synk", err, "reise " + tripObj.id);
   showToast("Kunne ikke lagre i skyen", `«${tripObj.title || "Reisen"}» er lagret på denne enheten, men ikke på kontoen. Last inn siden på nytt, og si fra hvis det fortsetter.`, "alert-triangle");
 }
 let lastSyncFailed = false;
