@@ -270,15 +270,23 @@ export function handleSaveExpense(e) {
   e.preventDefault();
   const title = document.getElementById("expense-title").value.trim();
   const category = document.getElementById("expense-category").value;
-  const amount = parseFloat(document.getElementById("expense-amount").value) || 0;
   const date = document.getElementById("expense-date").value;
+  const fx = readFxAmount("expense");
+  const errEl = document.getElementById("expense-error");
+  if (fx.error) {
+    if (errEl) { errEl.textContent = fx.error; errEl.classList.remove("hidden"); }
+    return;
+  }
+  if (errEl) errEl.classList.add("hidden");
+  const amount = fx.nok;
 
   const newExp = {
     id: "exp-" + Date.now(),
     title,
     category,
     amount,
-    date
+    date,
+    ...fx.fields
   };
 
   appState.expenses.push(newExp);
@@ -286,7 +294,7 @@ export function handleSaveExpense(e) {
   renderAll();
   closeModal('modal-add-expense');
   document.getElementById("form-add-expense").reset();
-  showToast("Utgift lagret", `${title} · ${formatMoney(amount)}`, "wallet");
+  showToast("Utgift lagret", `${title} · ${fx.fields.currency ? `${formatCurrency(fx.fields.origAmount, fx.fields.currency)} ≈ ` : ""}${formatMoney(amount)}`, "wallet");
 }
 
 export function deleteExpense(id) {

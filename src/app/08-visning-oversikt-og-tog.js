@@ -324,6 +324,7 @@ export function renderTrains() {
             ${resBadge}
             ${train.reservationPrice > 0 ? `<span class="text-xs text-slate-500 font-semibold">~${train.reservationPrice} kr</span>` : ''}
           </div>
+          ${train.reservationStatus === "required" ? `<div class="w-full">${reservationLinksHtml(train)}</div>` : ""}
 
           <div class="flex items-center gap-1.5 flex-wrap ml-auto">
             ${hasTrack ? `

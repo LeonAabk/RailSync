@@ -36,6 +36,11 @@ export function openAddExpenseModal() {
   if (dateEl && appState.trip && appState.trip.startDate) {
     dateEl.value = appState.trip.startDate;
   }
+  const today = todayISO();
+  if (dateEl && appState.trip && appState.trip.startDate && appState.trip.endDate && today >= appState.trip.startDate && today <= appState.trip.endDate) dateEl.value = today;
+  const errEl = document.getElementById("expense-error");
+  if (errEl) errEl.classList.add("hidden");
+  setupFxFields("expense", null);
   openModal('modal-add-expense');
 }
 

@@ -99,6 +99,7 @@ function planDayCardHtml(info, dayNo, today, { compact = false } = {}) {
             ${t.trainNumber ? `<span class="text-xs text-slate-500">${escapeHtml(t.trainNumber)}</span>` : ""}
             ${planTrainResBadge(t)}
           </div>
+          ${t.reservationStatus === "required" ? `<div class="mt-1.5">${reservationLinksHtml(t, true)}</div>` : ""}
         </div>
       </div>`).join("");
   let nightHtml = "";

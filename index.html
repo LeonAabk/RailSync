@@ -598,12 +598,12 @@
         <!-- Clean Unified Metrics Bar (Inspired by Reference Image 1 & 2) -->
         <div class="bg-white rounded-xl border border-slate-200/90 shadow-2xs grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 sm:divide-x divide-slate-100">
           <!-- Stat 1: Antall land -->
-          <div class="p-4 sm:px-6 sm:py-4 min-w-0">
+          <button type="button" onclick="openCountryInfo()" class="p-4 sm:px-6 sm:py-4 min-w-0 text-left hover:bg-slate-50 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500" aria-label="Land på ruten – valuta, stikkontakt, nødnummer og fraser">
             <div class="w-8 h-8 rounded-lg bg-brand-50 text-brand-700 flex items-center justify-center mb-2" aria-hidden="true"><i data-lucide="map-pin" class="w-4 h-4"></i></div>
-            <p class="text-[11px] font-medium text-slate-500 uppercase tracking-wider truncate">Land på ruten</p>
+            <p class="text-[11px] font-medium text-slate-500 uppercase tracking-wider truncate flex items-center gap-0.5">Land på ruten <i data-lucide="chevron-right" class="w-3 h-3 shrink-0"></i></p>
             <h3 id="stat-countries-count" class="text-lg sm:text-2xl font-bold text-slate-900 tracking-tight mt-0.5 truncate">4 land</h3>
-            <p id="stat-countries-sub" class="text-[11px] text-slate-500 truncate mt-0.5">Norge, Danmark, Tyskland...</p>
-          </div>
+            <p id="stat-countries-sub" class="text-[11px] text-slate-500 truncate mt-0.5"></p>
+          </button>
 
           <!-- Stat 2: Totalt antall dager -->
           <div class="p-4 sm:px-6 sm:py-4 min-w-0">
@@ -726,6 +726,7 @@
 
         </div>
 
+        <div id="trip-stats-card" data-needs-trip class="hidden bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-5"></div>
       </section>
 
       <!-- ===================================================================== -->
@@ -926,9 +927,12 @@
               <p id="budget-subtitle" class="text-sm text-slate-500 mt-0.5">Ditt budsjett for reisen.</p>
             </div>
           </div>
-          <div class="inline-flex p-1 rounded-xl bg-sand-200 self-start sm:self-auto" role="tablist">
+          <div class="flex items-center gap-2 self-start sm:self-auto">
+          <button type="button" onclick="openFxCalculator()" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-sm font-medium text-slate-700 transition" aria-label="Valutakalkulator"><i data-lucide="arrow-left-right" class="w-4 h-4 text-amber-700"></i><span class="hidden sm:inline">Valuta</span></button>
+          <div class="inline-flex p-1 rounded-xl bg-sand-200" role="tablist">
             <button type="button" id="budget-view-btn-personal" onclick="switchBudgetView('personal')" role="tab" class="whitespace-nowrap px-3.5 py-1.5 rounded-lg text-sm font-medium transition">Budsjett</button>
             <button type="button" id="budget-view-btn-shared" onclick="switchBudgetView('shared')" role="tab" class="whitespace-nowrap px-3.5 py-1.5 rounded-lg text-sm font-medium transition inline-flex items-center gap-1.5">Felles utgifter <span id="budget-shared-count" class="hidden text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-slate-200 text-slate-700"></span></button>
+          </div>
           </div>
         </div>
 
@@ -1018,6 +1022,7 @@
             </div>
           </div>
         </div>
+        <div id="fx-calc-card" class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-5 max-w-md scroll-mt-20"></div>
       </section>
 
       <!-- ===================================================================== -->
@@ -1055,6 +1060,8 @@
             </div>
           </div>
         </div>
+
+        <div id="packing-adapter-hint" class="hidden bg-amber-50 border border-amber-200 rounded-2xl p-4"></div>
 
         <!-- Grouped Checklist Grid -->
         <div id="packing-groups-container" class="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -2196,6 +2203,19 @@
   <!-- ========================================================================= -->
   <!-- MODAL: LEGG TIL UTGIFT                                                    -->
   <!-- ========================================================================= -->
+  <div id="modal-country-info" class="fixed inset-0 z-50 hidden bg-slate-900/50 flex items-end sm:items-center justify-center sm:p-4" role="dialog" aria-modal="true" aria-labelledby="country-info-title">
+    <div class="bg-white w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl shadow-xl border border-slate-200 max-h-[90vh] flex flex-col">
+      <div class="px-5 pt-5 pb-3 border-b border-slate-100 flex items-start justify-between gap-4">
+        <div>
+          <h3 id="country-info-title" class="text-base font-semibold text-slate-900">Land på ruten</h3>
+          <p class="text-sm text-slate-500 mt-0.5">Valuta, stikkontakt, nødnummer, mobil og nyttige fraser.</p>
+        </div>
+        <button type="button" onclick="closeModal('modal-country-info')" class="w-8 h-8 -mr-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition shrink-0" aria-label="Lukk"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+      <div id="country-info-list" class="px-5 py-4 space-y-3 overflow-y-auto"></div>
+    </div>
+  </div>
+
   <div id="modal-shared-expense" class="fixed inset-0 z-50 hidden bg-slate-900/50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="shared-expense-modal-title">
     <form id="form-shared-expense" onsubmit="handleSaveSharedExpense(event)" class="bg-white rounded-2xl max-w-md w-full shadow-xl border border-slate-200 max-h-[92vh] flex flex-col">
       <div class="px-5 sm:px-6 pt-5 pb-4 border-b border-slate-100 flex items-start justify-between gap-4">
@@ -2213,13 +2233,21 @@
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label for="shared-expense-amount" class="field-label">Beløp (kr)</label>
-            <input type="number" id="shared-expense-amount" min="0.01" max="1000000" step="0.01" inputmode="decimal" required class="field-input tabular-nums">
+            <label for="shared-expense-amount" class="field-label">Beløp</label>
+            <div class="flex gap-1.5">
+              <input type="number" id="shared-expense-amount" min="0.01" max="100000000" step="0.01" inputmode="decimal" required class="field-input tabular-nums min-w-0 flex-1">
+              <div class="w-[4.75rem] shrink-0"><label for="shared-expense-currency" class="sr-only">Valuta</label><select id="shared-expense-currency" class="field-input px-2 font-semibold"><option value="NOK">NOK</option></select></div>
+            </div>
           </div>
           <div>
             <label for="shared-expense-date" class="field-label">Dato</label>
             <input type="date" id="shared-expense-date" class="field-input">
           </div>
+        </div>
+        <p id="shared-expense-fx-note" class="hidden -mt-2 text-xs text-slate-600"></p>
+        <div id="shared-expense-fx-rate-wrap" class="hidden">
+          <label for="shared-expense-fx-rate" class="field-label">Kurs (kroner for 1 enhet)</label>
+          <input type="number" id="shared-expense-fx-rate" min="0.0001" step="any" inputmode="decimal" class="field-input tabular-nums">
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
@@ -2281,10 +2309,20 @@
             </select>
           </div>
           <div>
-            <label for="expense-amount" class="block text-xs font-semibold text-slate-700 mb-1">Beløp (NOK) *</label>
-            <input type="number" id="expense-amount" required placeholder="f.eks. 450" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3.5 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+            <label for="expense-amount" class="block text-xs font-semibold text-slate-700 mb-1">Beløp *</label>
+            <div class="flex gap-1.5">
+              <input type="number" id="expense-amount" required min="0.01" step="0.01" inputmode="decimal" placeholder="f.eks. 450" class="min-w-0 flex-1 bg-slate-50 border border-slate-200 text-sm rounded-xl px-3 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <label for="expense-currency" class="sr-only">Valuta</label>
+              <select id="expense-currency" class="w-[4.75rem] shrink-0 bg-slate-50 border border-slate-200 text-sm rounded-xl px-2 py-2 text-slate-800 font-semibold focus:ring-2 focus:ring-brand-500 focus:outline-none"><option value="NOK">NOK</option></select>
+            </div>
           </div>
         </div>
+        <p id="expense-fx-note" class="hidden -mt-2 text-xs text-slate-600"></p>
+        <div id="expense-fx-rate-wrap" class="hidden">
+          <label for="expense-fx-rate" class="block text-xs font-semibold text-slate-700 mb-1">Kurs (kroner for 1 enhet)</label>
+          <input type="number" id="expense-fx-rate" min="0.0001" step="any" inputmode="decimal" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3.5 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+        </div>
+        <p id="expense-error" class="hidden text-sm text-rose-600"></p>
 
         <div>
           <label for="expense-date" class="block text-xs font-semibold text-slate-700 mb-1">Dato</label>

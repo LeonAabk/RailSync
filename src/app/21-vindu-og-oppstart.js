@@ -39,6 +39,12 @@ window.handleQuickAddPacking = handleQuickAddPacking;
 window.deletePackingItem = deletePackingItem;
 window.togglePackingItem = togglePackingItem;
 window.openDayPlan = openDayPlan;
+window.openCountryInfo = openCountryInfo;
+window.openFxCalculator = openFxCalculator;
+window.setFxCalcCurrency = setFxCalcCurrency;
+window.swapFxCalc = swapFxCalc;
+window.addAdapterToPacking = addAdapterToPacking;
+window.shareTripStats = shareTripStats;
 window.togglePlanPastDays = togglePlanPastDays;
 window.handleAddDayPlanItem = handleAddDayPlanItem;
 window.toggleDayPlanItem = toggleDayPlanItem;
@@ -161,6 +167,11 @@ async function initializeApplet() {
   setTimeout(() => {
     fetchRealTracksForAllTrains(true);
   }, 800);
+  // Hent valutakurser i bakgrunnen, så de finnes også uten nett på reisen
+  setTimeout(() => {
+    const foreign = (appState.stops || []).some(st => { const c = countryInfoFor(st.country); return c && c.currency !== "NOK"; });
+    if (foreign) ensureFxRates().then(() => { if (currentTab === "budget") renderFxCalculator(); });
+  }, 2500);
 }
 
 if (document.readyState === "loading") {

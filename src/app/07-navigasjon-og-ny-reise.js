@@ -230,6 +230,10 @@ export function switchTab(tabId) {
     switchTripManagerTab(currentTripManagerTab);
   }
 
+  if (tabId === "budget") {
+    renderFxCalculator();
+  }
+
   if (tabId === "plan") {
     renderDayPlan();
     applyEditMode();

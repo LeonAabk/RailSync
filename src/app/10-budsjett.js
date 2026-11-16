@@ -388,6 +388,7 @@ export function openSharedExpenseModal(expenseId = null) {
   document.getElementById("shared-expense-modal-title").textContent = existing ? "Endre felles utgift" : "Ny felles utgift";
   document.getElementById("shared-expense-title").value = existing ? existing.title : "";
   document.getElementById("shared-expense-amount").value = existing ? existing.amount : "";
+  setupFxFields("shared-expense", existing || null);
   document.getElementById("shared-expense-category").value = existing && existing.category ? existing.category : "Mat";
   document.getElementById("shared-expense-date").value = existing ? existing.date : new Date().toISOString().slice(0, 10);
   const payer = document.getElementById("shared-expense-paid-by");
@@ -410,11 +411,12 @@ export function handleSaveSharedExpense(e) {
   const err = document.getElementById("shared-expense-error");
   const id = document.getElementById("shared-expense-id").value || ("sx_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8));
   const title = document.getElementById("shared-expense-title").value.trim().slice(0, 80);
-  const amount = Math.round((parseFloat(String(document.getElementById("shared-expense-amount").value).replace(",", ".")) || 0) * 100) / 100;
+  const fx = readFxAmount("shared-expense");
+  const amount = fx.error ? 0 : fx.nok;
   const split = [...document.querySelectorAll("#shared-expense-split input:checked")].map(i => i.value);
   const paidBy = document.getElementById("shared-expense-paid-by").value;
   if (!title || !(amount > 0) || amount > 1000000 || split.length === 0) {
-    err.textContent = !title ? "Skriv hva utgiften gjelder." : !(amount > 0) || amount > 1000000 ? "Skriv inn et gyldig beløp." : "Velg minst én person utgiften skal deles på.";
+    err.textContent = !title ? "Skriv hva utgiften gjelder." : fx.error ? fx.error : !(amount > 0) || amount > 1000000 ? "Skriv inn et gyldig beløp." : "Velg minst én person utgiften skal deles på.";
     err.classList.remove("hidden");
     return;
   }
@@ -430,6 +432,7 @@ export function handleSaveSharedExpense(e) {
       category: document.getElementById("shared-expense-category").value || "Mat",
       amount, date: (document.getElementById("shared-expense-date").value || now.slice(0, 10)).slice(0, 10),
       paidBy, split, names,
+      ...fx.fields,
       createdBy: existing ? existing.createdBy : currentUser.uid,
       createdAt: existing ? existing.createdAt : now,
       updatedAt: now
@@ -613,7 +616,7 @@ export function renderBudget() {
           </div>
         </div>
         <div class="flex items-center gap-1.5 shrink-0">
-          <span class="text-sm font-semibold text-slate-900 tabular-nums">${formatMoney(exp.amount)}</span>
+          <span class="text-right"><span class="block text-sm font-semibold text-slate-900 tabular-nums">${formatMoney(exp.amount)}</span>${expenseOrigHtml(exp)}</span>
           ${viewingMe ? `<button type="button" onclick="deleteExpense(${jsArg(exp.id)})" class="w-8 h-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition" aria-label="Slett ${escapeHtml(exp.title || "utgift")}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ""}
         </div>
       </div>`).join("");
@@ -668,7 +671,7 @@ export function renderBudget() {
           </span>
         </button>
         <div class="flex items-center gap-1.5 shrink-0">
-          <span class="text-sm font-semibold text-slate-900 tabular-nums">${formatMoney(e.amount)}</span>
+          <span class="text-right"><span class="block text-sm font-semibold text-slate-900 tabular-nums">${formatMoney(e.amount)}</span>${expenseOrigHtml(e)}</span>
           ${canChange ? `<button type="button" onclick="deleteSharedExpense(${jsArg(e.id)})" class="w-8 h-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition" aria-label="Slett ${escapeHtml(e.title || "utgift")}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ""}
         </div></div>`;
     }).join("");
@@ -717,6 +720,7 @@ function packingCategoryChipHtml(name) {
 }
 
 export function renderPacking() {
+  renderPackingAdapterHint();
   const items = appState.packingList;
   const totalCount = items.length;
   const packedCount = items.filter(i => i.checked).length;
@@ -897,6 +901,7 @@ export function renderAll() {
   renderPacking();
   renderDayPlan();
   renderOverviewDayCard();
+  renderTripStats();
   renderTripManagerList();
   renderSocialHub();
   renderOnboarding();

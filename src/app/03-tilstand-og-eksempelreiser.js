@@ -297,7 +297,7 @@ export function canEditActiveTrip() {
 }
 
 // Skjuler redigeringsknapper når reisen bare kan ses (i stedet for å vise feilmelding ved klikk)
-const EDIT_ACTIONS = /\b(openAddStopModal|openEditStopModal|deleteStop|moveStopOrder|openAddTrainModal|openEditTrainModal|deleteTrain|openAddPackingItemModal|deletePackingItem|handleQuickAddPacking|openTripSettingsModal|importLiveJourneyToTrip|addWishlistPlaceToActiveTrip|handleSaveStop|handleSaveTrain|handleSavePackingItem|handleAddDayPlanItem|deleteDayPlanItem)\(/;
+const EDIT_ACTIONS = /\b(openAddStopModal|openEditStopModal|deleteStop|moveStopOrder|openAddTrainModal|openEditTrainModal|deleteTrain|openAddPackingItemModal|deletePackingItem|handleQuickAddPacking|openTripSettingsModal|importLiveJourneyToTrip|addWishlistPlaceToActiveTrip|handleSaveStop|handleSaveTrain|handleSavePackingItem|handleAddDayPlanItem|deleteDayPlanItem|addAdapterToPacking)\(/;
 const LOCK_ACTIONS = /\b(togglePackingItem|toggleTrainReservation|toggleDayPlanItem)\(/;
 
 export function applyEditMode(isEditable = canEditActiveTrip()) {
