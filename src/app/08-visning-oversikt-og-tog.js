@@ -75,7 +75,7 @@ export function renderOverview() {
 
   if (appState.stops.length === 0) {
     container.innerHTML = `
-      <div class="text-center py-8 text-slate-400">
+      <div class="text-center py-8 text-slate-500">
         <p class="text-sm">Ingen stoppesteder registrert ennå.</p>
         <button onclick="openAddStopModal()" class="mt-2 text-xs text-brand-600 font-semibold underline">Legg til første by</button>
       </div>
@@ -118,7 +118,7 @@ export function renderOverview() {
               <p class="text-[11px] text-slate-500 font-medium mt-0.5">
                 ${formatDate(stop.arrival)} – ${formatDate(stop.departure)}
               </p>
-              ${stop.accommodationNote ? `<p class="text-[11px] text-slate-400 truncate mt-0.5" title="${escapeHtml(stop.accommodationNote)}">${escapeHtml(stop.accommodationNote)}</p>` : ''}
+              ${stop.accommodationNote ? `<p class="text-[11px] text-slate-500 truncate mt-0.5" title="${escapeHtml(stop.accommodationNote)}">${escapeHtml(stop.accommodationNote)}</p>` : ''}
             </div>
             
             <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${badgeStyle}">
@@ -257,7 +257,7 @@ export function renderTrains() {
     const legsHtml = Array.isArray(train.legsSummary) && train.legsSummary.length > 1
       ? `
         <div class="pt-2 flex items-center flex-wrap gap-1 text-[11px] text-slate-600">
-          <span class="text-slate-400 font-semibold">Etapper:</span>
+          <span class="text-slate-500 font-semibold">Etapper:</span>
           ${train.legsSummary.map((leg, i) => `
             <span class="px-2 py-0.5 rounded-md bg-slate-50 border border-slate-200/80 font-medium text-slate-700">
               <strong>${escapeHtml(leg.line)}</strong> ${escapeHtml(leg.from)} (${escapeHtml(leg.dep)}) → ${escapeHtml(leg.to)} (${escapeHtml(leg.arr)})
@@ -292,7 +292,7 @@ export function renderTrains() {
           <div class="min-w-0">
             <p class="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight leading-tight">${escapeHtml(train.departureTime)}</p>
             <p class="text-xs sm:text-sm font-bold text-slate-800 truncate">${escapeHtml(train.fromCity)}</p>
-            <p class="text-[10px] sm:text-xs text-slate-400 truncate">${train.platform ? `Spor ${escapeHtml(train.platform)}` : 'Avgang'}</p>
+            <p class="text-[10px] sm:text-xs text-slate-500 truncate">${train.platform ? `Spor ${escapeHtml(train.platform)}` : 'Avgang'}</p>
           </div>
 
           <div class="flex flex-col items-center justify-center text-center px-1 sm:px-3 min-w-[76px] sm:min-w-[120px]">
@@ -313,7 +313,7 @@ export function renderTrains() {
           <div class="text-right min-w-0">
             <p class="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight leading-tight">${escapeHtml(train.arrivalTime)}</p>
             <p class="text-xs sm:text-sm font-bold text-slate-800 truncate">${escapeHtml(train.toCity)}</p>
-            <p class="text-[10px] sm:text-xs text-slate-400 truncate">${train.arrivalPlatform ? `Spor ${escapeHtml(train.arrivalPlatform)}` : 'Ankomst'}</p>
+            <p class="text-[10px] sm:text-xs text-slate-500 truncate">${train.arrivalPlatform ? `Spor ${escapeHtml(train.arrivalPlatform)}` : 'Ankomst'}</p>
           </div>
         </div>
 
@@ -340,11 +340,11 @@ export function renderTrains() {
                 Merk bestilt
               </button>
             ` : `
-              <button onclick="toggleTrainReservation(${jsArg(train.id)})" class="text-xs font-medium text-slate-400 hover:text-slate-600 px-2 py-1">
+              <button onclick="toggleTrainReservation(${jsArg(train.id)})" class="text-xs font-medium text-slate-500 hover:text-slate-600 px-2 py-1">
                 Status
               </button>
             `}
-            <button onclick="deleteTrain(${jsArg(train.id)})" class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-slate-50 transition" title="Slett togreise">
+            <button onclick="deleteTrain(${jsArg(train.id)})" class="text-slate-500 hover:text-rose-600 p-1.5 rounded-lg hover:bg-slate-50 transition" title="Slett togreise">
               <i data-lucide="trash-2" class="w-4 h-4"></i>
             </button>
           </div>

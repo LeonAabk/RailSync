@@ -4,12 +4,22 @@
 // - Felles utgifter: trips/{id}/sharedExpenses/{utgiftId} – ett dokument per utgift
 // ---------------------------------------------------------------------------
 export const EXPENSE_CATEGORIES = [
-  { name: "Overnatting", icon: "bed" },
-  { name: "Transport", icon: "train-front" },
-  { name: "Mat", icon: "utensils" },
-  { name: "Aktiviteter", icon: "ticket" },
-  { name: "Annet", icon: "circle-dot" }
+  { name: "Overnatting", icon: "bed", chip: "bg-violet-50 text-violet-700", bar: "bg-violet-500" },
+  { name: "Transport", icon: "train-front", chip: "bg-sky-50 text-sky-700", bar: "bg-sky-500" },
+  { name: "Mat", icon: "utensils", chip: "bg-amber-50 text-amber-700", bar: "bg-amber-500" },
+  { name: "Aktiviteter", icon: "ticket", chip: "bg-rose-50 text-rose-700", bar: "bg-rose-500" },
+  { name: "Annet", icon: "circle-dot", chip: "bg-slate-100 text-slate-600", bar: "bg-slate-400" }
 ];
+
+function expenseCategory(name) {
+  const n = name === "Mat & Drikke" ? "Mat" : (name || "Annet");
+  return EXPENSE_CATEGORIES.find(c => c.name === n) || EXPENSE_CATEGORIES[EXPENSE_CATEGORIES.length - 1];
+}
+
+function categoryChipHtml(name, size = "w-9 h-9") {
+  const c = expenseCategory(name);
+  return `<span class="${size} rounded-xl ${c.chip} flex items-center justify-center shrink-0" aria-hidden="true"><i data-lucide="${c.icon}" class="w-4 h-4"></i></span>`;
+}
 
 let tripBudgets = {};            // tripId -> { uid -> budsjett }
 let sharedExpensesByTrip = {};   // tripId -> [utgifter]
@@ -544,6 +554,13 @@ export function renderBudget() {
   set("budget-spent-pct", el => {
     el.textContent = share.cents > 0 ? `Inkl. ${formatMoney(share.cents / 100)} i felles utgifter` : (totalBudget > 0 ? `${Math.round(spent / totalBudget * 100)} % av budsjettet` : "Personlige utgifter");
   });
+  set("budget-spent-bar", el => {
+    const pctUsed = totalBudget > 0 ? Math.round(spent / totalBudget * 100) : 0;
+    el.style.width = `${Math.min(100, pctUsed)}%`;
+    el.classList.toggle("bg-rose-500", pctUsed >= 100);
+    el.classList.toggle("bg-amber-500", pctUsed >= 80 && pctUsed < 100);
+    el.classList.toggle("bg-brand-600", pctUsed < 80);
+  });
   set("budget-remaining-val", el => {
     el.textContent = totalBudget > 0 ? formatMoney(totalBudget - spent) : "–";
     el.classList.toggle("text-rose-600", totalBudget > 0 && spent > totalBudget);
@@ -567,10 +584,10 @@ export function renderBudget() {
       return `
         <div class="space-y-1.5">
           <div class="flex items-center justify-between text-sm">
-            <span class="flex items-center gap-2 text-slate-700"><i data-lucide="${cat.icon}" class="w-4 h-4 text-slate-400"></i>${cat.name}</span>
-            <span class="font-medium text-slate-900">${formatMoney(sum / 100)} <span class="text-slate-400 font-normal">· ${pct} %</span></span>
+            <span class="flex items-center gap-2 text-slate-700">${categoryChipHtml(cat.name, "w-7 h-7")}${cat.name}</span>
+            <span class="font-medium text-slate-900">${formatMoney(sum / 100)} <span class="text-slate-500 font-normal">· ${pct} %</span></span>
           </div>
-          <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden"><div class="bg-brand-600 h-1.5 rounded-full" style="width: ${pct}%"></div></div>
+          <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden"><div class="${cat.bar} h-1.5 rounded-full" style="width: ${pct}%"></div></div>
         </div>`;
     }).join("");
   });
@@ -588,9 +605,12 @@ export function renderBudget() {
     }
     el.innerHTML = sorted.map(exp => `
       <div class="px-5 py-3 flex items-center justify-between gap-3">
-        <div class="min-w-0">
+        <div class="min-w-0 flex items-center gap-3">
+          ${categoryChipHtml(exp.category)}
+          <div class="min-w-0">
           <p class="text-sm font-medium text-slate-900 truncate">${escapeHtml(exp.title || "Utgift")}</p>
-          <p class="text-xs text-slate-500 mt-0.5">${escapeHtml(exp.category === "Mat & Drikke" ? "Mat" : (exp.category || "Annet"))} · ${escapeHtml(formatDate(exp.date))}</p>
+          <p class="text-xs text-slate-500 mt-0.5">${escapeHtml(expenseCategory(exp.category).name)} · ${escapeHtml(formatDate(exp.date))}</p>
+          </div>
         </div>
         <div class="flex items-center gap-1.5 shrink-0">
           <span class="text-sm font-semibold text-slate-900 tabular-nums">${formatMoney(exp.amount)}</span>
@@ -640,9 +660,12 @@ export function renderBudget() {
       const split = Array.isArray(e.split) ? e.split : [];
       const splitText = split.length === people.length && people.every(p => split.includes(p.id)) ? "alle" : split.map(id => nameOf(e, id)).join(", ");
       return `<div class="px-5 py-3 flex items-center justify-between gap-3">
-        <button type="button" ${canChange ? `onclick="openSharedExpenseModal(${jsArg(e.id)})"` : "disabled"} class="min-w-0 text-left ${canChange ? "" : "cursor-default"}">
+        <button type="button" ${canChange ? `onclick="openSharedExpenseModal(${jsArg(e.id)})"` : "disabled"} class="min-w-0 text-left flex items-center gap-3 ${canChange ? "" : "cursor-default"}">
+          ${categoryChipHtml(e.category)}
+          <span class="min-w-0 block">
           <p class="text-sm font-medium text-slate-900 truncate">${escapeHtml(e.title || "Utgift")}</p>
           <p class="text-xs text-slate-500 mt-0.5 truncate">${escapeHtml(nameOf(e, e.paidBy) === "deg" ? "Du" : nameOf(e, e.paidBy))} betalte · delt på ${escapeHtml(splitText)} · ${escapeHtml(formatDate(e.date))}${e._pending ? " · venter på lagring" : ""}</p>
+          </span>
         </button>
         <div class="flex items-center gap-1.5 shrink-0">
           <span class="text-sm font-semibold text-slate-900 tabular-nums">${formatMoney(e.amount)}</span>
@@ -661,7 +684,7 @@ export function renderBudget() {
       const label = id === me ? "Du" : nameOf(null, id);
       return `<li class="flex items-center justify-between gap-3 py-2 text-sm">
         <span class="text-slate-700 truncate">${escapeHtml(label)}</span>
-        <span class="font-medium tabular-nums ${c > 0 ? "text-emerald-700" : c < 0 ? "text-rose-600" : "text-slate-400"}">${c > 0 ? "Skal ha " + formatMoney(c / 100) : c < 0 ? "Skylder " + formatMoney(-c / 100) : "Gjort opp"}</span>
+        <span class="font-medium tabular-nums ${c > 0 ? "text-emerald-700" : c < 0 ? "text-rose-600" : "text-slate-500"}">${c > 0 ? "Skal ha " + formatMoney(c / 100) : c < 0 ? "Skylder " + formatMoney(-c / 100) : "Gjort opp"}</span>
       </li>`;
     }).join("");
   });
@@ -678,6 +701,19 @@ export function renderBudget() {
   });
 
   if (window.lucide) lucide.createIcons();
+}
+
+const PACKING_CATEGORY_STYLE = {
+  "Dokumenter & Billetter": { icon: "file-text", chip: "bg-amber-50 text-amber-700" },
+  "Togkomfort & Sove": { icon: "bed", chip: "bg-violet-50 text-violet-700" },
+  "Elektronikk": { icon: "smartphone", chip: "bg-sky-50 text-sky-700" },
+  "Klær & Fottøy": { icon: "shirt", chip: "bg-rose-50 text-rose-700" },
+  "Toalettsaker & Apotek": { icon: "pill", chip: "bg-emerald-50 text-emerald-700" }
+};
+
+function packingCategoryChipHtml(name) {
+  const s = PACKING_CATEGORY_STYLE[name] || { icon: "tag", chip: "bg-slate-100 text-slate-600" };
+  return `<span class="w-7 h-7 rounded-lg ${s.chip} flex items-center justify-center shrink-0" aria-hidden="true"><i data-lucide="${s.icon}" class="w-3.5 h-3.5"></i></span>`;
 }
 
 export function renderPacking() {
@@ -735,7 +771,7 @@ export function renderPacking() {
         <div>
           <div class="flex items-center justify-between pb-2 border-b border-slate-100">
             <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
-              <i data-lucide="tag" class="w-3.5 h-3.5 text-brand-600"></i>
+              ${packingCategoryChipHtml(categoryName)}
               ${escapeHtml(categoryName)}
             </h3>
             <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
@@ -744,7 +780,7 @@ export function renderPacking() {
           </div>
 
           <div class="space-y-1.5 pt-2">
-            ${catItems.length === 0 ? '<p class="text-xs text-slate-400 italic py-1">Ingen gjenstander i denne kategorien.</p>' : ''}
+            ${catItems.length === 0 ? '<p class="text-xs text-slate-500 italic py-1">Ingen gjenstander i denne kategorien.</p>' : ''}
             ${catItems.map(item => `
               <div class="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition group">
                 <label class="flex items-center gap-3 cursor-pointer select-none flex-1 min-w-0 pr-2">
@@ -754,11 +790,11 @@ export function renderPacking() {
                     onchange="togglePackingItem(${jsArg(item.id)})"
                     class="w-4 h-4 rounded text-brand-600 focus:ring-brand-500 border-slate-300 transition cursor-pointer"
                   >
-                  <span class="text-xs sm:text-sm font-medium ${item.checked ? 'line-through text-slate-400' : 'text-slate-700'}">
+                  <span class="text-xs sm:text-sm font-medium ${item.checked ? 'line-through text-slate-500' : 'text-slate-700'}">
                     ${escapeHtml(item.text)}
                   </span>
                 </label>
-                <button onclick="deletePackingItem(${jsArg(item.id)})" class="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 text-slate-400 hover:text-rose-600 p-1 rounded transition" title="Slett">
+                <button onclick="deletePackingItem(${jsArg(item.id)})" class="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 text-slate-500 hover:text-rose-600 p-1 rounded transition" title="Slett">
                   <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                 </button>
               </div>
@@ -859,6 +895,8 @@ export function renderAll() {
   renderTrains();
   renderBudget();
   renderPacking();
+  renderDayPlan();
+  renderOverviewDayCard();
   renderTripManagerList();
   renderSocialHub();
   renderOnboarding();

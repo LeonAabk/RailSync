@@ -704,7 +704,7 @@ function renderLiveSearchResults(usedFallbackDate, requestedDate, effectiveSearc
       <p class="text-xs font-bold text-slate-700">
         Fant ${liveSearchJourneys.length} reelle togforbindelser mellom <span class="text-brand-700">${escapeHtml(liveSearchJourneys[0].fromCity)}</span> og <span class="text-brand-700">${escapeHtml(liveSearchJourneys[0].toCity)}</span>
       </p>
-      <button type="button" onclick="document.getElementById('live-search-results').classList.add('hidden')" class="text-xs text-slate-400 hover:text-slate-600 font-medium">
+      <button type="button" onclick="document.getElementById('live-search-results').classList.add('hidden')" class="text-xs text-slate-500 hover:text-slate-600 font-medium">
         Skjul treff ✕
       </button>
     </div>
@@ -765,7 +765,7 @@ function renderLiveSearchResults(usedFallbackDate, requestedDate, effectiveSearc
                   <span class="px-2 py-0.5 rounded bg-white border border-slate-200 font-medium">
                     <strong>${escapeHtml(leg.line)}</strong> (${escapeHtml(leg.dep)}–${escapeHtml(leg.arr)})
                   </span>
-                  ${i < j.legsSummary.length - 1 ? '<span class="text-slate-400">→</span>' : ''}
+                  ${i < j.legsSummary.length - 1 ? '<span class="text-slate-500">→</span>' : ''}
                 `).join("")}
               </div>
             ` : ''}

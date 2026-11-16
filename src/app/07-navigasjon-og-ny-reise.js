@@ -4,7 +4,7 @@
 // ---------------------------------------------------------------------------
 // Velkomst og ny reise
 // ---------------------------------------------------------------------------
-const TRIP_TABS = ["overview", "trains", "budget", "packing"];
+const TRIP_TABS = ["overview", "plan", "trains", "budget", "packing"];
 let welcomeMode = "welcome";
 export let currentTab = "overview";
 
@@ -193,14 +193,14 @@ export function switchTab(tabId) {
 
   document.querySelectorAll(".mobile-nav-btn").forEach(btn => {
     btn.classList.remove("text-brand-600", "font-bold", "bg-brand-50/70");
-    btn.classList.add("text-slate-400", "font-medium");
+    btn.classList.add("text-slate-500", "font-medium");
   });
   document.querySelectorAll(".mobile-nav-btn").forEach(btn => btn.removeAttribute("aria-current"));
   const mobileTabFor = { account: "social", welcome: "overview" };
   const activeMobileBtn = document.getElementById(`mobile-tab-${mobileTabFor[tabId] || tabId}`);
   if (activeMobileBtn) {
     activeMobileBtn.classList.add("text-brand-600", "font-bold", "bg-brand-50/70");
-    activeMobileBtn.classList.remove("text-slate-400", "font-medium");
+    activeMobileBtn.classList.remove("text-slate-500", "font-medium");
     activeMobileBtn.setAttribute("aria-current", "page");
   }
 
@@ -228,6 +228,11 @@ export function switchTab(tabId) {
 
   if (tabId === "trips") {
     switchTripManagerTab(currentTripManagerTab);
+  }
+
+  if (tabId === "plan") {
+    renderDayPlan();
+    applyEditMode();
   }
 
   if (window.lucide) {

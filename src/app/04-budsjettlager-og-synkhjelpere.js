@@ -91,6 +91,7 @@ export function syncActiveTripToState() {
     appState.trains = empty.trains;
     appState.expenses = empty.expenses;
     appState.packingList = empty.packingList;
+    appState.dayPlan = empty.dayPlan;
     stopBudgetListeners();
     return;
   }
@@ -103,6 +104,7 @@ export function syncActiveTripToState() {
   appState.trains = JSON.parse(JSON.stringify(active.trains || []));
   appState.expenses = myBudget.expenses;
   appState.packingList = JSON.parse(JSON.stringify(active.packingList || []));
+  appState.dayPlan = JSON.parse(JSON.stringify(active.dayPlan || []));
 
   active.trip.totalBudget = myBudget.totalBudget;
   active.expenses = JSON.parse(JSON.stringify(myBudget.expenses));
@@ -124,12 +126,12 @@ export function syncStateToActiveTrip(activityText = "") {
 
   // Bare stemple og laste opp når innholdet faktisk er endret – ellers kan en utdatert
   // lokal kopi overskrive det reisefølget har endret i mellomtiden.
-  const contentSignature = (title, tripData, stops, trains, packingList) => {
+  const contentSignature = (title, tripData, stops, trains, packingList, dayPlan) => {
     const t = { ...(tripData || {}) };
     delete t.totalBudget;
-    return JSON.stringify([title, t, stops || [], trains || [], packingList || []]);
+    return JSON.stringify([title, t, stops || [], trains || [], packingList || [], dayPlan || []]);
   };
-  const beforeSig = contentSignature(active.title, active.trip, active.stops, active.trains, active.packingList);
+  const beforeSig = contentSignature(active.title, active.trip, active.stops, active.trains, active.packingList, active.dayPlan);
 
   active.title = appState.trip.title || "Min Reise";
   active.trip = JSON.parse(JSON.stringify(appState.trip));
@@ -137,8 +139,9 @@ export function syncStateToActiveTrip(activityText = "") {
   active.trains = JSON.parse(JSON.stringify(appState.trains));
   active.expenses = JSON.parse(JSON.stringify(appState.expenses));
   active.packingList = JSON.parse(JSON.stringify(appState.packingList));
+  active.dayPlan = JSON.parse(JSON.stringify(appState.dayPlan || []));
 
-  const contentChanged = beforeSig !== contentSignature(active.title, active.trip, active.stops, active.trains, active.packingList);
+  const contentChanged = beforeSig !== contentSignature(active.title, active.trip, active.stops, active.trains, active.packingList, active.dayPlan);
   if (!contentChanged && !activityText) {
     saveAllTripsToLocalStorage();
     return;
@@ -422,7 +425,8 @@ function tripContentOf(t) {
     trip,
     stops: Array.isArray(src.stops) ? src.stops : [],
     trains: normalizeTrains(src.trains),
-    packingList: Array.isArray(src.packingList) ? src.packingList : []
+    packingList: Array.isArray(src.packingList) ? src.packingList : [],
+    dayPlan: Array.isArray(src.dayPlan) ? src.dayPlan : []
   }));
 }
 
@@ -489,7 +493,8 @@ function mergeTripContent(base, local, remote) {
     trip,
     stops,
     trains: mergeItemList(base.trains, local.trains, remote.trains),
-    packingList: mergeItemList(base.packingList, local.packingList, remote.packingList)
+    packingList: mergeItemList(base.packingList, local.packingList, remote.packingList),
+    dayPlan: mergeItemList(base.dayPlan || [], local.dayPlan || [], remote.dayPlan || [])
   };
 }
 
@@ -510,6 +515,7 @@ function applyContentToTrip(tripObj, content) {
   tripObj.stops = JSON.parse(JSON.stringify(content.stops));
   tripObj.trains = JSON.parse(JSON.stringify(content.trains));
   tripObj.packingList = JSON.parse(JSON.stringify(content.packingList));
+  tripObj.dayPlan = JSON.parse(JSON.stringify(content.dayPlan || []));
   if (tripObj.id === activeTripId) {
     isApplyingRemoteSnapshot = true;
     try {
@@ -517,6 +523,7 @@ function applyContentToTrip(tripObj, content) {
       appState.stops = JSON.parse(JSON.stringify(tripObj.stops));
       appState.trains = JSON.parse(JSON.stringify(tripObj.trains));
       appState.packingList = JSON.parse(JSON.stringify(tripObj.packingList));
+      appState.dayPlan = JSON.parse(JSON.stringify(tripObj.dayPlan));
       renderAll();
       updateMapLayers();
     } finally {
@@ -537,6 +544,7 @@ function buildTripContentPayload(tripObj) {
     stops: firestoreSafe(Array.isArray(clone.stops) ? clone.stops : []),
     trains: firestoreSafe(normalizeTrains(clone.trains)),
     packingList: firestoreSafe(Array.isArray(clone.packingList) ? clone.packingList : []),
+    dayPlan: firestoreSafe(Array.isArray(clone.dayPlan) ? clone.dayPlan : []),
     activityLog: firestoreSafe(Array.isArray(clone.activityLog) ? clone.activityLog.slice(0, 12) : []),
     createdAt: clone.createdAt || new Date().toISOString(),
     updatedAt: clone.updatedAt || new Date().toISOString(),
@@ -837,6 +845,7 @@ function setTripContent(tripObj, content) {
   tripObj.stops = JSON.parse(JSON.stringify(content.stops));
   tripObj.trains = JSON.parse(JSON.stringify(content.trains));
   tripObj.packingList = JSON.parse(JSON.stringify(content.packingList));
+  tripObj.dayPlan = JSON.parse(JSON.stringify(content.dayPlan || []));
 }
 
 // Har reisen endringer som ikke er lagret i skyen ennå?

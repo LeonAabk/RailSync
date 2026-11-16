@@ -232,7 +232,8 @@ const emptyTripState = {
   stops: [],
   trains: [],
   expenses: [],
-  packingList: []
+  packingList: [],
+  dayPlan: []
 };
 
 // Forslag til pakkeliste (legges bare til når brukeren ber om det)
@@ -296,8 +297,8 @@ export function canEditActiveTrip() {
 }
 
 // Skjuler redigeringsknapper når reisen bare kan ses (i stedet for å vise feilmelding ved klikk)
-const EDIT_ACTIONS = /\b(openAddStopModal|openEditStopModal|deleteStop|moveStopOrder|openAddTrainModal|openEditTrainModal|deleteTrain|openAddPackingItemModal|deletePackingItem|handleQuickAddPacking|openTripSettingsModal|importLiveJourneyToTrip|addWishlistPlaceToActiveTrip|handleSaveStop|handleSaveTrain|handleSavePackingItem)\(/;
-const LOCK_ACTIONS = /\b(togglePackingItem|toggleTrainReservation)\(/;
+const EDIT_ACTIONS = /\b(openAddStopModal|openEditStopModal|deleteStop|moveStopOrder|openAddTrainModal|openEditTrainModal|deleteTrain|openAddPackingItemModal|deletePackingItem|handleQuickAddPacking|openTripSettingsModal|importLiveJourneyToTrip|addWishlistPlaceToActiveTrip|handleSaveStop|handleSaveTrain|handleSavePackingItem|handleAddDayPlanItem|deleteDayPlanItem)\(/;
+const LOCK_ACTIONS = /\b(togglePackingItem|toggleTrainReservation|toggleDayPlanItem)\(/;
 
 export function applyEditMode(isEditable = canEditActiveTrip()) {
   document.body.dataset.canEdit = isEditable ? "true" : "false";

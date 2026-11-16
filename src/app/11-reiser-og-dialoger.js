@@ -165,12 +165,12 @@ function tripRouteHtml(stops) {
     .map(st => String((st && st.city) || "").trim())
     .filter(Boolean);
   if (list.length === 0) {
-    return `<p class="text-sm text-slate-400">Ingen stopp lagt til ennå</p>`;
+    return `<p class="text-sm text-slate-500">Ingen stopp lagt til ennå</p>`;
   }
   const shown = list.slice(0, 4);
   const more = list.length - shown.length;
   const arrow = `<i data-lucide="arrow-right" class="w-3 h-3 text-slate-300 shrink-0"></i>`;
-  return `<p class="flex items-center flex-wrap gap-x-1.5 gap-y-1 text-sm text-slate-700">${shown.map(c => `<span class="truncate max-w-[9rem]">${escapeHtml(c)}</span>`).join(arrow)}${more > 0 ? `<span class="text-slate-400">+${more}</span>` : ""}</p>`;
+  return `<p class="flex items-center flex-wrap gap-x-1.5 gap-y-1 text-sm text-slate-700">${shown.map(c => `<span class="truncate max-w-[9rem]">${escapeHtml(c)}</span>`).join(arrow)}${more > 0 ? `<span class="text-slate-500">+${more}</span>` : ""}</p>`;
 }
 
 function tripMemberAvatarsHtml(members) {
@@ -427,7 +427,7 @@ export function renderShareAndCollabModal() {
           <div class="flex items-center gap-3 min-w-0 ${!isMe && uid ? "cursor-pointer" : ""}" ${!isMe && uid ? `onclick="openTravelerProfileModal(${jsArg(uid)})"` : ""}>
             ${socialAvatarHtml(person, "w-8 h-8 text-[11px]", "#0d9488")}
             <span class="min-w-0">
-              <span class="block text-sm font-medium text-slate-900 truncate">${escapeHtml(person.displayName || "Reisende")}${isMe ? ` <span class="font-normal text-slate-400">(deg)</span>` : ""}</span>
+              <span class="block text-sm font-medium text-slate-900 truncate">${escapeHtml(person.displayName || "Reisende")}${isMe ? ` <span class="font-normal text-slate-500">(deg)</span>` : ""}</span>
               ${person.username ? `<span class="block text-xs text-slate-500 truncate">${escapeHtml(person.username)}</span>` : ""}
             </span>
           </div>
@@ -453,7 +453,7 @@ export function renderShareAndCollabModal() {
   set("share-activity-log", el => {
     const logs = Array.isArray(active.activityLog) ? active.activityLog : [];
     el.innerHTML = logs.length === 0
-      ? `<li class="text-slate-400">Ingen endringer ennå.</li>`
+      ? `<li class="text-slate-500">Ingen endringer ennå.</li>`
       : logs.slice(0, 8).map(item => `<li><span class="font-medium text-slate-700">${escapeHtml(item.by || "Reisende")}</span> ${escapeHtml(item.text || "")}</li>`).join("");
   });
 

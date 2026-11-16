@@ -511,7 +511,7 @@ function firstName(name) {
 
 function friendActionButtonHtml(traveler, extraClass = "") {
   if (traveler.isCommunityProfile) {
-    return `<span class="px-3 py-1.5 rounded-lg bg-slate-50 text-slate-400 border border-slate-200 font-medium text-xs ${extraClass}">Eksempelprofil</span>`;
+    return `<span class="px-3 py-1.5 rounded-lg bg-slate-50 text-slate-500 border border-slate-200 font-medium text-xs ${extraClass}">Eksempelprofil</span>`;
   }
   const label = friendActionLabel(traveler);
   const pending = label === "Forespørsel sendt";
@@ -667,7 +667,7 @@ export function renderSocialHub() {
   const leftVisited = document.getElementById("social-left-visited-summary");
   if (leftVisited) {
     leftVisited.innerHTML = visitedPlaces.length === 0
-      ? `<p class="text-xs text-slate-400">Ingen steder registrert ennå.</p>`
+      ? `<p class="text-xs text-slate-500">Ingen steder registrert ennå.</p>`
       : visitedPlaces.slice(0, 3).map(vp => `
         <div class="flex items-center gap-3 min-w-0">
           ${placeThumbHtml(vp.city, vp.country, "w-10 h-10")}
@@ -681,11 +681,11 @@ export function renderSocialHub() {
   const leftWishlist = document.getElementById("social-left-wishlist-summary");
   if (leftWishlist) {
     leftWishlist.innerHTML = wishlist.length === 0
-      ? `<p class="text-xs text-slate-400">Ønskelisten er tom.</p>`
+      ? `<p class="text-xs text-slate-500">Ønskelisten er tom.</p>`
       : wishlist.slice(0, 5).map(w => `
         <div class="flex items-center justify-between gap-3 text-xs">
           <span class="font-medium text-slate-800 truncate">${escapeHtml(w.city)}</span>
-          <span class="text-slate-400 shrink-0">${escapeHtml(cleanTagLabel(w.tag))}</span>
+          <span class="text-slate-500 shrink-0">${escapeHtml(cleanTagLabel(w.tag))}</span>
         </div>`).join("");
   }
 
@@ -698,7 +698,7 @@ export function renderSocialHub() {
   const chipsContainer = document.getElementById("visited-countries-chips");
   if (chipsContainer) {
     chipsContainer.innerHTML = countryCount === 0
-      ? `<p class="text-xs text-slate-400">Ingen land registrert ennå. Trykk «Rediger landliste» for å velge land du har besøkt.</p>`
+      ? `<p class="text-xs text-slate-500">Ingen land registrert ennå. Trykk «Rediger landliste» for å velge land du har besøkt.</p>`
       : visitedCountries.map(cName => `
         <span class="inline-flex items-center gap-1 pl-3 pr-1 py-1 rounded-md bg-slate-100 text-slate-800 text-xs font-medium">
           <span>${escapeHtml(cName)}</span>
@@ -724,7 +724,7 @@ export function renderSocialHub() {
   const vpList = document.getElementById("visited-places-list");
   if (vpList) {
     vpList.innerHTML = visitedPlaces.length === 0
-      ? `<p class="text-xs text-slate-400 py-6 text-center">Ingen steder ennå. Legg til byer og stasjoner du har besøkt under.</p>`
+      ? `<p class="text-xs text-slate-500 py-6 text-center">Ingen steder ennå. Legg til byer og stasjoner du har besøkt under.</p>`
       : visitedPlaces.map(vp => `
         <div class="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 transition">
           ${placeThumbHtml(vp.city, vp.country, "w-14 h-14")}
@@ -732,7 +732,7 @@ export function renderSocialHub() {
             <p class="text-sm font-semibold text-slate-900 truncate">${escapeHtml(vp.city)}</p>
             <p class="text-xs text-slate-500 truncate">${escapeHtml(vp.country)}${vp.note ? ` · ${escapeHtml(vp.note)}` : ""}</p>
           </div>
-          <button type="button" onclick="deleteVisitedPlace(${jsArg(vp.id)})" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition shrink-0" title="Fjern sted" aria-label="Fjern ${escapeHtml(vp.city)}">
+          <button type="button" onclick="deleteVisitedPlace(${jsArg(vp.id)})" class="p-1.5 text-slate-500 hover:text-rose-600 rounded-lg transition shrink-0" title="Fjern sted" aria-label="Fjern ${escapeHtml(vp.city)}">
             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
           </button>
         </div>`).join("");
@@ -742,7 +742,7 @@ export function renderSocialHub() {
   const wlList = document.getElementById("wishlist-places-list");
   if (wlList) {
     wlList.innerHTML = wishlist.length === 0
-      ? `<p class="text-xs text-slate-400 py-6 text-center">Ønskelisten er tom. Legg til steder og togruter du vil oppleve.</p>`
+      ? `<p class="text-xs text-slate-500 py-6 text-center">Ønskelisten er tom. Legg til steder og togruter du vil oppleve.</p>`
       : wishlist.map(wl => `
         <div class="p-2 rounded-xl hover:bg-slate-50 transition">
           <div class="flex items-center gap-3">
@@ -751,7 +751,7 @@ export function renderSocialHub() {
               <p class="text-sm font-semibold text-slate-900 truncate">${escapeHtml(wl.city)}</p>
               <p class="text-xs text-slate-500 truncate">${escapeHtml(wl.country)} · ${escapeHtml(cleanTagLabel(wl.tag))}</p>
             </div>
-            <button type="button" onclick="deleteWishlistPlace(${jsArg(wl.id)})" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition shrink-0" title="Fjern fra ønskelisten" aria-label="Fjern ${escapeHtml(wl.city)}">
+            <button type="button" onclick="deleteWishlistPlace(${jsArg(wl.id)})" class="p-1.5 text-slate-500 hover:text-rose-600 rounded-lg transition shrink-0" title="Fjern fra ønskelisten" aria-label="Fjern ${escapeHtml(wl.city)}">
               <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
             </button>
           </div>
@@ -812,14 +812,14 @@ export function renderSocialHub() {
                   <p class="text-xs text-slate-500 truncate">${escapeHtml(enriched.username || "")}${enriched.homeStation ? ` · ${escapeHtml(enriched.homeStation)}` : ""}</p>
                 </div>
               </button>
-              <button type="button" onclick="removeFriend(${jsArg(enriched.uid)})" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition shrink-0" title="Fjern kontakt" aria-label="Fjern ${escapeHtml(enriched.displayName || "kontakt")}">
+              <button type="button" onclick="removeFriend(${jsArg(enriched.uid)})" class="p-1.5 text-slate-500 hover:text-rose-600 rounded-lg transition shrink-0" title="Fjern kontakt" aria-label="Fjern ${escapeHtml(enriched.displayName || "kontakt")}">
                 <i data-lucide="user-minus" class="w-3.5 h-3.5"></i>
               </button>
             </div>
             <div class="text-xs text-slate-600 space-y-1 border-t border-slate-100 pt-2.5">
-              <p class="truncate"><span class="text-slate-400">Besøkt:</span> ${Number(visitedCount)} land</p>
-              <p class="truncate"><span class="text-slate-400">Vil til:</span> ${wishPreview || "Ikke oppgitt"}</p>
-              ${sharedDreams.length > 0 ? `<p class="truncate text-brand-700"><span class="text-slate-400">Felles ønskemål:</span> ${sharedDreams.map(c => escapeHtml(c)).join(", ")}</p>` : ""}
+              <p class="truncate"><span class="text-slate-500">Besøkt:</span> ${Number(visitedCount)} land</p>
+              <p class="truncate"><span class="text-slate-500">Vil til:</span> ${wishPreview || "Ikke oppgitt"}</p>
+              ${sharedDreams.length > 0 ? `<p class="truncate text-brand-700"><span class="text-slate-500">Felles ønskemål:</span> ${sharedDreams.map(c => escapeHtml(c)).join(", ")}</p>` : ""}
             </div>
             <div class="flex items-center justify-between gap-2 flex-wrap">
               <button type="button" onclick="openTravelerProfileModal(${jsArg(enriched.uid)})" class="text-xs font-semibold text-slate-600 hover:text-slate-900">Se profil</button>
@@ -887,9 +887,9 @@ export function renderSocialDiscoverGrid() {
           </div>
           <p class="text-xs text-slate-600 line-clamp-2">${escapeHtml(t.bio || "Planlegger togreiser gjennom Europa.")}</p>
           <div class="text-xs text-slate-600 space-y-1 border-t border-slate-100 pt-2.5">
-            <p class="truncate"><span class="text-slate-400">Besøkt (${Number((t.visitedCountries || []).length)}):</span> ${visitedPreview || "Ingen registrert"}</p>
-            <p class="truncate"><span class="text-slate-400">Vil til:</span> ${wishlistPreview || "Ikke oppgitt"}</p>
-            ${sharedDreams.length > 0 ? `<p class="truncate text-brand-700"><span class="text-slate-400">Felles ønskemål:</span> ${sharedDreams.map(c => escapeHtml(c)).join(", ")}</p>` : ""}
+            <p class="truncate"><span class="text-slate-500">Besøkt (${Number((t.visitedCountries || []).length)}):</span> ${visitedPreview || "Ingen registrert"}</p>
+            <p class="truncate"><span class="text-slate-500">Vil til:</span> ${wishlistPreview || "Ikke oppgitt"}</p>
+            ${sharedDreams.length > 0 ? `<p class="truncate text-brand-700"><span class="text-slate-500">Felles ønskemål:</span> ${sharedDreams.map(c => escapeHtml(c)).join(", ")}</p>` : ""}
           </div>
         </div>
         <div class="flex items-center justify-between gap-2 flex-wrap">
@@ -941,7 +941,7 @@ export function openTravelerProfileModal(targetUid) {
             ${traveler.isCommunityProfile ? `<span class="text-[10px] font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">Eksempelprofil</span>` : ""}
             ${isFriend ? `<span class="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">Kontakt</span>` : ""}
           </div>
-          <p class="text-xs font-semibold text-brand-600">${escapeHtml(traveler.username || "@reisende")}${traveler.homeStation ? `<span class="text-slate-400 font-medium"> · ${escapeHtml(traveler.homeStation)}</span>` : ""}</p>
+          <p class="text-xs font-semibold text-brand-600">${escapeHtml(traveler.username || "@reisende")}${traveler.homeStation ? `<span class="text-slate-500 font-medium"> · ${escapeHtml(traveler.homeStation)}</span>` : ""}</p>
           <p class="text-xs sm:text-sm text-slate-600 pt-1">${escapeHtml(traveler.bio || "Planlegger togreiser gjennom Europa.")}</p>
         </div>
       </div>
@@ -956,10 +956,10 @@ export function openTravelerProfileModal(targetUid) {
 
       <div class="space-y-2.5">
         <div class="flex items-center gap-3">
-          <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400 shrink-0">Besøkte land (${Number(visitedCountries.length)})</span>
+          <span class="text-[10px] font-bold uppercase tracking-widest text-slate-500 shrink-0">Besøkte land (${Number(visitedCountries.length)})</span>
           <div class="h-px bg-slate-100 flex-1"></div>
         </div>
-        ${visitedCountries.length === 0 ? `<p class="text-xs text-slate-400">Ingen land registrert.</p>` : `
+        ${visitedCountries.length === 0 ? `<p class="text-xs text-slate-500">Ingen land registrert.</p>` : `
           <div class="flex flex-wrap gap-1.5">
             ${visitedCountries.map(c => `<span class="px-2.5 py-1 rounded-md bg-slate-100 text-slate-800 text-xs font-medium">${escapeHtml(c)}</span>`).join("")}
           </div>`}
@@ -978,10 +978,10 @@ export function openTravelerProfileModal(targetUid) {
 
       <div class="space-y-2.5">
         <div class="flex items-center gap-3">
-          <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400 shrink-0">Ønskeliste</span>
+          <span class="text-[10px] font-bold uppercase tracking-widest text-slate-500 shrink-0">Ønskeliste</span>
           <div class="h-px bg-slate-100 flex-1"></div>
         </div>
-        ${wishlist.length === 0 ? `<p class="text-xs text-slate-400">Ingen steder på ønskelisten.</p>` : `
+        ${wishlist.length === 0 ? `<p class="text-xs text-slate-500">Ingen steder på ønskelisten.</p>` : `
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
             ${wishlist.map(wl => `
               <div class="flex items-center gap-2.5 min-w-0">
@@ -1000,7 +1000,7 @@ export function openTravelerProfileModal(targetUid) {
           : friendActionButtonHtml(traveler)}
         ${isFriend ? shareWithFriendButtonHtml(traveler, "ml-auto") : ""}
       </div>
-      ${isFriend ? "" : `<p class="text-[11px] text-slate-400">Når ${escapeHtml(first)} har godtatt forespørselen, kan dere dele reiser.</p>`}
+      ${isFriend ? "" : `<p class="text-[11px] text-slate-500">Når ${escapeHtml(first)} har godtatt forespørselen, kan dere dele reiser.</p>`}
     </div>`;
 
   openModal("modal-traveler-profile");
@@ -1148,7 +1148,8 @@ export function createNewTrip(options = {}) {
     stops,
     trains: [],
     expenses: [],
-    packingList: []
+    packingList: [],
+    dayPlan: []
   });
   allTrips.push(newTrip);
   activeTripId = newId;

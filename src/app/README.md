@@ -26,4 +26,5 @@ men variabler (`let`/`const`) må være definert i en del som kommer *før* der 
 | 15-mobil-og-handlinger.js | «⋯»-menyer, stopp/kart-valg, reisekort, innstillinger, tog, budsjett og pakkeliste |
 | 16-vinduer-og-bilder.js | Åpne/lukke vinduer, varsler, profil- og forsidebilder |
 | 17-togsok-og-spor.js | Togsøk (Transitous) og ekte jernbanespor på kartet |
-| 18-vindu-og-oppstart.js | Funksjoner for HTML (`window.…`) og oppstart |
+| 18-dagsplan.js | Dagsplan: tog, overnatting og aktiviteter for hver dag, «I dag»-kortet på oversikten |
+| 19-vindu-og-oppstart.js | Funksjoner for HTML (`window.…`) og oppstart |

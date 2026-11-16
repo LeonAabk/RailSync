@@ -60,7 +60,7 @@ export function setupNominatimSearch() {
         if (spinner) spinner.classList.add("hidden");
 
         if (!data || data.length === 0) {
-          dropdown.innerHTML = `<div class="p-3 text-xs text-slate-400 text-center">Ingen byer funnet for "${escapeHtml(query)}"</div>`;
+          dropdown.innerHTML = `<div class="p-3 text-xs text-slate-500 text-center">Ingen byer funnet for "${escapeHtml(query)}"</div>`;
           dropdown.classList.remove("hidden");
           return;
         }
@@ -78,7 +78,7 @@ export function setupNominatimSearch() {
               class="w-full text-left px-3.5 py-2.5 hover:bg-slate-50 border-b border-slate-100 last:border-0 flex items-center justify-between text-xs transition">
               <div class="min-w-0 pr-2">
                 <p class="font-bold text-slate-800">${escapeHtml(cityName)}</p>
-                <p class="text-slate-400 text-[11px] truncate">${escapeHtml(item.display_name)}</p>
+                <p class="text-slate-500 text-[11px] truncate">${escapeHtml(item.display_name)}</p>
               </div>
               <span class="text-[10px] text-brand-600 bg-brand-50 px-2 py-0.5 rounded font-semibold ml-2 shrink-0">Velg</span>
             </button>

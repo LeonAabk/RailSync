@@ -321,6 +321,11 @@
         <span>Oversikt & Kart</span>
       </button>
 
+      <button onclick="switchTab('plan')" id="nav-btn-plan" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all duration-150 text-fjord-200 hover:text-white hover:bg-white/5">
+        <i data-lucide="calendar-days" class="w-4 h-4 text-fjord-200"></i>
+        <span>Dagsplan</span>
+      </button>
+
       <button onclick="switchTab('trains')" id="nav-btn-trains" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all duration-150 text-fjord-200 hover:text-white hover:bg-white/5">
         <i data-lucide="train-front" class="w-4 h-4 text-fjord-200"></i>
         <span>Togruter</span>
@@ -522,12 +527,12 @@
             </div>
             <div class="grid grid-cols-2 gap-3">
               <div class="col-span-2">
-                <label for="new-trip-start-station" class="field-label">Starter fra <span class="font-normal text-slate-400">(valgfritt)</span></label>
+                <label for="new-trip-start-station" class="field-label">Starter fra <span class="font-normal text-slate-500">(valgfritt)</span></label>
                 <input type="text" id="new-trip-start-station" list="new-trip-station-list" autocomplete="off" placeholder="For eksempel Oslo S" class="field-input">
                 <datalist id="new-trip-station-list"></datalist>
               </div>
               <div class="col-span-2">
-                <label for="new-trip-pass" class="field-label">Mitt Interrail-pass <span class="font-normal text-slate-400">(valgfritt)</span></label>
+                <label for="new-trip-pass" class="field-label">Mitt Interrail-pass <span class="font-normal text-slate-500">(valgfritt)</span></label>
                 <select id="new-trip-pass" class="field-input">
                   <option value="">Ikke valgt ennå</option>
                   <optgroup label="Fleksipass – et antall reisedager">
@@ -548,7 +553,7 @@
                 </select>
               </div>
             </div>
-            <p class="text-xs text-slate-400">Datoer, startsted og pass kan endres senere.</p>
+            <p class="text-xs text-slate-500">Datoer, startsted og pass kan endres senere.</p>
             <p id="new-trip-error" class="hidden text-sm text-rose-600" role="alert"></p>
             <div class="flex items-center justify-end gap-2 pt-1">
               <button type="button" id="new-trip-cancel" onclick="switchTab('trips')" class="hidden px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">Avbryt</button>
@@ -588,6 +593,7 @@
           <p id="overview-hero-route" class="relative mt-1.5 text-sm text-fjord-100 truncate"></p>
         </div>
         <div id="getting-started-card" class="hidden bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-5"></div>
+        <div id="overview-day-card" data-needs-trip class="hidden bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-5"></div>
         
         <!-- Clean Unified Metrics Bar (Inspired by Reference Image 1 & 2) -->
         <div class="bg-white rounded-xl border border-slate-200/90 shadow-2xs grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 sm:divide-x divide-slate-100">
@@ -630,7 +636,7 @@
         <!-- Mobil/nettbrett: velg stopp eller kart -->
         <div data-needs-trip class="lg:hidden grid grid-cols-2 gap-1 p-1 rounded-xl bg-sand-200 border border-sand-300/70" role="tablist" aria-label="Vis stopp eller kart">
           <button type="button" role="tab" id="ov-seg-stops" aria-controls="ov-panel-stops" onclick="setOverviewView('stops')" class="flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition">
-            <i data-lucide="list" class="w-4 h-4"></i><span>Stopp</span><span id="ov-seg-stops-count" class="text-xs font-medium text-slate-400"></span>
+            <i data-lucide="list" class="w-4 h-4"></i><span>Stopp</span><span id="ov-seg-stops-count" class="text-xs font-medium text-slate-500"></span>
           </button>
           <button type="button" role="tab" id="ov-seg-map" aria-controls="ov-panel-map" onclick="setOverviewView('map')" class="flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition">
             <i data-lucide="map" class="w-4 h-4"></i><span>Kart</span>
@@ -725,6 +731,20 @@
       <!-- ===================================================================== -->
       <!-- TAB 2: TOG & REISEDAGER                                               -->
       <!-- ===================================================================== -->
+      <section id="tab-plan" class="tab-content hidden w-full max-w-3xl mx-auto space-y-4">
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3 min-w-0">
+            <span class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0" aria-hidden="true"><i data-lucide="calendar-days" class="w-5 h-5"></i></span>
+            <div class="min-w-0">
+              <h2 class="text-xl sm:text-2xl font-semibold tracking-tight text-slate-900">Dagsplan</h2>
+              <p id="plan-subtitle" class="text-sm text-slate-500 mt-0.5">Tog, overnatting og aktiviteter for hver dag.</p>
+            </div>
+          </div>
+        </div>
+        <button type="button" id="plan-past-toggle" onclick="togglePlanPastDays()" aria-expanded="false" class="hidden w-full text-sm font-medium text-slate-600 bg-sand-200 hover:bg-sand-300 rounded-xl py-2 transition"></button>
+        <div id="plan-days" class="space-y-3"></div>
+      </section>
+
       <section id="tab-trains" class="tab-content hidden flex-col gap-4 sm:gap-6 [&:not(.hidden)]:flex">
 
         <!-- LIVE EUROPEAN TRAIN TIMETABLE SEARCH (Transitous / MOTIS 2) – på mobil skjult bak «Søk etter tog» -->
@@ -752,7 +772,7 @@
             <!-- Quick Route Chips from User's Itinerary Stops -->
             <div class="space-y-1.5">
               <div class="flex items-center justify-between">
-                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                   Hurtigsøk fra dine planlagte stopp
                 </span>
               </div>
@@ -858,12 +878,15 @@
         
         <!-- Header & Filter Bar -->
         <div class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-          <div>
-            <h2 class="text-base sm:text-lg font-bold text-slate-900">
-              <span class="sm:hidden">Planlagte tog</span>
-              <span class="hidden sm:inline">Lagrede togreiser & plassreservasjoner</span>
-            </h2>
-            <p class="hidden sm:block text-xs text-slate-500">Oversikt over avgangstider, togoperatører og obligatoriske setereservasjoner</p>
+          <div class="flex items-center gap-3 min-w-0">
+            <span class="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center shrink-0" aria-hidden="true"><i data-lucide="train-front" class="w-5 h-5"></i></span>
+            <div class="min-w-0">
+              <h2 class="text-base sm:text-lg font-bold text-slate-900">
+                <span class="sm:hidden">Planlagte tog</span>
+                <span class="hidden sm:inline">Togreiser og plassreservasjoner</span>
+              </h2>
+              <p class="hidden sm:block text-xs text-slate-500">Avgangstider, togselskap og hvor du må reservere sete</p>
+            </div>
           </div>
 
           <button type="button" id="btn-toggle-live-search" onclick="toggleLiveSearch()" aria-controls="live-search-card" aria-expanded="false" class="sm:hidden w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm transition">
@@ -896,11 +919,14 @@
       <!-- ===================================================================== -->
       <section id="tab-budget" class="tab-content hidden w-full max-w-6xl mx-auto space-y-5">
         <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-          <div class="min-w-0">
-            <h2 class="text-xl sm:text-2xl font-semibold tracking-tight text-slate-900">Budsjett</h2>
-            <p id="budget-subtitle" class="text-sm text-slate-500 mt-1">Ditt budsjett for reisen.</p>
+          <div class="min-w-0 flex items-center gap-3">
+            <span class="w-10 h-10 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center shrink-0" aria-hidden="true"><i data-lucide="wallet" class="w-5 h-5"></i></span>
+            <div class="min-w-0">
+              <h2 class="text-xl sm:text-2xl font-semibold tracking-tight text-slate-900">Budsjett</h2>
+              <p id="budget-subtitle" class="text-sm text-slate-500 mt-0.5">Ditt budsjett for reisen.</p>
+            </div>
           </div>
-          <div class="inline-flex p-1 rounded-xl bg-slate-100 self-start sm:self-auto" role="tablist">
+          <div class="inline-flex p-1 rounded-xl bg-sand-200 self-start sm:self-auto" role="tablist">
             <button type="button" id="budget-view-btn-personal" onclick="switchBudgetView('personal')" role="tab" class="whitespace-nowrap px-3.5 py-1.5 rounded-lg text-sm font-medium transition">Budsjett</button>
             <button type="button" id="budget-view-btn-shared" onclick="switchBudgetView('shared')" role="tab" class="whitespace-nowrap px-3.5 py-1.5 rounded-lg text-sm font-medium transition inline-flex items-center gap-1.5">Felles utgifter <span id="budget-shared-count" class="hidden text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-slate-200 text-slate-700"></span></button>
           </div>
@@ -914,6 +940,7 @@
 
           <div class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-slate-100 overflow-hidden">
             <div class="p-4 sm:p-5 min-w-0">
+              <span class="w-8 h-8 rounded-lg bg-brand-50 text-brand-700 flex items-center justify-center mb-2" aria-hidden="true"><i data-lucide="wallet" class="w-4 h-4"></i></span>
               <div class="flex items-center justify-between gap-2">
                 <p id="budget-total-label" class="text-xs text-slate-500 truncate">Mitt budsjett</p>
                 <button type="button" data-budget-own-only onclick="openEditPersonalBudgetPrompt()" class="text-xs font-medium text-slate-900 underline underline-offset-2 shrink-0">Endre</button>
@@ -921,16 +948,20 @@
               <p id="budget-total-val" class="text-lg sm:text-2xl font-semibold text-slate-900 mt-1 truncate tabular-nums">Ikke satt</p>
             </div>
             <div class="p-4 sm:p-5 min-w-0">
+              <span class="w-8 h-8 rounded-lg bg-rose-50 text-rose-700 flex items-center justify-center mb-2" aria-hidden="true"><i data-lucide="receipt" class="w-4 h-4"></i></span>
               <p class="text-xs text-slate-500">Brukt</p>
               <p id="budget-spent-val" class="text-lg sm:text-2xl font-semibold text-slate-900 mt-1 truncate tabular-nums">0 kr</p>
-              <p id="budget-spent-pct" class="text-xs text-slate-500 mt-0.5 truncate"></p>
+              <div class="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden"><div id="budget-spent-bar" class="bg-brand-600 h-1.5 rounded-full transition-all" style="width: 0%"></div></div>
+              <p id="budget-spent-pct" class="text-xs text-slate-500 mt-1 truncate"></p>
             </div>
             <div class="p-4 sm:p-5 min-w-0">
+              <span class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center mb-2" aria-hidden="true"><i data-lucide="piggy-bank" class="w-4 h-4"></i></span>
               <p class="text-xs text-slate-500">Gjenstår</p>
               <p id="budget-remaining-val" class="text-lg sm:text-2xl font-semibold text-emerald-700 mt-1 truncate tabular-nums">–</p>
               <p id="budget-remaining-sub" class="text-xs text-slate-500 mt-0.5 truncate">Igjen å bruke</p>
             </div>
             <div class="p-4 sm:p-5 min-w-0">
+              <span class="w-8 h-8 rounded-lg bg-sky-50 text-sky-700 flex items-center justify-center mb-2" aria-hidden="true"><i data-lucide="calendar-days" class="w-4 h-4"></i></span>
               <p class="text-xs text-slate-500">Snitt per dag</p>
               <p id="budget-daily-avg" class="text-lg sm:text-2xl font-semibold text-slate-900 mt-1 truncate tabular-nums">0 kr / dag</p>
               <p id="budget-daily-days-sub" class="text-xs text-slate-500 mt-0.5 truncate"></p>
@@ -997,11 +1028,12 @@
         <!-- Header Banner with Progress -->
         <div class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-6 space-y-4">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h2 class="text-base sm:text-lg font-bold text-slate-900">
-                Pakkeliste & Forberedelser
-              </h2>
-              <p class="text-xs text-slate-500">Tilpasset togreiser gjennom Europa med dokumenter, elektronikk og bekledning</p>
+            <div class="flex items-center gap-3 min-w-0">
+              <span class="w-10 h-10 rounded-xl bg-violet-50 text-violet-700 flex items-center justify-center shrink-0" aria-hidden="true"><i data-lucide="luggage" class="w-5 h-5"></i></span>
+              <div class="min-w-0">
+                <h2 class="text-base sm:text-lg font-bold text-slate-900">Pakkeliste og forberedelser</h2>
+                <p class="text-xs text-slate-500">Dokumenter, elektronikk og klær til togreisen</p>
+              </div>
             </div>
             
             <div class="flex items-center gap-2">
@@ -1013,9 +1045,9 @@
           </div>
 
           <!-- Packing Progress Status -->
-          <div class="bg-slate-50 p-4 rounded-xl border border-slate-200/70">
+          <div class="bg-violet-50/50 p-4 rounded-xl border border-violet-100">
             <div class="flex items-center justify-between text-xs font-semibold mb-2">
-              <span class="text-slate-600 uppercase tracking-wider text-[11px]">Status pakkeliste</span>
+              <span class="text-violet-900/80 uppercase tracking-wider text-[11px]">Status pakkeliste</span>
               <span id="packing-percentage-label" class="text-slate-900 font-bold"></span>
             </div>
             <div class="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
@@ -1121,15 +1153,15 @@
               <div class="relative z-20 -mt-9 mx-4 mb-4 bg-white rounded-xl shadow-md border border-slate-200/80 grid grid-cols-3 divide-x divide-slate-100 py-3.5 text-center">
                 <button type="button" onclick="switchSocialSubTab('passport')" class="px-2 hover:bg-slate-50/80 transition">
                   <p id="social-stat-visited-countries" class="text-lg sm:text-xl font-bold text-slate-900 leading-none">0</p>
-                  <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mt-1.5">Land</p>
+                  <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mt-1.5">Land</p>
                 </button>
                 <button type="button" onclick="switchSocialSubTab('passport')" class="px-2 hover:bg-slate-50/80 transition">
                   <p id="social-stat-visited-places" class="text-lg sm:text-xl font-bold text-slate-900 leading-none">0</p>
-                  <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mt-1.5">Steder</p>
+                  <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mt-1.5">Steder</p>
                 </button>
                 <button type="button" onclick="switchSocialSubTab('friends')" class="px-2 hover:bg-slate-50/80 transition">
                   <p id="social-stat-friends" class="text-lg sm:text-xl font-bold text-slate-900 leading-none">0</p>
-                  <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mt-1.5">Kontakter</p>
+                  <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mt-1.5">Kontakter</p>
                 </button>
               </div>
 
@@ -1138,7 +1170,7 @@
                 <!-- Section 1: Sist besøkte steder (Image 2 "WORK" style) -->
                 <div>
                   <div class="flex items-center gap-3 mb-3">
-                    <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400 shrink-0">Tidligere steder</span>
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-slate-500 shrink-0">Tidligere steder</span>
                     <div class="h-px bg-slate-100 flex-1"></div>
                   </div>
                   <div id="social-left-visited-summary" class="space-y-3">
@@ -1149,7 +1181,7 @@
                 <!-- Section 2: Ønskeliste / Utvalgte mål (Image 2 "SKILLS" style) -->
                 <div>
                   <div class="flex items-center gap-3 mb-2.5">
-                    <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400 shrink-0">Ønskeliste</span>
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-slate-500 shrink-0">Ønskeliste</span>
                     <div class="h-px bg-slate-100 flex-1"></div>
                   </div>
                   <div id="social-left-wishlist-summary" class="space-y-1.5">
@@ -1175,7 +1207,7 @@
                 <div class="space-y-1">
                   <div class="flex items-center flex-wrap gap-x-3 gap-y-1">
                     <h1 id="social-detail-name" class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Reisende</h1>
-                    <span class="inline-flex items-center gap-1 text-xs font-medium text-slate-400">
+                    <span class="inline-flex items-center gap-1 text-xs font-medium text-slate-500">
                       <i data-lucide="map-pin" class="w-3.5 h-3.5 text-slate-400"></i>
                       <span id="social-detail-location"></span>
                     </span>
@@ -1264,27 +1296,27 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 divide-y divide-slate-100 text-xs sm:text-sm">
                   <div class="py-3.5 flex items-center justify-between gap-4">
-                    <span class="text-slate-400 font-medium">Fast hjemstasjon</span>
+                    <span class="text-slate-500 font-medium">Fast hjemstasjon</span>
                     <span id="spec-home-station" class="font-semibold text-slate-900 text-right"></span>
                   </div>
                   <div class="py-3.5 flex items-center justify-between gap-4">
-                    <span class="text-slate-400 font-medium">Interrail-billett</span>
+                    <span class="text-slate-500 font-medium">Interrail-billett</span>
                     <span id="social-hero-pass" class="font-semibold text-slate-900 text-right"></span>
                   </div>
                   <div class="py-3.5 flex items-center justify-between gap-4">
-                    <span class="text-slate-400 font-medium">Brukernavn</span>
+                    <span class="text-slate-500 font-medium">Brukernavn</span>
                     <span id="spec-username" class="font-semibold text-brand-600 text-right">@reisende</span>
                   </div>
                   <div class="py-3.5 flex items-center justify-between gap-4">
-                    <span class="text-slate-400 font-medium">Ønskeliste</span>
+                    <span class="text-slate-500 font-medium">Ønskeliste</span>
                     <span id="social-stat-wishlist" class="font-semibold text-slate-900 text-right">0 reisemål</span>
                   </div>
                   <div class="py-3.5 flex items-center justify-between gap-4">
-                    <span class="text-slate-400 font-medium">Aktiv reiserute</span>
+                    <span class="text-slate-500 font-medium">Aktiv reiserute</span>
                     <span id="spec-active-trip" class="font-semibold text-slate-900 text-right truncate max-w-[200px]"></span>
                   </div>
                   <div class="py-3.5 flex items-center justify-between gap-4">
-                    <span class="text-slate-400 font-medium">Europa-dekning</span>
+                    <span class="text-slate-500 font-medium">Europa-dekning</span>
                     <span id="visited-countries-meter-label" class="font-semibold text-emerald-700 text-right">0 av 33 land</span>
                   </div>
                 </div>
@@ -1344,7 +1376,7 @@
 
                   <!-- Clean Add Visited Place Form -->
                   <form onsubmit="handleAddVisitedPlace(event)" class="pt-3 border-t border-slate-100 space-y-2.5">
-                    <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Registrer nytt besøkt sted</p>
+                    <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Registrer nytt besøkt sted</p>
                     <div class="grid grid-cols-2 gap-2">
                       <input type="text" id="visited-place-city" required placeholder="By / sted (f.eks. Roma)" class="w-full bg-slate-50 focus:bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500">
                       <input type="text" id="visited-place-country" required placeholder="Land (f.eks. Italia)" class="w-full bg-slate-50 focus:bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500">
@@ -1375,7 +1407,7 @@
 
                   <!-- Clean Add Wishlist Place Form -->
                   <form onsubmit="handleAddWishlistPlace(event)" class="pt-3 border-t border-slate-100 space-y-2.5">
-                    <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Legg til på ønskelisten</p>
+                    <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Legg til på ønskelisten</p>
                     <div class="grid grid-cols-2 gap-2">
                       <input type="text" id="wishlist-place-city" required placeholder="Sted / rute (f.eks. Zermatt)" class="w-full bg-slate-50 focus:bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500">
                       <input type="text" id="wishlist-place-country" required placeholder="Land (f.eks. Sveits)" class="w-full bg-slate-50 focus:bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500">
@@ -1424,7 +1456,7 @@
                     <span>Ventende kontaktforespørsler</span>
                     <span id="social-friend-requests-count" class="px-2 py-0.5 rounded-md bg-brand-50 text-brand-700 text-xs font-semibold">0</span>
                   </h4>
-                  <span class="text-xs text-slate-400">Godta for å dele reiser</span>
+                  <span class="text-xs text-slate-500">Godta for å dele reiser</span>
                 </div>
                 <div id="social-friend-requests-list" class="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <!-- Populated by renderSocialHub() -->
@@ -1478,7 +1510,7 @@
 
                 <!-- Clean Filter Pills (No Emoji Clutter) -->
                 <div class="flex items-center gap-2 flex-wrap text-xs">
-                  <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mr-1">Vis:</span>
+                  <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mr-1">Vis:</span>
                   <button type="button" onclick="setSocialDiscoverFilter('all')" id="discover-filter-all" class="px-3 py-1.5 rounded-lg font-semibold bg-fjord-800 text-white transition">Alle</button>
                   <button type="button" onclick="setSocialDiscoverFilter('match')" id="discover-filter-match" class="px-3 py-1.5 rounded-lg font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 transition">Felles reisemål</button>
                 </div>
@@ -1522,9 +1554,9 @@
           <div class="space-y-4 min-w-0">
             <div class="flex items-center justify-between gap-3 border-b border-slate-200">
               <div class="flex items-center gap-5 -mb-px" role="tablist">
-                <button type="button" id="trip-tab-btn-all" onclick="switchTripManagerTab('all')" class="trip-filter-tab py-2.5 text-sm font-medium border-b-2 transition">Alle <span id="trip-tab-count-all" class="ml-1 text-xs text-slate-400">0</span></button>
-                <button type="button" id="trip-tab-btn-mine" onclick="switchTripManagerTab('mine')" class="trip-filter-tab py-2.5 text-sm font-medium border-b-2 transition">Mine <span id="trip-tab-count-mine" class="ml-1 text-xs text-slate-400">0</span></button>
-                <button type="button" id="trip-tab-btn-shared" onclick="switchTripManagerTab('shared')" class="trip-filter-tab py-2.5 text-sm font-medium border-b-2 transition">Delt med meg <span id="trip-tab-count-shared" class="ml-1 text-xs text-slate-400">0</span></button>
+                <button type="button" id="trip-tab-btn-all" onclick="switchTripManagerTab('all')" class="trip-filter-tab py-2.5 text-sm font-medium border-b-2 transition">Alle <span id="trip-tab-count-all" class="ml-1 text-xs text-slate-500">0</span></button>
+                <button type="button" id="trip-tab-btn-mine" onclick="switchTripManagerTab('mine')" class="trip-filter-tab py-2.5 text-sm font-medium border-b-2 transition">Mine <span id="trip-tab-count-mine" class="ml-1 text-xs text-slate-500">0</span></button>
+                <button type="button" id="trip-tab-btn-shared" onclick="switchTripManagerTab('shared')" class="trip-filter-tab py-2.5 text-sm font-medium border-b-2 transition">Delt med meg <span id="trip-tab-count-shared" class="ml-1 text-xs text-slate-500">0</span></button>
               </div>
               <button type="button" onclick="refreshTripsFromCloud()" id="btn-refresh-trips" class="hidden sm:inline-flex items-center gap-1.5 pb-2 text-xs font-medium text-slate-500 hover:text-slate-900 transition" title="Hent siste versjon fra kontoen">
                 <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i><span>Oppdater</span>
@@ -1552,7 +1584,7 @@
               <p>Alle har sitt eget budsjett. Reisefølget kan se hverandres, men bare endre sitt eget. Felles utgifter gjøres opp under Budsjett.</p>
               <p>Eieren bestemmer om andre kan redigere eller bare se. Du kan alltid lage din egen kopi.</p>
             </div>
-            <p id="trip-manager-sync-status" class="text-xs text-slate-400 px-1">Reisene lagres på kontoen din.</p>
+            <p id="trip-manager-sync-status" class="text-xs text-slate-500 px-1">Reisene lagres på kontoen din.</p>
           </aside>
         </div>
       </section>
@@ -1577,7 +1609,7 @@
                 <p class="field-label">Bakgrunnsbilde</p>
                 <div class="relative aspect-[3/1] rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
                   <img id="profile-cover-preview" alt="Bakgrunnsbilde" class="hidden w-full h-full object-cover">
-                  <div id="profile-cover-empty" class="absolute inset-0 flex flex-col items-center justify-center gap-1 text-slate-400">
+                  <div id="profile-cover-empty" class="absolute inset-0 flex flex-col items-center justify-center gap-1 text-slate-500">
                     <i data-lucide="image" class="w-5 h-5"></i>
                     <span class="text-xs">Ingen bakgrunn valgt</span>
                   </div>
@@ -1586,7 +1618,7 @@
                     <button type="button" onclick="triggerProfileImagePicker('cover')" class="px-3 py-1.5 rounded-lg bg-white/90 hover:bg-white text-xs font-semibold text-slate-900 shadow-sm transition">Last opp bakgrunn</button>
                   </div>
                 </div>
-                <p class="text-xs text-slate-400 mt-1.5">Bredt bilde fungerer best. Bildet beskjæres til 3:1.</p>
+                <p class="text-xs text-slate-500 mt-1.5">Bredt bilde fungerer best. Bildet beskjæres til 3:1.</p>
               </div>
 
               <div class="flex flex-col sm:flex-row sm:items-center gap-4">
@@ -1612,7 +1644,7 @@
                 </div>
               </div>
               <p id="profile-media-status" class="text-xs text-slate-500 -mt-2" aria-live="polite"></p>
-              <p class="text-xs text-slate-400 -mt-3">Bildene vises for alle innloggede reisende. Plassering og andre opplysninger i bildefilen fjernes før opplasting.</p>
+              <p class="text-xs text-slate-500 -mt-3">Bildene vises for alle innloggede reisende. Plassering og andre opplysninger i bildefilen fjernes før opplasting.</p>
 
               <div class="grid gap-4 sm:grid-cols-2">
                 <div>
@@ -1622,7 +1654,7 @@
                 <div>
                   <label for="profile-username" class="field-label">Brukernavn</label>
                   <div class="flex items-center rounded-lg border border-slate-200 bg-white focus-within:border-brand-600 focus-within:ring-[3px] focus-within:ring-brand-600/15 transition">
-                    <span class="pl-3 text-sm text-slate-400 select-none">@</span>
+                    <span class="pl-3 text-sm text-slate-500 select-none">@</span>
                     <input type="text" id="profile-username" maxlength="29" autocapitalize="none" spellcheck="false" class="flex-1 min-w-0 bg-transparent border-0 py-2 pl-0.5 pr-3 text-sm text-slate-900 focus:outline-none focus:ring-0">
                   </div>
                 </div>
@@ -1634,7 +1666,7 @@
               <div>
                 <div class="flex items-center justify-between">
                   <label for="profile-bio" class="field-label">Om meg</label>
-                  <span id="profile-bio-count" class="text-xs text-slate-400 mb-1.5">0 / 300</span>
+                  <span id="profile-bio-count" class="text-xs text-slate-500 mb-1.5">0 / 300</span>
                 </div>
                 <textarea id="profile-bio" rows="3" maxlength="300" oninput="updateBioCounter()" placeholder="Hvor drømmer du om å reise?" class="field-input resize-none"></textarea>
               </div>
@@ -1688,7 +1720,7 @@
               <i data-lucide="log-out" class="w-4 h-4"></i>
               <span>Logg ut</span>
             </button>
-            <p class="text-xs text-slate-400">Når du logger ut, fjernes reisene og profilen fra denne nettleseren. De ligger trygt på kontoen din.</p>
+            <p class="text-xs text-slate-500">Når du logger ut, fjernes reisene og profilen fra denne nettleseren. De ligger trygt på kontoen din.</p>
           </div>
         </div>
       </section>
@@ -1700,29 +1732,34 @@
   <!-- ========================================================================= -->
   <!-- MOBILE BOTTOM NAVIGATION BAR                                              -->
   <!-- ========================================================================= -->
-  <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-1.5 pt-1.5 pb-safe z-40 grid grid-cols-5 gap-1 shadow-xl" aria-label="Mobilnavigasjon">
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-1.5 pt-1.5 pb-safe z-40 grid grid-cols-6 gap-0.5 shadow-xl" aria-label="Mobilnavigasjon">
     
     <button onclick="switchTab('overview')" id="mobile-tab-overview" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-brand-600 font-bold active:scale-95 transition min-w-0">
       <i data-lucide="map-pin" class="w-5 h-5 shrink-0"></i>
       <span class="text-[10px] mt-0.5 truncate">Oversikt</span>
     </button>
 
-    <button onclick="switchTab('trains')" id="mobile-tab-trains" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-slate-400 font-medium active:scale-95 transition min-w-0">
+    <button onclick="switchTab('plan')" id="mobile-tab-plan" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-slate-500 font-medium active:scale-95 transition min-w-0">
+      <i data-lucide="calendar-days" class="w-5 h-5 shrink-0"></i>
+      <span class="text-[10px] mt-0.5 truncate">Dager</span>
+    </button>
+
+    <button onclick="switchTab('trains')" id="mobile-tab-trains" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-slate-500 font-medium active:scale-95 transition min-w-0">
       <i data-lucide="train" class="w-5 h-5 shrink-0"></i>
       <span class="text-[10px] mt-0.5 truncate">Tog</span>
     </button>
 
-    <button onclick="switchTab('budget')" id="mobile-tab-budget" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-slate-400 font-medium active:scale-95 transition min-w-0">
+    <button onclick="switchTab('budget')" id="mobile-tab-budget" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-slate-500 font-medium active:scale-95 transition min-w-0">
       <i data-lucide="wallet" class="w-5 h-5 shrink-0"></i>
       <span class="text-[10px] mt-0.5 truncate">Budsjett</span>
     </button>
 
-    <button onclick="switchTab('packing')" id="mobile-tab-packing" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-slate-400 font-medium active:scale-95 transition min-w-0">
+    <button onclick="switchTab('packing')" id="mobile-tab-packing" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-slate-500 font-medium active:scale-95 transition min-w-0">
       <i data-lucide="check-square" class="w-5 h-5 shrink-0"></i>
       <span class="text-[10px] mt-0.5 truncate">Pakkeliste</span>
     </button>
 
-    <button onclick="switchTab('social')" id="mobile-tab-social" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-slate-400 font-medium active:scale-95 transition min-w-0 relative">
+    <button onclick="switchTab('social')" id="mobile-tab-social" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-slate-500 font-medium active:scale-95 transition min-w-0 relative">
       <i data-lucide="users" class="w-5 h-5 shrink-0"></i>
       <span class="text-[10px] mt-0.5 truncate">Profil</span>
       <span id="mobile-social-req-dot" class="hidden absolute top-1.5 right-3.5 w-2 h-2 rounded-full bg-rail-accent"></span>
@@ -1758,7 +1795,7 @@
             <p class="text-xs text-slate-500">Kartet og reiseruten oppdateres umiddelbart</p>
           </div>
         </div>
-        <button onclick="closeModal('modal-add-stop')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+        <button onclick="closeModal('modal-add-stop')" class="text-slate-500 hover:text-slate-600 p-1 rounded-lg">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
@@ -1902,7 +1939,7 @@
             <p class="text-xs text-slate-500">Endre tittel, datoer, pass og budsjett</p>
           </div>
         </div>
-        <button onclick="closeModal('modal-trip-settings')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+        <button onclick="closeModal('modal-trip-settings')" class="text-slate-500 hover:text-slate-600 p-1 rounded-lg">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
@@ -1970,7 +2007,7 @@
             <p class="text-xs text-slate-500">Reisefølget kan se passet ditt, men bare du kan endre det.</p>
           </div>
         </div>
-        <button type="button" onclick="closeModal('modal-pass')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg" aria-label="Lukk">
+        <button type="button" onclick="closeModal('modal-pass')" class="text-slate-500 hover:text-slate-600 p-1 rounded-lg" aria-label="Lukk">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
@@ -2057,7 +2094,7 @@
         </div>
         <div id="pass-preview" class="rounded-xl bg-slate-50 border border-slate-200 p-3 text-sm space-y-0.5" aria-live="polite"></div>
         <div id="pass-group-list" class="hidden space-y-1.5"></div>
-        <p class="text-xs text-slate-400">Flere tog samme dag teller som én reisedag. Direkte nattog som går etter kl. 19 teller på ankomstdagen, slik Interrail-reglene sier.</p>
+        <p class="text-xs text-slate-500">Flere tog samme dag teller som én reisedag. Direkte nattog som går etter kl. 19 teller på ankomstdagen, slik Interrail-reglene sier.</p>
         <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
           <button type="button" onclick="closeModal('modal-pass')" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-semibold text-sm transition">Avbryt</button>
           <button type="submit" class="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm shadow-sm transition">Lagre pass</button>
@@ -2081,7 +2118,7 @@
             <p class="text-xs text-slate-500">Hold orden på avgang, tognummer og sete</p>
           </div>
         </div>
-        <button onclick="closeModal('modal-add-train')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+        <button onclick="closeModal('modal-add-train')" class="text-slate-500 hover:text-slate-600 p-1 rounded-lg">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
@@ -2221,7 +2258,7 @@
             <p class="text-xs text-slate-500">Reisefølget kan se det, bare du kan endre det</p>
           </div>
         </div>
-        <button onclick="closeModal('modal-add-expense')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+        <button onclick="closeModal('modal-add-expense')" class="text-slate-500 hover:text-slate-600 p-1 rounded-lg">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
@@ -2281,7 +2318,7 @@
             <p class="text-xs text-slate-500">Privat for deg på denne reisen</p>
           </div>
         </div>
-        <button onclick="closeModal('modal-edit-budget')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+        <button onclick="closeModal('modal-edit-budget')" class="text-slate-500 hover:text-slate-600 p-1 rounded-lg">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
@@ -2326,7 +2363,7 @@
             <p class="text-xs text-slate-500">Legg til noe du ikke må glemme</p>
           </div>
         </div>
-        <button onclick="closeModal('modal-add-packing')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+        <button onclick="closeModal('modal-add-packing')" class="text-slate-500 hover:text-slate-600 p-1 rounded-lg">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
@@ -2423,7 +2460,7 @@
               </select>
             </div>
           </div>
-          <p data-share-owner-only class="text-xs text-slate-400">Endrer du dette, gjelder det alle i reisefølget. Du kan også velge for hver person under.</p>
+          <p data-share-owner-only class="text-xs text-slate-500">Endrer du dette, gjelder det alle i reisefølget. Du kan også velge for hver person under.</p>
         </section>
 
         <section data-share-when-shared class="px-5 sm:px-6 py-5 space-y-3">
@@ -2447,7 +2484,7 @@
               <i data-lucide="send" class="w-4 h-4 text-slate-500"></i><span>Send invitasjon</span>
             </button>
           </div>
-          <p class="text-xs text-slate-400">Den som har koden eller lenken, må logge inn for å bli med.</p>
+          <p class="text-xs text-slate-500">Den som har koden eller lenken, må logge inn for å bli med.</p>
         </section>
 
         <section data-share-owner-only class="px-5 sm:px-6 py-5 space-y-2">
@@ -2465,7 +2502,7 @@
             <h4 class="text-sm font-semibold text-slate-900">Uten konto</h4>
             <p class="text-xs text-slate-500 mt-0.5">Navn du har lagt til i planen. De har ikke tilgang til reisen selv.</p>
           </div>
-          <p id="share-guests-empty" class="text-sm text-slate-400">Ingen navn lagt til.</p>
+          <p id="share-guests-empty" class="text-sm text-slate-500">Ingen navn lagt til.</p>
           <ul id="share-guests-list" class="divide-y divide-slate-100"></ul>
           <form data-share-owner-only onsubmit="handleAddTripMember(event)" class="flex items-center gap-2 pt-1">
             <label for="new-member-name" class="sr-only">Navn</label>
@@ -2512,7 +2549,7 @@
     </div>
     <div class="text-xs sm:text-sm font-medium pr-2">
       <p id="toast-title" class="font-bold text-white leading-tight">Lenke kopiert!</p>
-      <p id="toast-message" class="text-slate-400 text-xs mt-0.5">Reisen er lagret og klar til å deles.</p>
+      <p id="toast-message" class="text-slate-500 text-xs mt-0.5">Reisen er lagret og klar til å deles.</p>
     </div>
   </div>
 
