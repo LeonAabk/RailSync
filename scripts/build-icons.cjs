@@ -3,7 +3,7 @@
 // Bruk: node scripts/build-icons.cjs <sti til lucide UMD-fil> <utfil>
 // Kjøres av GitHub Actions (.github/workflows/deploy.yml) med lucide@1.71.0 fra npm.
 //
-// Ikonnavn hentes fra index.html og app.js: alle data-lucide="..." og alle tekststrenger i anførselstegn
+// Ikonnavn hentes fra index.html og src/app/*.js: alle data-lucide="..." og alle tekststrenger i anførselstegn
 // som er navnet på et Lucide-ikon (slik fanges også navn som settes dynamisk, f.eks. icon: "pencil").
 "use strict";
 const fs = require("fs");
@@ -24,7 +24,9 @@ const lucide = sandbox.lucide;
 if (!lucide || !lucide.icons) throw new Error("Fant ikke lucide.icons i " + umdPath);
 
 const root = path.join(__dirname, "..");
-const source = ["index.html", "app.js"].map(f => fs.readFileSync(path.join(root, f), "utf8")).join("\n");
+const appDir = path.join(root, "src", "app");
+const files = ["index.html", ...fs.readdirSync(appDir).filter(f => f.endsWith(".js")).sort().map(f => path.join("src", "app", f))];
+const source = files.map(f => fs.readFileSync(path.join(root, f), "utf8")).join("\n");
 const explicit = new Set([...source.matchAll(/data-lucide="([a-z0-9-]+)"/g)].map(m => m[1]));
 const quoted = new Set([...source.matchAll(/["'`]([a-z][a-z0-9]*(?:-[a-z0-9]+)*)["'`]/g)].map(m => m[1]));
 

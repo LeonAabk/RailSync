@@ -6,3 +6,6 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Bygges fra src/app/ (scripts/build-app.cjs)
+/app.js
