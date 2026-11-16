@@ -93,11 +93,6 @@ export function countryInfoFor(name) {
   return COUNTRY_INFO.find(c => normCountry(c.name) === n || c.code.toLowerCase() === n || c.aliases.includes(n)) || null;
 }
 
-function countryFlag(code) {
-  if (!code || code.length !== 2 || code === "XK") return "";
-  return String.fromCodePoint(...[...code.toUpperCase()].map(ch => 0x1f1e6 + ch.charCodeAt(0) - 65));
-}
-
 // Land på ruten i rekkefølge (uten Norge først hvis man starter hjemme)
 function routeCountries() {
   const seen = new Set();
@@ -425,7 +420,7 @@ export function renderCountryInfo() {
     return `
       <article class="rounded-2xl border border-slate-200 p-4 space-y-3" data-country="${c.code}">
         <header class="flex items-center gap-2.5">
-          <span class="text-2xl leading-none" aria-hidden="true">${countryFlag(c.code)}</span>
+          <span class="w-9 h-7 rounded-md bg-fjord-800 text-white text-[11px] font-bold tracking-wide flex items-center justify-center shrink-0" aria-hidden="true">${escapeHtml(c.code)}</span>
           <h4 class="font-bold text-slate-900 text-base">${escapeHtml(c.name)}</h4>
         </header>
         ${row("banknote", "bg-amber-50 text-amber-700", "Valuta", c.currency === "NOK" ? "Norske kroner" : `${escapeHtml((n => n.charAt(0).toUpperCase() + n.slice(1))(CURRENCY_NAMES[c.currency] || c.currency))} (${c.currency})${rate > 0 ? ` · 1 ${c.currency} = ${formatRate(rate)} kr` : ""}
