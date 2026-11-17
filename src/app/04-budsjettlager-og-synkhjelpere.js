@@ -129,7 +129,7 @@ export function syncStateToActiveTrip(activityText = "") {
   const contentSignature = (title, tripData, stops, trains, packingList, dayPlan) => {
     const t = { ...(tripData || {}) };
     delete t.totalBudget;
-    return JSON.stringify([title, t, stops || [], trains || [], packingList || [], dayPlan || []]);
+    return canonicalJson([title, t, stops || [], trains || [], packingList || [], dayPlan || []]);
   };
   const beforeSig = contentSignature(active.title, active.trip, active.stops, active.trains, active.packingList, active.dayPlan);
 
@@ -412,7 +412,22 @@ export function firestoreSafe(v, inArray = false) {
   return v;
 }
 
-const sameJson = (a, b) => JSON.stringify(a === undefined ? null : a) === JSON.stringify(b === undefined ? null : b);
+// Firestore gir ikke tilbake feltene i et objekt i samme rekkefølge som de ble skrevet.
+// Sammenlign derfor med feltene sortert, ellers ser like ting ulike ut, og en sletting
+// kan bli tolket som at noen andre har endret elementet (så det kommer tilbake).
+function canonicalJson(v) {
+  const norm = x => {
+    if (Array.isArray(x)) return x.map(norm);
+    if (x && typeof x === "object") {
+      const o = {};
+      Object.keys(x).sort().forEach(k => { if (x[k] !== undefined) o[k] = norm(x[k]); });
+      return o;
+    }
+    return x;
+  };
+  return JSON.stringify(norm(v === undefined ? null : v));
+}
+const sameJson = (a, b) => canonicalJson(a) === canonicalJson(b);
 
 function tripContentOf(t) {
   const src = t || {};
@@ -796,7 +811,7 @@ function applyRemoteTripData(id, raw) {
 
   const local = allTrips[idx];
   const localContent = tripContentOf(local);
-  const beforeSig = JSON.stringify([localContent, TRIP_META_KEYS.map(k => local[k]), local.activityLog]);
+  const beforeSig = canonicalJson([localContent, TRIP_META_KEYS.map(k => local[k]), local.activityLog]);
 
   let content = remoteContent;
   let needsPush = false;
@@ -828,7 +843,7 @@ function applyRemoteTripData(id, raw) {
   ensureTripCollaborationFields(local);
   setTripContent(local, content);
 
-  const afterSig = JSON.stringify([tripContentOf(local), TRIP_META_KEYS.map(k => local[k]), local.activityLog]);
+  const afterSig = canonicalJson([tripContentOf(local), TRIP_META_KEYS.map(k => local[k]), local.activityLog]);
   return { isNew: false, changed: beforeSig !== afterSig, needsPush };
 }
 
