@@ -315,7 +315,7 @@ export function renderFxCalculator() {
         <p id="fx-calc-source" class="text-xs text-slate-500">Kurs fra Den europeiske sentralbanken</p>
       </div>
     </div>
-    ${chips.length ? `<div class="flex flex-wrap gap-1.5 mt-3" aria-label="Valutaer på ruten">${chips.map(c => `<button type="button" onclick="setFxCalcCurrency(${jsArg(c)})" class="px-2.5 py-1 rounded-full text-xs font-semibold border transition ${c === fxCalc.from ? "bg-fjord-800 text-white border-fjord-800" : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"}">${c}</button>`).join("")}</div>` : ""}
+    ${chips.length ? `<div class="flex flex-wrap gap-1.5 mt-3" aria-label="Valutaer på ruten">${chips.map(c => `<button type="button" onclick="setFxCalcCurrency(${jsArg(c)})" class="px-3 py-1.5 rounded-full text-xs font-semibold border transition ${c === fxCalc.from ? "bg-fjord-800 text-white border-fjord-800" : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"}">${c}</button>`).join("")}</div>` : ""}
     <div class="mt-3 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
       <label class="sr-only" for="fx-calc-amount">Beløp</label>
       <input id="fx-calc-amount" type="number" inputmode="decimal" min="0" step="any" value="${escapeHtml(fxCalc.amount)}" class="field-input tabular-nums text-base">
@@ -424,7 +424,7 @@ export function renderCountryInfo() {
           <h4 class="font-bold text-slate-900 text-base">${escapeHtml(c.name)}</h4>
         </header>
         ${row("banknote", "bg-amber-50 text-amber-700", "Valuta", c.currency === "NOK" ? "Norske kroner" : `${escapeHtml((n => n.charAt(0).toUpperCase() + n.slice(1))(CURRENCY_NAMES[c.currency] || c.currency))} (${c.currency})${rate > 0 ? ` · 1 ${c.currency} = ${formatRate(rate)} kr` : ""}
-          <button type="button" onclick="openFxCalculator(${jsArg(c.currency)})" class="ml-1 text-xs font-semibold text-brand-700 hover:underline">Regn om</button>`)}
+          <button type="button" onclick="openFxCalculator(${jsArg(c.currency)})" class="hit ml-1 text-xs font-semibold text-brand-700 hover:underline">Regn om</button>`)}
         ${row("plug", plug.ok === false ? "bg-rose-50 text-rose-700" : plug.ok ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700", `Stikkontakt (type ${c.plugs.split("").join(", ")})`, escapeHtml(plug.text))}
         ${row("phone", "bg-rose-50 text-rose-700", "Nødnummer", `<span class="font-semibold">112</span>${c.extra ? ` · ${escapeHtml(c.extra)}` : ""}`)}
         ${row("smartphone", c.eea ? "bg-sky-50 text-sky-700" : "bg-amber-50 text-amber-700", "Mobil", c.eea ? "EU-roaming: som hjemme" : "Ikke EU-roaming. Sjekk prisen hos mobilselskapet ditt.")}
@@ -514,6 +514,6 @@ export function reservationLinksHtml(train, small = false) {
   const links = reservationLinksFor(train);
   if (!links.length) return "";
   return `<div class="flex flex-wrap items-center gap-1.5">
-    ${links.map((l, i) => `<a href="${escapeHtml(l.url)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 ${small ? "px-2 py-0.5 text-[11px]" : "px-2.5 py-1 text-xs"} rounded-lg font-semibold transition ${i === 0 ? "bg-amber-100 text-amber-900 hover:bg-amber-200" : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"}">${i === 0 ? `<i data-lucide="ticket" class="w-3.5 h-3.5"></i>Reserver hos ${escapeHtml(l.name)}` : escapeHtml(l.name)}<i data-lucide="external-link" class="w-3 h-3 opacity-70"></i></a>`).join("")}
+    ${links.map((l, i) => `<a href="${escapeHtml(l.url)}" target="_blank" rel="noopener noreferrer" class="hit inline-flex items-center gap-1 ${small ? "px-2.5 py-1 text-[11px]" : "px-3 py-1.5 text-xs"} rounded-lg font-semibold transition ${i === 0 ? "bg-amber-100 text-amber-900 hover:bg-amber-200" : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"}">${i === 0 ? `<i data-lucide="ticket" class="w-3.5 h-3.5"></i>Reserver hos ${escapeHtml(l.name)}` : escapeHtml(l.name)}<i data-lucide="external-link" class="w-3 h-3 opacity-70"></i></a>`).join("")}
   </div>`;
 }

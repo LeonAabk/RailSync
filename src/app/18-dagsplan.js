@@ -121,11 +121,11 @@ function planDayCardHtml(info, dayNo, today, { compact = false } = {}) {
   }
   const itemsHtml = info.items.map(p => `
       <div class="flex items-center gap-2.5 group">
-        <button type="button" onclick="toggleDayPlanItem(${jsArg(p.id)})" class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition ${p.done ? "bg-emerald-100 text-emerald-700" : "bg-amber-50 text-amber-700 hover:bg-amber-100"}" aria-label="${p.done ? "Marker som ikke gjort" : "Marker som gjort"}: ${escapeHtml(p.text || "")}" aria-pressed="${p.done ? "true" : "false"}">
+        <button type="button" onclick="toggleDayPlanItem(${jsArg(p.id)})" class="hit w-8 h-8 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center shrink-0 transition ${p.done ? "bg-emerald-100 text-emerald-700" : "bg-amber-50 text-amber-700 hover:bg-amber-100"}" aria-label="${p.done ? "Marker som ikke gjort" : "Marker som gjort"}: ${escapeHtml(p.text || "")}" aria-pressed="${p.done ? "true" : "false"}">
           <i data-lucide="${p.done ? "check" : "map-pin"}" class="w-3.5 h-3.5"></i>
         </button>
         <p class="min-w-0 flex-1 text-sm ${p.done ? "text-slate-500 line-through" : "text-slate-900"}">${p.time ? `<span class="font-semibold tabular-nums">${escapeHtml(p.time)}</span> ` : ""}${escapeHtml(p.text || "")}</p>
-        <button type="button" onclick="deleteDayPlanItem(${jsArg(p.id)})" class="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center shrink-0 transition" aria-label="Slett ${escapeHtml(p.text || "aktivitet")}"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+        <button type="button" onclick="deleteDayPlanItem(${jsArg(p.id)})" class="hit w-8 h-8 sm:w-7 sm:h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center shrink-0 transition" aria-label="Slett ${escapeHtml(p.text || "aktivitet")}"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
       </div>`).join("");
   const addForm = compact ? "" : `
       <form onsubmit="handleAddDayPlanItem(event, ${jsArg(info.date)})" class="flex items-center gap-1.5 pt-1">
@@ -133,7 +133,7 @@ function planDayCardHtml(info, dayNo, today, { compact = false } = {}) {
         <input id="plan-time-${info.date}" name="time" type="time" class="w-[5.5rem] shrink-0 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
         <label class="sr-only" for="plan-text-${info.date}">Ny aktivitet</label>
         <input id="plan-text-${info.date}" name="text" type="text" maxlength="140" required placeholder="Ny aktivitet" class="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500">
-        <button type="submit" class="w-8 h-8 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white flex items-center justify-center shrink-0 transition" aria-label="Legg til aktivitet"><i data-lucide="plus" class="w-4 h-4"></i></button>
+        <button type="submit" class="w-10 h-10 sm:w-8 sm:h-8 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white flex items-center justify-center shrink-0 transition" aria-label="Legg til aktivitet"><i data-lucide="plus" class="w-4 h-4"></i></button>
       </form>`;
   const empty = !info.trains.length && !nightHtml && !info.items.length
     ? `<p class="text-sm text-slate-500">${compact ? "Ingenting planlagt i dag ennå." : "Ingenting planlagt ennå."}</p>` : "";

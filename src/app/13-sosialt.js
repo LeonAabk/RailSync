@@ -702,7 +702,7 @@ export function renderSocialHub() {
       : visitedCountries.map(cName => `
         <span class="inline-flex items-center gap-1 pl-3 pr-1 py-1 rounded-md bg-slate-100 text-slate-800 text-xs font-medium">
           <span>${escapeHtml(cName)}</span>
-          <button type="button" onclick="toggleVisitedCountry(${jsArg(cName)})" class="w-5 h-5 rounded text-slate-400 hover:text-rose-600 hover:bg-white transition" title="Fjern ${escapeHtml(cName)}" aria-label="Fjern ${escapeHtml(cName)}">×</button>
+          <button type="button" onclick="toggleVisitedCountry(${jsArg(cName)})" class="hit w-6 h-6 rounded text-slate-400 hover:text-rose-600 hover:bg-white transition" title="Fjern ${escapeHtml(cName)}" aria-label="Fjern ${escapeHtml(cName)}">×</button>
         </span>`).join("");
   }
 
@@ -732,7 +732,7 @@ export function renderSocialHub() {
             <p class="text-sm font-semibold text-slate-900 truncate">${escapeHtml(vp.city)}</p>
             <p class="text-xs text-slate-500 truncate">${escapeHtml(vp.country)}${vp.note ? ` · ${escapeHtml(vp.note)}` : ""}</p>
           </div>
-          <button type="button" onclick="deleteVisitedPlace(${jsArg(vp.id)})" class="p-1.5 text-slate-500 hover:text-rose-600 rounded-lg transition shrink-0" title="Fjern sted" aria-label="Fjern ${escapeHtml(vp.city)}">
+          <button type="button" onclick="deleteVisitedPlace(${jsArg(vp.id)})" class="hit p-2 sm:p-1.5 text-slate-500 hover:text-rose-600 rounded-lg transition shrink-0" title="Fjern sted" aria-label="Fjern ${escapeHtml(vp.city)}">
             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
           </button>
         </div>`).join("");
@@ -751,7 +751,7 @@ export function renderSocialHub() {
               <p class="text-sm font-semibold text-slate-900 truncate">${escapeHtml(wl.city)}</p>
               <p class="text-xs text-slate-500 truncate">${escapeHtml(wl.country)} · ${escapeHtml(cleanTagLabel(wl.tag))}</p>
             </div>
-            <button type="button" onclick="deleteWishlistPlace(${jsArg(wl.id)})" class="p-1.5 text-slate-500 hover:text-rose-600 rounded-lg transition shrink-0" title="Fjern fra ønskelisten" aria-label="Fjern ${escapeHtml(wl.city)}">
+            <button type="button" onclick="deleteWishlistPlace(${jsArg(wl.id)})" class="hit p-2 sm:p-1.5 text-slate-500 hover:text-rose-600 rounded-lg transition shrink-0" title="Fjern fra ønskelisten" aria-label="Fjern ${escapeHtml(wl.city)}">
               <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
             </button>
           </div>
@@ -812,7 +812,7 @@ export function renderSocialHub() {
                   <p class="text-xs text-slate-500 truncate">${escapeHtml(enriched.username || "")}${enriched.homeStation ? ` · ${escapeHtml(enriched.homeStation)}` : ""}</p>
                 </div>
               </button>
-              <button type="button" onclick="removeFriend(${jsArg(enriched.uid)})" class="p-1.5 text-slate-500 hover:text-rose-600 rounded-lg transition shrink-0" title="Fjern kontakt" aria-label="Fjern ${escapeHtml(enriched.displayName || "kontakt")}">
+              <button type="button" onclick="removeFriend(${jsArg(enriched.uid)})" class="hit p-2 sm:p-1.5 text-slate-500 hover:text-rose-600 rounded-lg transition shrink-0" title="Fjern kontakt" aria-label="Fjern ${escapeHtml(enriched.displayName || "kontakt")}">
                 <i data-lucide="user-minus" class="w-3.5 h-3.5"></i>
               </button>
             </div>

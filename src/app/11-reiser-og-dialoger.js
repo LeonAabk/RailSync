@@ -419,7 +419,7 @@ export function renderShareAndCollabModal() {
                <option value="editor" ${m.role !== "viewer" ? "selected" : ""}>Kan redigere</option>
                <option value="viewer" ${m.role === "viewer" ? "selected" : ""}>Kan se</option>
              </select>
-             <button type="button" onclick="confirmRemoveTripMember(${Number(idx)})" class="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition" aria-label="Fjern ${escapeHtml(m.name)}"><i data-lucide="x" class="w-4 h-4"></i></button>
+             <button type="button" onclick="confirmRemoveTripMember(${Number(idx)})" class="hit w-9 h-9 sm:w-7 sm:h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition" aria-label="Fjern ${escapeHtml(m.name)}"><i data-lucide="x" class="w-4 h-4"></i></button>
            </div>`
         : `<span class="text-xs text-slate-500 shrink-0">${roleText}</span>`;
       return `
@@ -446,7 +446,7 @@ export function renderShareAndCollabModal() {
           <span class="w-8 h-8 rounded-full border border-dashed border-slate-300 text-slate-500 text-[11px] font-semibold flex items-center justify-center shrink-0">${escapeHtml(getInitials(m.name || "?"))}</span>
           <span class="text-sm text-slate-700 truncate">${escapeHtml(m.name || "Uten navn")}</span>
         </div>
-        ${owned ? `<button type="button" onclick="confirmRemoveTripMember(${Number(idx)})" class="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition shrink-0" aria-label="Fjern ${escapeHtml(m.name)}"><i data-lucide="x" class="w-4 h-4"></i></button>` : ""}
+        ${owned ? `<button type="button" onclick="confirmRemoveTripMember(${Number(idx)})" class="hit w-9 h-9 sm:w-7 sm:h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition shrink-0" aria-label="Fjern ${escapeHtml(m.name)}"><i data-lucide="x" class="w-4 h-4"></i></button>` : ""}
       </li>`).join("");
   });
 

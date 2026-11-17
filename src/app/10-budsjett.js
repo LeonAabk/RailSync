@@ -617,7 +617,7 @@ export function renderBudget() {
         </div>
         <div class="flex items-center gap-1.5 shrink-0">
           <span class="text-right"><span class="block text-sm font-semibold text-slate-900 tabular-nums">${formatMoney(exp.amount)}</span>${expenseOrigHtml(exp)}</span>
-          ${viewingMe ? `<button type="button" onclick="deleteExpense(${jsArg(exp.id)})" class="w-8 h-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition" aria-label="Slett ${escapeHtml(exp.title || "utgift")}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ""}
+          ${viewingMe ? `<button type="button" onclick="deleteExpense(${jsArg(exp.id)})" class="hit w-10 h-10 sm:w-8 sm:h-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition" aria-label="Slett ${escapeHtml(exp.title || "utgift")}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ""}
         </div>
       </div>`).join("");
   });
@@ -657,7 +657,7 @@ export function renderBudget() {
           </div>
           <div class="flex items-center gap-1.5 shrink-0">
             <span class="text-sm font-semibold text-emerald-700 tabular-nums">${formatMoney(e.amount)}</span>
-            ${canChange ? `<button type="button" onclick="deleteSharedExpense(${jsArg(e.id)})" class="w-8 h-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition" aria-label="Angre betaling"><i data-lucide="undo-2" class="w-4 h-4"></i></button>` : ""}
+            ${canChange ? `<button type="button" onclick="deleteSharedExpense(${jsArg(e.id)})" class="hit w-10 h-10 sm:w-8 sm:h-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition" aria-label="Angre betaling"><i data-lucide="undo-2" class="w-4 h-4"></i></button>` : ""}
           </div></div>`;
       }
       const split = Array.isArray(e.split) ? e.split : [];
@@ -672,7 +672,7 @@ export function renderBudget() {
         </button>
         <div class="flex items-center gap-1.5 shrink-0">
           <span class="text-right"><span class="block text-sm font-semibold text-slate-900 tabular-nums">${formatMoney(e.amount)}</span>${expenseOrigHtml(e)}</span>
-          ${canChange ? `<button type="button" onclick="deleteSharedExpense(${jsArg(e.id)})" class="w-8 h-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition" aria-label="Slett ${escapeHtml(e.title || "utgift")}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ""}
+          ${canChange ? `<button type="button" onclick="deleteSharedExpense(${jsArg(e.id)})" class="hit w-10 h-10 sm:w-8 sm:h-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition" aria-label="Slett ${escapeHtml(e.title || "utgift")}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ""}
         </div></div>`;
     }).join("");
   });
@@ -798,7 +798,7 @@ export function renderPacking() {
                     ${escapeHtml(item.text)}
                   </span>
                 </label>
-                <button onclick="deletePackingItem(${jsArg(item.id)})" class="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 text-slate-500 hover:text-rose-600 p-1 rounded transition" title="Slett">
+                <button onclick="deletePackingItem(${jsArg(item.id)})" class="hit opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100 text-slate-500 hover:text-rose-600 p-2 sm:p-1 rounded-lg transition" title="Slett" aria-label="Slett ${escapeHtml(item.text || "")}">
                   <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                 </button>
               </div>
