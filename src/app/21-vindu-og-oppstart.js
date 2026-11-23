@@ -154,7 +154,7 @@ window.fetchRealTracksForAllTrains = fetchRealTracksForAllTrains;
 // =============================================================================
 async function initializeApplet() {
   await loadAppState();
-  initMap();
+  // Kartet (Leaflet) lages først når brukeren er logget inn – se ensureMap() i 06-kart.js
   renderAll();
   setOverviewView("stops", { keepMap: true });
   updateInstallItems();

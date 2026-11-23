@@ -7,9 +7,60 @@ let routePolyline = null;
 let realTrackPolylines = [];
 let previewTrackPolyline = null;
 
+// Leaflet lastes først når kartet trengs (etter innlogging), ikke på innloggingssiden.
+// Samme låste versjon og integritetssjekk som før; service workeren lagrer filene for bruk uten nett.
+const LEAFLET_JS = { src: "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js", integrity: "sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" };
+const LEAFLET_CSS = { href: "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css", integrity: "sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" };
+let leafletPromise = null;
+
+function loadLeaflet() {
+  if (window.L) return Promise.resolve(window.L);
+  if (leafletPromise) return leafletPromise;
+  // Vent på både stilark og skript, så kartet ikke tegnes uten stiler. Feiler stilarket, tegnes kartet likevel.
+  const cssReady = new Promise((resolve) => {
+    const css = document.createElement("link");
+    css.rel = "stylesheet";
+    css.href = LEAFLET_CSS.href;
+    css.integrity = LEAFLET_CSS.integrity;
+    css.crossOrigin = "";
+    css.onload = css.onerror = () => resolve();
+    // Først i <head>: appens egne .leaflet-*-stiler i index.html skal fortsatt overstyre Leaflets standard
+    document.head.prepend(css);
+  });
+  const jsReady = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = LEAFLET_JS.src;
+    script.integrity = LEAFLET_JS.integrity;
+    script.crossOrigin = "";
+    script.onload = () => resolve();
+    script.onerror = () => { script.remove(); reject(new Error("Kartet kunne ikke lastes")); };
+    document.head.appendChild(script);
+  });
+  leafletPromise = Promise.all([cssReady, jsReady])
+    .then(() => window.L)
+    .catch((err) => { leafletPromise = null; throw err; });
+  return leafletPromise;
+}
+
+// Lager kartet hvis det ikke finnes ennå. Kalles når brukeren er logget inn.
+export function ensureMap() {
+  if (map) return Promise.resolve(map);
+  return loadLeaflet()
+    .then(() => {
+      initMap();
+      if (map) {
+        // Kartet kan ha blitt laget mens beholderen var skjult; mål på nytt når det vises
+        setTimeout(() => { map.invalidateSize(); resetMapView(); }, 150);
+      }
+      return map;
+    })
+    .catch(err => { console.warn("Kartet ble ikke startet:", err); return null; });
+}
+
 export function initMap() {
+  if (map) return;
   const mapContainer = document.getElementById("rail-map");
-  if (!mapContainer) return;
+  if (!mapContainer || !window.L) return;
 
   map = L.map("rail-map", {
     center: [51.5, 12.0],

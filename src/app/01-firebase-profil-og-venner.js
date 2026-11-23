@@ -52,9 +52,29 @@ const firebaseConfig = {
 // Registrert i Firebase-konsollen → App Check. Står i overvåkingsmodus til den håndheves der.
 const APP_CHECK_SITE_KEY = "6LeUgyMuAAAAACbbsscSec-yVbdHmfxInyWGRR8o";
 
+// VIKTIG: Sett til true FØR App Check håndheves (enforce) i Firebase-konsollen.
+// Mens App Check bare overvåker, startes den når siden er ferdig lastet og nettleseren er ledig:
+// reCAPTCHA bruker ca. 2 sekunder prosessortid på mobil, og det skal ikke forsinke at siden vises.
+// Ved håndheving må App Check startes med en gang, ellers avvises de første forespørslene (uten token).
+const APP_CHECK_ENFORCED = false;
+const APP_CHECK_DELAY_MS = 3000;
+
 function startAppCheck(app) {
   if (!APP_CHECK_SITE_KEY) return;
   if (["localhost", "127.0.0.1"].includes(location.hostname)) return;
+  if (APP_CHECK_ENFORCED) {
+    loadAppCheck(app);
+    return;
+  }
+  const whenIdle = () => (window.requestIdleCallback
+    ? requestIdleCallback(() => loadAppCheck(app), { timeout: 5000 })
+    : loadAppCheck(app));
+  const afterLoad = () => setTimeout(whenIdle, APP_CHECK_DELAY_MS);
+  if (document.readyState === "complete") afterLoad();
+  else window.addEventListener("load", afterLoad, { once: true });
+}
+
+function loadAppCheck(app) {
   import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app-check.js")
     .then(({ initializeAppCheck, ReCaptchaEnterpriseProvider }) => {
       initializeAppCheck(app, { provider: new ReCaptchaEnterpriseProvider(APP_CHECK_SITE_KEY), isTokenAutoRefreshEnabled: true });
@@ -761,6 +781,7 @@ if (isFirebaseConfigured()) {
       safeLocalSet("railsync_account_uid", user.uid);
 
       setAuthState("in");
+      ensureMap();
       await syncUserProfileWithCloud(user);
       if (map) {
         setTimeout(() => {

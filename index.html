@@ -38,10 +38,9 @@
        Forhåndslastes så teksten ikke bytter skrift synlig; systemskrift vises til den er klar. -->
   <link rel="preload" as="font" type="font/woff2" href="./assets/fonts/plus-jakarta-sans-latin.woff2" crossorigin>
 
-  <!-- Kart: Leaflet (låst versjon med integritetssjekk, lastes uten å blokkere visningen) -->
-  <link rel="preload" as="style" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" onload="this.onload=null;this.rel='stylesheet'" />
-  <noscript><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" /></noscript>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
+  <!-- Kart: Leaflet lastes først etter innlogging (ensureMap() i src/app/06-kart.js).
+       Forbindelsen åpnes tidlig så kartet kommer raskt når det trengs. -->
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
 
   <!-- Ikoner: bare Lucide-ikonene appen bruker (bygges av scripts/build-icons.cjs) -->
   <script src="./assets/icons.js?v=dev" defer></script>
