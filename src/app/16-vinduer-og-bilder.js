@@ -103,7 +103,7 @@ function safeColor(color, fallback = "#0d9488") {
 const PHOTO_PREFIX = "data:image/jpeg;base64,";
 const MAX_PHOTO_CHARS = 60000;   // ca. 45 kB
 const MAX_COVER_CHARS = 320000;  // ca. 240 kB
-const DEFAULT_COVER_URL = "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1000&q=80";
+const DEFAULT_COVER_URL = "./assets/img/forside.webp";
 let userCover = "";
 try { userCover = localStorage.getItem("railsync_cover_v1") || ""; } catch (e) {}
 

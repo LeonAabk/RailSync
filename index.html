@@ -34,12 +34,9 @@
   <link rel="manifest" href="./manifest.webmanifest" />
   <meta name="mobile-web-app-capable" content="yes" />
 
-  <!-- Google Fonts: Plus Jakarta Sans -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <!-- Lastes uten å blokkere visningen; systemskrift vises til Plus Jakarta Sans er klar -->
-  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"></noscript>
+  <!-- Skrift: Plus Jakarta Sans fra vår egen server (@font-face i styles/tailwind.css).
+       Forhåndslastes så teksten ikke bytter skrift synlig; systemskrift vises til den er klar. -->
+  <link rel="preload" as="font" type="font/woff2" href="./assets/fonts/plus-jakarta-sans-latin.woff2" crossorigin>
 
   <!-- Kart: Leaflet (låst versjon med integritetssjekk, lastes uten å blokkere visningen) -->
   <link rel="preload" as="style" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" onload="this.onload=null;this.rel='stylesheet'" />
@@ -227,7 +224,11 @@
     <div class="min-h-full grid lg:grid-cols-2">
       <!-- Bildepanel (desktop) -->
       <div class="relative hidden lg:block bg-slate-900 min-h-screen">
-        <img src="https://images.unsplash.com/photo-1474487548417-781cb71495f3?auto=format&fit=crop&w=1600&q=80" alt="" class="absolute inset-0 w-full h-full object-cover opacity-80">
+        <!-- Bildet vises bare på store skjermer; <source> med media gjør at mobil ikke laster det ned -->
+        <picture>
+          <source media="(min-width: 1024px)" srcset="./assets/img/innlogging-960.webp 960w, ./assets/img/innlogging-1600.webp 1600w" sizes="50vw">
+          <img src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" alt="" fetchpriority="high" class="absolute inset-0 w-full h-full object-cover opacity-80">
+        </picture>
         <div class="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/25 to-slate-950/40"></div>
         <div class="relative h-full min-h-screen flex flex-col justify-between p-10 xl:p-14 text-white">
           <div class="flex items-center gap-3">
@@ -1131,8 +1132,9 @@
               <div class="relative h-52 sm:h-[272px] bg-slate-900 overflow-hidden">
                 <img 
                   id="social-hero-cover"
-                  src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1000&q=80" 
-                  alt="Alpine railway landscape" 
+                  src="./assets/img/forside.webp"
+                  loading="lazy"
+                  alt="Alpine railway landscape"
                   class="w-full h-full object-cover opacity-85"
                 >
                 <div class="absolute inset-0 bg-gradient-to-b from-slate-950/35 via-slate-950/40 to-slate-950/85"></div>

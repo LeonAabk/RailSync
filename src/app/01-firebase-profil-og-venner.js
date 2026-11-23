@@ -129,54 +129,55 @@ export function cleanTagLabel(tag) {
 export function getPlaceThumbnailUrl(city = "", country = "") {
   const key = `${city} ${country}`.toLowerCase();
   if (key.includes("roma") || key.includes("rome") || key.includes("colosseum")) {
-    return "https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=300&q=80";
+    return "./assets/img/steder/roma.webp";
   }
   if (key.includes("firenze") || key.includes("florence") || key.includes("toscana")) {
-    return "https://images.unsplash.com/photo-1543429257-3eb0b65d9c58?auto=format&fit=crop&w=300&q=80";
+    return "./assets/img/steder/firenze.webp";
   }
   if (key.includes("venezia") || key.includes("venice")) {
-    return "https://images.unsplash.com/photo-1514890547357-a9ee288728e0?auto=format&fit=crop&w=300&q=80";
+    return "./assets/img/steder/venezia.webp";
   }
   if (key.includes("amalfi") || key.includes("cinque") || key.includes("napoli") || key.includes("italia")) {
-    return "https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=300&q=80";
+    return "./assets/img/steder/amalfi.webp";
   }
   if (key.includes("zermatt") || key.includes("bernina") || key.includes("glacier") || key.includes("interlaken") || key.includes("luzern") || key.includes("sveits")) {
-    return "https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?auto=format&fit=crop&w=300&q=80";
+    return "./assets/img/steder/sveits.webp";
   }
   if (key.includes("innsbruck") || key.includes("salzburg") || key.includes("wien") || key.includes("østerrike") || key.includes("dolomitt") || key.includes("chamonix")) {
-    return "https://images.unsplash.com/photo-1516550893923-42d28e5677af?auto=format&fit=crop&w=300&q=80";
+    return "./assets/img/steder/osterrike.webp";
   }
   if (key.includes("bled") || key.includes("ljubljana") || key.includes("slovenia")) {
-    return "https://images.unsplash.com/photo-1586717791821-3f44a563fa4c?auto=format&fit=crop&w=300&q=80";
+    return "./assets/img/steder/bled.webp";
   }
   if (key.includes("københavn") || key.includes("danmark")) {
-    return "https://images.unsplash.com/photo-1513622470522-26c3c8a854bc?auto=format&fit=crop&w=300&q=80";
+    return "./assets/img/steder/kobenhavn.webp";
   }
   if (key.includes("berlin") || key.includes("hamburg") || key.includes("münchen") || key.includes("tyskland")) {
-    return "https://images.unsplash.com/photo-1560969184-10fe8719e047?auto=format&fit=crop&w=300&q=80";
+    return "./assets/img/steder/berlin.webp";
   }
   if (key.includes("paris") || key.includes("nice") || key.includes("lyon") || key.includes("frankrike")) {
-    return "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=300&q=80";
+    return "./assets/img/steder/paris.webp";
   }
   if (key.includes("amsterdam") || key.includes("nederland")) {
-    return "https://images.unsplash.com/photo-1534351590666-13e3e96b5017?auto=format&fit=crop&w=300&q=80";
+    return "./assets/img/steder/amsterdam.webp";
   }
   if (key.includes("barcelona") || key.includes("madrid") || key.includes("spania")) {
-    return "https://images.unsplash.com/photo-1583422409516-2895a77efded?auto=format&fit=crop&w=300&q=80";
+    return "./assets/img/steder/barcelona.webp";
   }
   if (key.includes("porto") || key.includes("lisboa") || key.includes("portugal")) {
-    return "https://images.unsplash.com/photo-1555881400-74d7acaacd8b?auto=format&fit=crop&w=300&q=80";
+    return "./assets/img/steder/porto.webp";
   }
   if (key.includes("praha") || key.includes("tsjekkia")) {
-    return "https://images.unsplash.com/photo-1541849546-216549ae216d?auto=format&fit=crop&w=300&q=80";
+    return "./assets/img/steder/praha.webp";
   }
   if (key.includes("budapest") || key.includes("ungarn")) {
-    return "https://images.unsplash.com/photo-1549877452-9c387954fbc2?auto=format&fit=crop&w=300&q=80";
+    return "./assets/img/steder/budapest.webp";
   }
+  // Bildet for Kroatia/Hellas er fjernet fra Unsplash (404). Togbildet brukes til et nytt er valgt.
   if (key.includes("split") || key.includes("kroatia") || key.includes("athen") || key.includes("hellas")) {
-    return "https://images.unsplash.com/photo-1555990538-1e6c0c12db88?auto=format&fit=crop&w=300&q=80";
+    return "./assets/img/steder/tog.webp";
   }
-  return "https://images.unsplash.com/photo-1474487548417-781cb71495f3?auto=format&fit=crop&w=300&q=80";
+  return "./assets/img/steder/tog.webp";
 }
 
 // Eksempelprofiler er fjernet – bare ekte kontoer vises
