@@ -1,6 +1,20 @@
 // =============================================================================
 // 8. MODAL UTILITIES
 // =============================================================================
+// Mobil: følg det synlige området, som krymper når tastaturet åpnes. Bunnarkene (CSS i index.html)
+// bruker --vv-height/--vv-top, så skjemaet og «Lagre»-knappen holder seg over tastaturet.
+if (typeof window !== "undefined" && window.visualViewport) {
+  const vv = window.visualViewport;
+  const syncViewport = () => {
+    const root = document.documentElement.style;
+    root.setProperty("--vv-height", `${Math.round(vv.height)}px`);
+    root.setProperty("--vv-top", `${Math.round(vv.offsetTop)}px`);
+  };
+  vv.addEventListener("resize", syncViewport);
+  vv.addEventListener("scroll", syncViewport);
+  syncViewport();
+}
+
 export function openModal(id) {
   const el = document.getElementById(id);
   if (el) {
