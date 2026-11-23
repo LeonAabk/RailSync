@@ -17,9 +17,9 @@
   // Aldri logget inn på denne enheten: vis innloggingssiden med en gang i stedet for å vente på Firebase.
   try { if (!localStorage.getItem("railsync_account_uid")) document.body.dataset.auth = "out"; } catch (e) {}
 
-  // Designretning: ?design=nordlys|plakat|sommer i adressen (huskes), ?design=standard for dagens design
+  // Designretning: ?design=nordlys|plakat|plakat-riviera|plakat-alpin|plakat-natt|plakat-retro|sommer i adressen (huskes), ?design=standard for dagens design
   try {
-    var DESIGNS = ["nordlys", "plakat", "sommer"];
+    var DESIGNS = ["nordlys", "plakat", "sommer", "plakat-riviera", "plakat-alpin", "plakat-natt", "plakat-retro"];
     var wanted = new URLSearchParams(location.search).get("design");
     if (wanted) {
       if (DESIGNS.indexOf(wanted) !== -1) localStorage.setItem("railsync_design", wanted);

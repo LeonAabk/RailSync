@@ -88,60 +88,148 @@ html[data-design="nordlys"] h2 { letter-spacing: -0.025em; }
 html[data-design="nordlys"] body > nav.fixed { background: rgb(255 255 255 / 0.9); }
 
 /* =============================================================================
-   2. PLAKAT – klassisk europeisk togplakat: marine, signalrødt, sennep, kondensert skrift
+   2. PLAKAT-FAMILIEN – togplakater: kondensert skrift, billettkort, stripete sporbånd
+   Felles regler for alle [data-design^="plakat"]; hver variant setter fargene sine og en egen vri.
+     --ink   mørk hovedfarge (sidemeny, tekst, kanter)   --pri  handling (knapper, stoppnumre)
+     --hi    fremheving (aktiv fane, overlinjer)          --ter  tredje farge i sporbåndet
+     --paper sidebakgrunn   --hero  toppseksjonens bakgrunn   --shadow  farge på harde skygger
    ============================================================================= */
-html[data-design="plakat"] {
+html[data-design^="plakat"] {
+  --ink: #1d3557; --pri: #e63946; --hi: #ffb703; --ter: #2a9d8f; --paper: #f2ede3;
+  --hero: var(--ink); --shadow: var(--ink); --hero-shadow: var(--pri); --on-hero-muted: #e8dfcc; --on-pri: #fff; --on-hi: var(--ink);
   --c-overview: 230 57 70; --c-plan: 42 157 143; --c-trains: 29 53 87; --c-budget: 214 140 0;
   --c-packing: 230 57 70; --c-social: 42 157 143; --c-trips: 29 53 87;
-  --ink: #1d3557; --red: #e63946; --mustard: #ffb703; --teal: #2a9d8f; --paper: #f2ede3;
   background: var(--paper);
 }
-html[data-design="plakat"] body, html[data-design="plakat"] body > main { background: var(--paper); }
-html[data-design="plakat"] :is(h2, h3.text-base, #overview-hero-main, .font-display) {
+html[data-design^="plakat"] body, html[data-design^="plakat"] body > main { background: var(--paper); }
+html[data-design^="plakat"] :is(h2, h3.text-base, #overview-hero-main, .font-display) {
   font-family: "Big Shoulders Display", "Plus Jakarta Sans", sans-serif; text-transform: uppercase; letter-spacing: 0.01em;
 }
-html[data-design="plakat"] h2 { font-size: 1.55rem !important; font-weight: 800 !important; color: var(--ink); line-height: 1.05; }
-html[data-design="plakat"] section.tab-content > div:first-child h2 { font-size: clamp(2rem, 3.4vw, 2.6rem) !important; }
-html[data-design="plakat"] #overview-hero [id$="-sub"] { text-transform: none; letter-spacing: 0; font-weight: 500; color: #e8dfcc !important; font-family: "Plus Jakarta Sans", sans-serif; }
-html[data-design="plakat"] body > aside { background: var(--ink) !important; border-right: 0; position: relative; }
-html[data-design="plakat"] body > aside::before {
+html[data-design^="plakat"] h2 { font-size: 1.55rem !important; font-weight: 800 !important; color: var(--ink); line-height: 1.05; }
+html[data-design^="plakat"] section.tab-content > div:first-child h2 { font-size: clamp(2rem, 3.4vw, 2.6rem) !important; }
+html[data-design^="plakat"] body > aside { background: var(--ink) !important; border-right: 0; position: relative; }
+html[data-design^="plakat"] body > aside::before {
   content: ""; position: absolute; inset: 0 0 auto 0; height: 8px;
-  background: linear-gradient(90deg, var(--red) 0 33.3%, var(--mustard) 33.3% 66.6%, var(--teal) 66.6% 100%);
+  background: linear-gradient(90deg, var(--pri) 0 33.3%, var(--hi) 33.3% 66.6%, var(--ter) 66.6% 100%);
 }
-html[data-design="plakat"] .nav-item[aria-current="page"] { background: var(--mustard) !important; color: var(--ink) !important; box-shadow: none; }
-html[data-design="plakat"] .nav-item[aria-current="page"] :is(i, svg, span) { color: var(--ink) !important; }
-html[data-design="plakat"] body > main > header { background: var(--paper); border-bottom: 3px solid var(--ink); }
-html[data-design="plakat"] #overview-hero {
-  background: var(--ink) !important; border-radius: 14px; position: relative;
-  box-shadow: 8px 8px 0 var(--red);
+html[data-design^="plakat"] .nav-item[aria-current="page"] { background: var(--hi) !important; color: var(--on-hi) !important; box-shadow: none; }
+html[data-design^="plakat"] .nav-item[aria-current="page"] :is(i, svg, span) { color: var(--on-hi) !important; }
+html[data-design^="plakat"] body > main > header { background: var(--paper); border-bottom: 3px solid var(--ink); }
+html[data-design^="plakat"] #overview-hero { background: var(--hero) !important; border-radius: 14px; position: relative; box-shadow: 8px 8px 0 var(--hero-shadow); }
+html[data-design^="plakat"] #overview-hero::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 10px; pointer-events: none;
+  background: repeating-linear-gradient(90deg, var(--pri) 0 46px, var(--hi) 46px 92px, var(--ter) 92px 138px);
 }
-html[data-design="plakat"] #overview-hero::after {
-  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 10px;
-  background: repeating-linear-gradient(90deg, var(--red) 0 46px, var(--mustard) 46px 92px, var(--teal) 92px 138px);
+html[data-design^="plakat"] #overview-hero-kicker { color: var(--hi) !important; text-transform: uppercase; letter-spacing: 0.14em; margin-top: 0.4rem; }
+html[data-design^="plakat"] #overview-hero-main { font-size: clamp(2.4rem, 5vw, 3.6rem); font-weight: 900; line-height: 0.95; color: #fff; }
+html[data-design^="plakat"] #overview-hero-route { color: var(--on-hero-muted) !important; font-weight: 600; }
+html[data-design^="plakat"] #overview-hero > .grid { background: transparent; border-top: 2px dashed rgb(255 255 255 / 0.35); gap: 0; }
+html[data-design^="plakat"] #overview-hero > .grid > * { background: transparent !important; border-left: 2px dashed rgb(255 255 255 / 0.2); }
+html[data-design^="plakat"] #overview-hero > .grid > *:first-child { border-left: 0; }
+html[data-design^="plakat"] #overview-hero > .grid > button:hover { background: rgb(255 255 255 / 0.06) !important; }
+html[data-design^="plakat"] #overview-hero > .grid > button {
+  color: #fff !important; border: 0 !important; border-left: 2px dashed rgb(255 255 255 / 0.2) !important; border-radius: 0 !important;
+  box-shadow: none !important; text-transform: none; letter-spacing: normal; font-weight: inherit; transform: none !important;
 }
-html[data-design="plakat"] #overview-hero-kicker { color: var(--mustard) !important; text-transform: uppercase; letter-spacing: 0.14em; margin-top: 0.4rem; }
-html[data-design="plakat"] #overview-hero-main { font-size: clamp(2.4rem, 5vw, 3.6rem); font-weight: 900; line-height: 0.95; color: #fff; }
-html[data-design="plakat"] #overview-hero-route { color: #f1e9d8 !important; font-weight: 600; }
-html[data-design="plakat"] #overview-hero > .grid { background: transparent; border-top: 2px dashed rgb(255 255 255 / 0.35); gap: 0; }
-html[data-design="plakat"] #overview-hero > .grid > * { background: transparent !important; border-left: 2px dashed rgb(255 255 255 / 0.2); }
-html[data-design="plakat"] #overview-hero > .grid > *:first-child { border-left: 0; }
-html[data-design="plakat"] #overview-hero > .grid p:first-child { color: var(--mustard) !important; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; }
-html[data-design="plakat"] #overview-hero > .grid [id^="stat-"]:not([id$="-sub"]):not(#stat-pass-bar) { font-family: "Big Shoulders Display", sans-serif; font-size: 2rem; font-weight: 800; text-transform: uppercase; }
-html[data-design="plakat"] #stat-pass-bar { background: var(--mustard) !important; }
-html[data-design="plakat"] .rounded-2xl.border, html[data-design="plakat"] .rounded-xl.border {
-  border: 2px solid var(--ink) !important; border-radius: 12px; box-shadow: 5px 5px 0 rgb(29 53 87 / 0.9);
+html[data-design^="plakat"] #overview-hero > .grid > button:first-child { border-left: 0 !important; }
+html[data-design^="plakat"] #overview-hero > .grid p:first-child { color: var(--hi) !important; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; }
+html[data-design^="plakat"] #overview-hero > .grid [id^="stat-"]:not([id$="-sub"]):not(#stat-pass-bar) { font-family: "Big Shoulders Display", sans-serif; font-size: 2rem; font-weight: 800; text-transform: uppercase; }
+html[data-design^="plakat"] #overview-hero [id$="-sub"] { text-transform: none; letter-spacing: 0; font-weight: 500; color: var(--on-hero-muted) !important; font-family: "Plus Jakarta Sans", sans-serif; }
+html[data-design^="plakat"] #stat-pass-bar { background: var(--hi) !important; }
+html[data-design^="plakat"] .rounded-2xl.border, html[data-design^="plakat"] .rounded-xl.border {
+  border: 2px solid var(--ink) !important; border-radius: 12px; box-shadow: 5px 5px 0 var(--shadow);
 }
-html[data-design="plakat"] section.tab-content:not(#tab-overview) > .rounded-2xl.border { border-top: 8px solid rgb(var(--sec)) !important; }
-html[data-design="plakat"] :is(.bg-fjord-800, .bg-brand-600):is(button, a) {
-  background: var(--red) !important; color: #fff !important; border: 2px solid var(--ink); box-shadow: 3px 3px 0 var(--ink);
+html[data-design^="plakat"] section.tab-content:not(#tab-overview) > .rounded-2xl.border { border-top: 8px solid rgb(var(--sec)) !important; }
+html[data-design^="plakat"] :is(.bg-fjord-800, .bg-brand-600):is(button, a) {
+  background: var(--pri) !important; color: var(--on-pri) !important; border: 2px solid var(--ink); box-shadow: 3px 3px 0 var(--ink);
   text-transform: uppercase; letter-spacing: 0.04em; font-weight: 800;
 }
-html[data-design="plakat"] :is(.bg-fjord-800, .bg-brand-600):is(button, a):active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
-html[data-design="plakat"] .rail-marker-pin { background: var(--red); border-color: var(--ink); }
-html[data-design="plakat"] .rail-marker-pin.start { background: var(--ink); }
-html[data-design="plakat"] body > nav.fixed { background: var(--ink); border-top: 4px solid var(--mustard); }
-html[data-design="plakat"] body > nav.fixed .mobile-nav-btn { color: #e6dcc6 !important; }
-html[data-design="plakat"] body > nav.fixed .mobile-nav-btn[aria-current="page"] { color: var(--ink) !important; background: var(--mustard) !important; }
+html[data-design^="plakat"] :is(.bg-fjord-800, .bg-brand-600):is(button, a):active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+html[data-design^="plakat"] .rail-marker-pin { background: var(--pri); border-color: var(--ink); }
+html[data-design^="plakat"] .rail-marker-pin.start { background: var(--ink); }
+html[data-design^="plakat"] body > nav.fixed { background: var(--ink); border-top: 4px solid var(--hi); }
+html[data-design^="plakat"] body > nav.fixed .mobile-nav-btn { color: var(--on-hero-muted) !important; }
+html[data-design^="plakat"] body > nav.fixed .mobile-nav-btn[aria-current="page"] { color: var(--on-hi) !important; background: var(--hi) !important; }
+html[data-design^="plakat"] #timeline-container .w-6.h-6.rounded-full { background: var(--pri) !important; color: var(--on-pri); border: 2px solid var(--ink); width: 1.75rem; height: 1.75rem; left: -2px; font-family: "Big Shoulders Display", sans-serif; font-size: 1rem; }
+html[data-design^="plakat"] #timeline-container .w-6.h-6.rounded-full.bg-fjord-800 { background: var(--ink) !important; color: #fff; }
+html[data-design^="plakat"] #timeline-container .w-0\.5 { background: repeating-linear-gradient(180deg, var(--ink) 0 8px, transparent 8px 14px) !important; width: 3px; }
+
+/* ---------- 2a. Riviera – 1930-tallets reiseplakater fra Middelhavet: solstråler ---------- */
+html[data-design="plakat-riviera"] {
+  --ink: #12355b; --pri: #e2582c; --hi: #ffd23f; --ter: #3fb6a8; --paper: #eef5f7;
+  --hero: #1769aa; --hero-shadow: #e2582c; --on-hero-muted: #dceefa;
+  --c-overview: 226 88 44; --c-plan: 63 182 168; --c-trains: 23 105 170; --c-budget: 204 150 0; --c-packing: 226 88 44; --c-social: 63 182 168; --c-trips: 18 53 91;
+}
+html[data-design="plakat-riviera"] #overview-hero {
+  background:
+    radial-gradient(circle at 86% 125%, #ffd23f 0 13%, transparent 13.4%),
+    repeating-conic-gradient(from 180deg at 86% 125%, rgb(255 210 63 / 0.22) 0 5deg, transparent 5deg 11deg),
+    linear-gradient(180deg, #1769aa 0%, #2a86c9 100%) !important;
+}
+
+/* ---------- 2b. Alpin – sveitsiske jernbaneplakater: rødt, hvitt, svart og fjell ---------- */
+html[data-design="plakat-alpin"] {
+  --ink: #111111; --pri: #d52b1e; --hi: #ffffff; --ter: #8a8a8a; --paper: #f4f4f2;
+  --hero: #d52b1e; --shadow: #111111; --hero-shadow: #111111; --on-hero-muted: #ffe3e0; --on-hi: #111111;
+  --c-overview: 213 43 30; --c-plan: 17 17 17; --c-trains: 213 43 30; --c-budget: 17 17 17; --c-packing: 213 43 30; --c-social: 17 17 17; --c-trips: 213 43 30;
+}
+html[data-design="plakat-alpin"] body > aside::before { background: linear-gradient(90deg, var(--pri) 0 50%, #fff 50% 100%); }
+html[data-design="plakat-alpin"] #overview-hero::after { background: repeating-linear-gradient(90deg, #fff 0 46px, #111 46px 92px); }
+html[data-design="plakat-alpin"] #overview-hero > div:first-of-type { position: relative; }
+html[data-design="plakat-alpin"] #overview-hero > div:first-of-type::after {
+  content: ""; position: absolute; right: 0; bottom: 0; width: min(55%, 520px); height: 120%; pointer-events: none;
+  background: #fff; opacity: 0.95;
+  clip-path: polygon(0 100%, 14% 62%, 22% 74%, 38% 22%, 47% 40%, 58% 8%, 70% 46%, 78% 34%, 90% 64%, 100% 50%, 100% 100%);
+}
+html[data-design="plakat-alpin"] #overview-hero > div:first-of-type::before {
+  content: ""; position: absolute; right: 0; bottom: 0; width: min(55%, 520px); height: 120%; pointer-events: none; z-index: 1;
+  background: rgb(255 255 255 / 0.35);
+  clip-path: polygon(0 100%, 30% 70%, 44% 82%, 62% 48%, 76% 72%, 88% 58%, 100% 76%, 100% 100%);
+}
+html[data-design="plakat-alpin"] #overview-hero > .grid p:first-child { color: #fff !important; }
+html[data-design="plakat-alpin"] #overview-hero-kicker { color: #fff !important; }
+html[data-design="plakat-alpin"] #stat-pass-bar { background: #fff !important; }
+html[data-design="plakat-alpin"] body > nav.fixed { border-top-color: var(--pri); }
+
+/* ---------- 2c. Nattog – art deco nattog: midnatt, gull og stjerner ---------- */
+html[data-design="plakat-natt"] {
+  --ink: #1b1638; --pri: #b4862f; --hi: #e8c372; --ter: #7a6fb0; --paper: #ecebf2;
+  --hero: #1b1638; --shadow: #b4862f; --hero-shadow: #b4862f; --on-hero-muted: #d9d3ee; --on-pri: #1b1638;
+  --c-overview: 180 134 47; --c-plan: 122 111 176; --c-trains: 27 22 56; --c-budget: 180 134 47; --c-packing: 122 111 176; --c-social: 180 134 47; --c-trips: 27 22 56;
+}
+html[data-design="plakat-natt"] #overview-hero {
+  background:
+    radial-gradient(1.5px 1.5px at 12% 30%, #fff8 99%, transparent), radial-gradient(1px 1px at 28% 62%, #fff9 99%, transparent),
+    radial-gradient(1.5px 1.5px at 44% 18%, #fffa 99%, transparent), radial-gradient(1px 1px at 61% 48%, #fff8 99%, transparent),
+    radial-gradient(2px 2px at 73% 22%, #ffeebb 99%, transparent), radial-gradient(1px 1px at 84% 58%, #fff9 99%, transparent),
+    radial-gradient(1.5px 1.5px at 93% 26%, #fff8 99%, transparent),
+    radial-gradient(circle at calc(88% - 12px) calc(30% - 8px), #1f1a40 0 24px, transparent 25px),
+    radial-gradient(circle at 88% 30%, #f3e2b1 0 26px, transparent 27px),
+    linear-gradient(180deg, #1b1638, #2b2357) !important;
+  box-shadow: 0 0 0 2px #b4862f, 0 0 0 6px var(--paper), 0 0 0 8px #b4862f, 10px 10px 0 8px rgb(180 134 47 / 0.35);
+}
+html[data-design="plakat-natt"] #overview-hero::after { background: repeating-linear-gradient(90deg, #b4862f 0 2px, transparent 2px 10px); height: 6px; top: 8px; }
+html[data-design="plakat-natt"] body > aside::before { background: linear-gradient(90deg, #b4862f, #e8c372, #b4862f); height: 4px; }
+html[data-design="plakat-natt"] :is(.bg-fjord-800, .bg-brand-600):is(button, a) { background: linear-gradient(180deg, #e8c372, #b4862f) !important; }
+html[data-design="plakat-natt"] .rounded-2xl.border, html[data-design="plakat-natt"] .rounded-xl.border { border-width: 1.5px !important; }
+
+/* ---------- 2d. Retro 70 – 1970-tallets Interrail og supergrafikk: tykke avrundede striper ---------- */
+html[data-design="plakat-retro"] {
+  --ink: #3d2b1f; --pri: #d9572b; --hi: #f2b134; --ter: #6b8f3a; --paper: #f6ecd9;
+  --hero: #3d2b1f; --shadow: #3d2b1f; --hero-shadow: #f2b134; --on-hero-muted: #f1dfc0;
+  --c-overview: 217 87 43; --c-plan: 107 143 58; --c-trains: 61 43 31; --c-budget: 214 150 30; --c-packing: 217 87 43; --c-social: 107 143 58; --c-trips: 61 43 31;
+}
+html[data-design="plakat-retro"] #overview-hero { border-radius: 26px; }
+html[data-design="plakat-retro"] #overview-hero::after { display: none; }
+html[data-design="plakat-retro"] #overview-hero > div:first-of-type { position: relative; overflow: hidden; }
+html[data-design="plakat-retro"] #overview-hero > div:first-of-type::after {
+  content: ""; position: absolute; right: -60px; bottom: -260px; width: 420px; height: 420px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, transparent 0 34%, #6b8f3a 34% 46%, #f2b134 46% 58%, #e98a2f 58% 70%, #d9572b 70% 82%, transparent 82%);
+  opacity: 0.95;
+}
+html[data-design="plakat-retro"] body > aside::before { height: 14px; background: linear-gradient(180deg, #d9572b 0 25%, #e98a2f 25% 50%, #f2b134 50% 75%, #6b8f3a 75% 100%); }
+html[data-design="plakat-retro"] :is(.bg-fjord-800, .bg-brand-600):is(button, a) { border-radius: 999px; }
+html[data-design="plakat-retro"] .rounded-2xl.border, html[data-design="plakat-retro"] .rounded-xl.border { border-radius: 20px; }
 
 /* =============================================================================
    3. SOMMER – lyst og varmt: solnedgangsgradient, korall og himmelblått, myke former
@@ -197,8 +285,5 @@ html[data-design="sommer"] .mobile-nav-btn[aria-current="page"] { border-radius:
 /* Stoppnumre langs ruten */
 html[data-design="nordlys"] #timeline-container .w-6.h-6.rounded-full { background: linear-gradient(135deg, #14b8a6, #6366f1) !important; }
 html[data-design="nordlys"] #timeline-container .w-6.h-6.rounded-full.bg-fjord-800 { background: #0b1530 !important; }
-html[data-design="plakat"] #timeline-container .w-6.h-6.rounded-full { background: var(--red) !important; border: 2px solid var(--ink); width: 1.75rem; height: 1.75rem; left: -2px; font-family: "Big Shoulders Display", sans-serif; font-size: 1rem; }
-html[data-design="plakat"] #timeline-container .w-6.h-6.rounded-full.bg-fjord-800 { background: var(--ink) !important; }
-html[data-design="plakat"] #timeline-container .w-0.5 { background: repeating-linear-gradient(180deg, var(--ink) 0 8px, transparent 8px 14px) !important; width: 3px; }
 html[data-design="sommer"] #timeline-container .w-6.h-6.rounded-full { background: linear-gradient(135deg, #fb923c, #f43f5e) !important; box-shadow: 0 4px 10px -4px rgb(244 63 94 / 0.8); }
 html[data-design="sommer"] #timeline-container .w-6.h-6.rounded-full.bg-fjord-800 { background: linear-gradient(135deg, #a855f7, #6366f1) !important; }
