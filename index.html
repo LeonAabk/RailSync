@@ -2,6 +2,24 @@
 <html lang="no" class="h-full bg-sand-100">
 <head>
   <meta charset="UTF-8" />
+  <!-- Content-Security-Policy: bare skript fra egne filer og navngitte tjenester – ingen inline-skript og ingen eval,
+       så injisert kode (XSS) ikke kan kjøre. GitHub Pages kan ikke sette HTTP-headere, derfor <meta>.
+       Ny ekstern tjeneste? Legg verten til i riktig liste her (connect-src for fetch, img-src for bilder osv.).
+       Firebase/Google: gstatic (SDK, reCAPTCHA), google.com (reCAPTCHA), apis.google.com + firebaseapp.com (Google-innlogging). -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' https://www.gstatic.com https://www.google.com https://apis.google.com https://unpkg.com;
+    style-src 'self' 'unsafe-inline' https://unpkg.com https://www.gstatic.com;
+    img-src 'self' data: blob: https://*.tile.openstreetmap.org https://unpkg.com https://www.gstatic.com https://www.google.com;
+    font-src 'self';
+    connect-src 'self' https://*.googleapis.com https://www.google.com https://nominatim.openstreetmap.org https://api.transitous.org https://open.er-api.com https://api.frankfurter.dev;
+    frame-src https://www.google.com https://railsync-41279.firebaseapp.com https://accounts.google.com;
+    worker-src 'self' blob: https://www.google.com;
+    manifest-src 'self';
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self'
+  " />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
   <title>RailSync – Planlegg Interrail sammen</title>
   <meta name="description" content="Planlegg Interrail-reisen sammen med vennene dine: rute på kart, togtider, Interrail-pass, budsjett og pakkeliste – alt synkronisert i reisefølget." />
