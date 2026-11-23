@@ -88,6 +88,17 @@ service cloud.firestore {
     // Venneforespørsler og vennskap – dokument-ID er "{fra}_{til}".
     // status 'accepted' = venner. Begge kan slette (fjerne venn / avslå / trekke tilbake).
     // -------------------------------------------------------------------
+    // Profilutdrag som sendes med en venneforespørsel (myPublicSnippet() i appen)
+    function validProfileSnippet(p) {
+      return p is map
+        && p.keys().hasOnly(['displayName', 'username', 'avatarColor', 'photo', 'homeStation'])
+        && (!('displayName' in p) || (p.displayName is string && p.displayName.size() <= 60))
+        && (!('username' in p) || (p.username is string && p.username.size() <= 30))
+        && (!('avatarColor' in p) || (p.avatarColor is string && p.avatarColor.matches('^#[0-9a-fA-F]{6}$')))
+        && (!('photo' in p) || validJpegDataUrl(p.photo, 60000))
+        && (!('homeStation' in p) || (p.homeStation is string && p.homeStation.size() <= 80));
+    }
+
     match /friendRequests/{requestId} {
       allow read: if signedIn()
         && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
@@ -98,14 +109,16 @@ service cloud.firestore {
         && request.resource.data.to != request.auth.uid
         && requestId == request.auth.uid + '_' + request.resource.data.to
         && request.resource.data.status == 'pending'
-        && request.resource.data.keys().hasOnly(['from', 'to', 'status', 'createdAt', 'fromProfile']);
+        && request.resource.data.keys().hasOnly(['from', 'to', 'status', 'createdAt', 'fromProfile'])
+        && (!('fromProfile' in request.resource.data) || validProfileSnippet(request.resource.data.fromProfile));
 
       // Bare mottakeren kan godta
       allow update: if signedIn()
         && resource.data.to == request.auth.uid
         && resource.data.status == 'pending'
         && request.resource.data.status == 'accepted'
-        && changedKeys().hasOnly(['status', 'acceptedAt', 'toProfile']);
+        && changedKeys().hasOnly(['status', 'acceptedAt', 'toProfile'])
+        && (!('toProfile' in request.resource.data) || validProfileSnippet(request.resource.data.toProfile));
 
       // Avsender kan trekke tilbake, mottaker kan avslå
       allow delete: if signedIn()
@@ -132,30 +145,70 @@ service cloud.firestore {
       return ['ownerUid', 'owner', 'memberUids', 'editorUids', 'members', 'visibility', 'sharePermission', 'shareCode'];
     }
 
-    // Innlogget bruker blir med i en delt reise via lenke/kode
+    // Ny medlemsoppføring når noen blir med via lenke/kode.
+    // Rollen må stemme med reisens delingstilgang, så ingen kan gi seg selv mer tilgang enn eieren har valgt.
+    function validJoinMember(m, uid, role) {
+      return m is map
+        && m.keys().hasOnly(['id', 'uid', 'username', 'name', 'role', 'avatarColor', 'joinedAt'])
+        && m.get('id', '') == uid
+        && m.get('uid', '') == uid
+        && m.get('role', '') == role
+        && m.get('name', '') is string && m.name.size() >= 1 && m.name.size() <= 60
+        && m.get('username', '') is string && m.get('username', '').size() <= 30
+        && (!('avatarColor' in m) || (m.avatarColor is string && m.avatarColor.matches('^#[0-9a-fA-F]{6}$')))
+        && (!('joinedAt' in m) || (m.joinedAt is string && m.joinedAt.size() <= 30));
+    }
+
+    // Innlogget bruker blir med i en delt reise via lenke/kode.
+    // Eksisterende medlemmer må være helt uendret; bare én ny oppføring for brukeren selv legges til sist.
     function isJoiningSharedTrip() {
       let uid = request.auth.uid;
       let before = resource.data;
       let after = request.resource.data;
       let oldEditors = before.get('editorUids', []);
+      let oldMembers = before.get('members', []);
+      let canEdit = before.get('sharePermission', 'edit') == 'edit';
       return signedIn()
         && before.get('visibility', 'private') == 'shared'
         && !(uid in before.get('memberUids', []))
         && changedKeys().hasOnly(['memberUids', 'editorUids', 'members', 'updatedAt'])
         && after.memberUids == before.get('memberUids', []).concat([uid])
-        && (after.get('editorUids', []) == oldEditors
-            || (before.get('sharePermission', 'edit') == 'edit' && after.editorUids == oldEditors.concat([uid])))
-        && after.members.size() == before.get('members', []).size() + 1;
+        && after.members is list
+        && after.members.size() == oldMembers.size() + 1
+        && after.members == oldMembers.concat([after.members[oldMembers.size()]])
+        && (
+          (canEdit
+            && after.get('editorUids', []) == oldEditors.concat([uid])
+            && validJoinMember(after.members[oldMembers.size()], uid, 'editor'))
+          || (!canEdit
+            && after.get('editorUids', []) == oldEditors
+            && validJoinMember(after.members[oldMembers.size()], uid, 'viewer'))
+        );
     }
 
-    // Medlem forlater reisen
+    // Uid-en til en medlemsoppføring (eldre oppføringer kan mangle uid og bare ha id)
+    function memberUid(m) {
+      return m.get('uid', m.get('id', ''));
+    }
+
+    // Medlem forlater reisen.
+    // Bare brukerens egne oppføringer kan fjernes; alle andre medlemmer må være uendret.
     function isLeavingTrip() {
       let uid = request.auth.uid;
+      let oldMembers = resource.data.get('members', []);
+      let newMembers = request.resource.data.get('members', []);
+      let removed = oldMembers.removeAll(newMembers);
       return isTripMember()
         && !isTripOwner()
         && changedKeys().hasOnly(['memberUids', 'editorUids', 'members', 'updatedAt'])
         && request.resource.data.memberUids == resource.data.memberUids.removeAll([uid])
-        && request.resource.data.get('editorUids', []) == resource.data.get('editorUids', []).removeAll([uid]);
+        && request.resource.data.get('editorUids', []) == resource.data.get('editorUids', []).removeAll([uid])
+        && newMembers is list
+        && newMembers.hasOnly(oldMembers)
+        && newMembers.size() == oldMembers.size() - removed.size()
+        && removed.size() <= 2
+        && (removed.size() == 0 || memberUid(removed[0]) == uid)
+        && (removed.size() <= 1 || memberUid(removed[1]) == uid);
     }
 
     // Personens Interrail-pass (null = ingen pass)

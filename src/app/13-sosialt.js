@@ -1221,12 +1221,18 @@ async function removeTripFromCloud(tripObj, ownsTrip) {
     } else {
       const uid = currentUser.uid;
       try { await deleteDoc(doc(db, "trips", tripObj.id, "budgets", uid)); } catch (e) { /* ignorer */ }
-      const remaining = (tripObj.members || []).filter(m => (m.uid || m.id) !== uid);
-      await updateDoc(ref, {
-        memberUids: arrayRemove(uid),
-        editorUids: arrayRemove(uid),
-        members: remaining,
-        updatedAt: new Date().toISOString()
+      // Les medlemslisten fra serveren i en transaksjon: den lokale kopien kan være utdatert,
+      // og sikkerhetsreglene godtar bare at brukerens egne oppføringer fjernes.
+      await runTransaction(db, async (tx) => {
+        const snap = await tx.get(ref);
+        if (!snap.exists()) return;
+        const members = Array.isArray(snap.data().members) ? snap.data().members : [];
+        tx.update(ref, {
+          memberUids: arrayRemove(uid),
+          editorUids: arrayRemove(uid),
+          members: members.filter(m => (m && (m.uid || m.id)) !== uid),
+          updatedAt: new Date().toISOString()
+        });
       });
     }
   } catch (e) {
