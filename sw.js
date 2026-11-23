@@ -2,7 +2,7 @@
  *
  * - Appens egne filer (med ?v=versjon) lagres ved installasjon og hentes fra lageret.
  * - Selve siden hentes fra nett først (så nye versjoner kommer med en gang), med lagret kopi som reserve.
- * - Kart, Firebase-biblioteket og skrift med faste versjoner lagres første gang de brukes.
+ * - Skriften ligger blant appens egne filer. Kart og Firebase-biblioteket (faste versjoner) lagres første gang de brukes.
  * - Kartfliser du har sett, lagres (maks MAX_TILES) så kartet virker uten nett der du har vært.
  * - Firestore, innlogging og togsøk går alltid rett til nett (dataene lagres av appen selv).
  *
@@ -25,15 +25,15 @@ const SHELL_FILES = [
   "./assets/favicon-32.png",
   "./assets/apple-touch-icon.png",
   "./assets/icon-192.png",
-  "./assets/icon-512.png"
+  "./assets/icon-512.png",
+  "./assets/fonts/plus-jakarta-sans-latin.woff2",
+  "./assets/fonts/plus-jakarta-sans-latin-ext.woff2"
 ];
 
 // Eksterne biblioteker med faste versjoner – trygt å lagre for godt
 const LIB_PREFIXES = [
   "https://unpkg.com/leaflet@1.9.4/",
-  "https://www.gstatic.com/firebasejs/10.12.0/",
-  "https://fonts.googleapis.com/css2",
-  "https://fonts.gstatic.com/"
+  "https://www.gstatic.com/firebasejs/10.12.0/"
 ];
 const TILE_HOST = /(^|\.)tile\.openstreetmap\.org$/;
 
