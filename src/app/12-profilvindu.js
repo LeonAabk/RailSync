@@ -223,6 +223,7 @@ export function renderUserProfileModal() {
   renderProfileMediaPreviews();
 
   updateBioCounter();
+  renderDesignPicker();
   const status = document.getElementById("profile-save-status");
   if (status) status.textContent = "";
   updateAuthUI(currentUser);
@@ -306,3 +307,74 @@ export async function handleSaveUserProfile(e) {
   showToast("Profilen er lagret", "Endringene vises nå for reisefølget ditt.", "check");
 }
 
+
+// =============================================================================
+// DESIGN (Konto og profil → Utseende). Se DESIGN.md.
+// Valget ligger på den private profilen (users/{uid}.design), så det følger kontoen,
+// og i localStorage (railsync_design), så assets/dispatch.js kan sette det før siden tegnes.
+// =============================================================================
+const DESIGNS = ["standard", "alpin", "retro", "nattog"]; // samme som i assets/dispatch.js (+ standard)
+const DESIGN_NAMES = { standard: "Standard", alpin: "Alpin", retro: "Retro 70", nattog: "Nattog" };
+const DESIGN_THEME_COLORS = { standard: "#0f4c4a", alpin: "#111111", retro: "#3d2b1f", nattog: "#1b1638" };
+
+function normalizeDesign(value) {
+  return DESIGNS.includes(value) ? value : "standard";
+}
+
+export function currentDesign() {
+  return normalizeDesign(document.documentElement.dataset.design);
+}
+
+export function applyDesign(value) {
+  const design = normalizeDesign(value);
+  const root = document.documentElement;
+  if (design === "standard") delete root.dataset.design;
+  else root.dataset.design = design;
+  try {
+    if (design === "standard") localStorage.removeItem("railsync_design");
+    else localStorage.setItem("railsync_design", design);
+  } catch (e) {}
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute("content", DESIGN_THEME_COLORS[design]);
+  renderDesignPicker();
+}
+
+// Ved innlogging: profilens valg gjelder. Har profilen ikke noe valg ennå, tas valget på denne enheten med opp i profilen.
+// ?design=… i adressen er et uttrykkelig valg og vinner over profilen (og lagres på den).
+export function applyDesignFromProfile() {
+  let fromUrl = false;
+  try { fromUrl = new URLSearchParams(location.search).has("design"); } catch (e) {}
+  if (!fromUrl && DESIGNS.includes(userProfile.design)) applyDesign(userProfile.design);
+  else userProfile.design = currentDesign();
+}
+
+function renderDesignPicker() {
+  const design = currentDesign();
+  document.querySelectorAll('input[name="app-design"]').forEach(input => {
+    input.checked = input.value === design;
+  });
+}
+
+export async function selectDesign(value) {
+  const design = normalizeDesign(value);
+  applyDesign(design);
+  userProfile.design = design;
+  try {
+    localStorage.setItem("railsync_user_profile_v1", JSON.stringify(userProfile));
+  } catch (e) {}
+  const status = document.getElementById("design-status");
+  let saved = false;
+  if (isCloudReady()) {
+    try {
+      await setDoc(doc(db, "users", currentUser.uid), { design, updatedAt: new Date().toISOString() }, { merge: true });
+      saved = true;
+    } catch (e) {
+      console.warn("Kunne ikke lagre design:", e);
+    }
+  }
+  if (status) {
+    status.textContent = saved
+      ? `${DESIGN_NAMES[design]} er valgt, og valget er lagret på kontoen din.`
+      : `${DESIGN_NAMES[design]} er valgt på denne enheten. Det lagres på kontoen når du er på nett igjen.`;
+  }
+}

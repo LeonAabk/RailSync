@@ -807,8 +807,8 @@
 
         </div>
 
-        <div id="getting-started-card" class="hidden bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-5"></div>
-        <div id="overview-day-card" data-needs-trip class="hidden bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-5"></div>
+        <div id="getting-started-card" class="hidden bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-5"></div>
+        <div id="overview-day-card" data-needs-trip class="hidden bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-5"></div>
         <div id="trip-stats-card" data-needs-trip class="hidden bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-5"></div>
       </section>
 
@@ -1701,7 +1701,7 @@
       <section id="tab-account" class="tab-content hidden w-full max-w-3xl mx-auto space-y-6">
         <div>
           <h2 class="text-xl sm:text-2xl font-semibold tracking-tight text-slate-900">Konto og profil</h2>
-          <p class="text-sm text-slate-500 mt-1">Det andre reisende ser om deg, og standardvalgene for reisene dine.</p>
+          <p class="text-sm text-slate-600 mt-1">Det andre reisende ser om deg, og standardvalgene for reisene dine.</p>
         </div>
 
         <form id="form-user-profile" data-onsubmit="handleSaveUserProfile(event)" class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs divide-y divide-slate-100">
@@ -1718,7 +1718,7 @@
                 <p class="field-label">Bakgrunnsbilde</p>
                 <div class="relative aspect-[3/1] rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
                   <img id="profile-cover-preview" alt="Bakgrunnsbilde" class="hidden w-full h-full object-cover">
-                  <div id="profile-cover-empty" class="absolute inset-0 flex flex-col items-center justify-center gap-1 text-slate-500">
+                  <div id="profile-cover-empty" class="absolute inset-0 flex flex-col items-center justify-center gap-1 text-slate-600">
                     <i data-lucide="image" class="w-5 h-5"></i>
                     <span class="text-xs">Ingen bakgrunn valgt</span>
                   </div>
@@ -1808,6 +1808,44 @@
             <button type="submit" class="px-4 py-2 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white text-sm font-semibold transition">Lagre endringer</button>
           </div>
         </form>
+
+        <!-- Designvelger: valget gjelder med en gang og lagres på profilen (se DESIGN.md) -->
+        <div id="design-picker" class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-7 grid gap-6 md:grid-cols-3">
+          <div>
+            <h3 class="text-sm font-semibold text-slate-900">Utseende</h3>
+            <p class="text-xs text-slate-500 mt-1 leading-relaxed">Velg hvordan RailSync ser ut. Endringen vises med en gang og følger kontoen din til andre enheter.</p>
+          </div>
+          <fieldset class="md:col-span-2">
+            <legend class="sr-only">Design</legend>
+            <div class="grid grid-cols-2 gap-3">
+              <label class="design-option">
+                <input type="radio" name="app-design" value="standard" class="sr-only" data-onchange="selectDesign(this.value)">
+                <span class="design-swatch" data-swatch="standard" aria-hidden="true"><span></span><span></span><span></span></span>
+                <span class="design-option-name">Standard</span>
+                <span class="design-option-desc">Rolig fjordgrønt</span>
+              </label>
+              <label class="design-option">
+                <input type="radio" name="app-design" value="alpin" class="sr-only" data-onchange="selectDesign(this.value)">
+                <span class="design-swatch" data-swatch="alpin" aria-hidden="true"><span></span><span></span><span></span></span>
+                <span class="design-option-name">Alpin</span>
+                <span class="design-option-desc">Rødt, hvitt og fjell</span>
+              </label>
+              <label class="design-option">
+                <input type="radio" name="app-design" value="retro" class="sr-only" data-onchange="selectDesign(this.value)">
+                <span class="design-swatch" data-swatch="retro" aria-hidden="true"><span></span><span></span><span></span></span>
+                <span class="design-option-name">Retro 70</span>
+                <span class="design-option-desc">Varme 70-tallsstriper</span>
+              </label>
+              <label class="design-option">
+                <input type="radio" name="app-design" value="nattog" class="sr-only" data-onchange="selectDesign(this.value)">
+                <span class="design-swatch" data-swatch="nattog" aria-hidden="true"><span></span><span></span><span></span></span>
+                <span class="design-option-name">Nattog</span>
+                <span class="design-option-desc">Midnatt, gull og stjerner</span>
+              </label>
+            </div>
+            <p id="design-status" class="text-xs text-slate-500 mt-3" aria-live="polite"></p>
+          </fieldset>
+        </div>
 
         <div class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-7 grid gap-6 md:grid-cols-3">
           <div>

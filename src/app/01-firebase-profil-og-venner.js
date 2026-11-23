@@ -456,6 +456,7 @@ export async function syncUserProfileWithCloud(user) {
       } else {
         ensureSocialProfileFields(userProfile);
       }
+      applyDesignFromProfile();
       await ensureOwnUsernameClaim();
       await saveUserProfileEverywhere();
       savePersonalBudgetsToStorage();

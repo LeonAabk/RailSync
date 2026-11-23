@@ -117,6 +117,7 @@ window.renderUserProfileModal = renderUserProfileModal;
 window.triggerProfileImagePicker = triggerProfileImagePicker;
 window.handleProfileImageSelected = handleProfileImageSelected;
 window.removeProfileImage = removeProfileImage;
+window.selectDesign = selectDesign;
 window.handleTopBarTravelerSearch = handleTopBarTravelerSearch;
 window.setSocialDiscoverFilter = setSocialDiscoverFilter;
 window.addOrAcceptFriend = addOrAcceptFriend;
@@ -174,6 +175,7 @@ document.addEventListener("keydown", (e) => {
 // 10. INITIALIZATION
 // =============================================================================
 async function initializeApplet() {
+  applyDesign(currentDesign()); // dispatch.js har satt designet; her følger fargen på nettleserlinjen og velgeren med
   await loadAppState();
   // Kartet (Leaflet) lages først når brukeren er logget inn – se ensureMap() i 06-kart.js
   renderAll();
