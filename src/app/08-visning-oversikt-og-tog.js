@@ -110,8 +110,10 @@ export function renderOverview() {
           <div class="flex items-start justify-between gap-2 min-w-0">
             <div class="min-w-0 flex-1">
               <div class="flex items-baseline gap-1.5 flex-wrap">
-                <h3 class="font-extrabold text-slate-900 text-sm sm:text-base hover:text-brand-600 cursor-pointer leading-snug" onclick="centerMapOnStop(${Number(stop.lat)}, ${Number(stop.lng)})">
-                  ${escapeHtml(stop.city)}
+                <h3 class="font-extrabold text-slate-900 text-sm sm:text-base leading-snug">
+                  ${Number.isFinite(Number(stop.lat)) && Number.isFinite(Number(stop.lng)) && stop.lat !== null && stop.lng !== null
+                    ? `<button type="button" onclick="centerMapOnStop(${Number(stop.lat)}, ${Number(stop.lng)})" class="hit hit-tall text-left hover:text-brand-600 rounded" aria-label="Vis ${escapeHtml(stop.city)} på kartet">${escapeHtml(stop.city)}</button>`
+                    : escapeHtml(stop.city)}
                 </h3>
                 <span class="text-xs text-slate-500 font-medium">${escapeHtml(stop.country)}</span>
               </div>
