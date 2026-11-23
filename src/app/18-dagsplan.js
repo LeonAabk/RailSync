@@ -9,6 +9,8 @@ const PLAN_MONTHS = ["januar", "februar", "mars", "april", "mai", "juni", "juli"
 const PLAN_MAX_DAYS = 180;
 let planShowPastDays = false;
 let planRenderedDay = "";
+// Dagen der «Ny aktivitet»-skjemaet er åpent (skjemaet vises bare på én dag om gangen)
+let planOpenFormDate = "";
 
 const isIsoDate = v => /^\d{4}-\d{2}-\d{2}$/.test(String(v || ""));
 
@@ -103,7 +105,17 @@ function planDayCardHtml(info, dayNo, today, { compact = false } = {}) {
         </div>
       </div>`).join("");
   let nightHtml = "";
-  if (info.night) {
+  // Samme overnatting flere netter på rad: full rad bare første natt, deretter én kort linje
+  const nightNo = info.night && isIsoDate(info.night.arrival) ? isoDiffDays(info.night.arrival, info.date) + 1 : 1;
+  const nightsTotal = info.night && isIsoDate(info.night.arrival) && isIsoDate(info.night.departure)
+    ? isoDiffDays(info.night.arrival, info.night.departure) : 0;
+  if (info.night && nightNo > 1) {
+    nightHtml = `
+      <p class="flex items-center gap-2.5 text-sm text-slate-600">
+        <span class="w-7 flex justify-center shrink-0 text-violet-500" aria-hidden="true"><i data-lucide="bed" class="w-3.5 h-3.5"></i></span>
+        <span class="min-w-0 truncate">Overnatting i ${escapeHtml(info.night.city || "")}${nightsTotal > 1 ? ` · natt ${nightNo} av ${nightsTotal}` : ""}</span>
+      </p>`;
+  } else if (info.night) {
     nightHtml = `
       <div class="flex items-start gap-2.5">
         ${planRowIcon("bed", "bg-violet-50 text-violet-700")}
@@ -127,18 +139,27 @@ function planDayCardHtml(info, dayNo, today, { compact = false } = {}) {
         <p class="min-w-0 flex-1 text-sm ${p.done ? "text-slate-500 line-through" : "text-slate-900"}">${p.time ? `<span class="font-semibold tabular-nums">${escapeHtml(p.time)}</span> ` : ""}${escapeHtml(p.text || "")}</p>
         <button type="button" onclick="deleteDayPlanItem(${jsArg(p.id)})" class="hit w-8 h-8 sm:w-7 sm:h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center shrink-0 transition" aria-label="Slett ${escapeHtml(p.text || "aktivitet")}"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
       </div>`).join("");
-  const addForm = compact ? "" : `
-      <form onsubmit="handleAddDayPlanItem(event, ${jsArg(info.date)})" class="flex items-center gap-1.5 pt-1">
+  // «+ Aktivitet» åpner skjemaet for denne dagen; det står åpent etter lagring så man kan legge til flere
+  const formOpen = planOpenFormDate === info.date;
+  // Knappen ligger i dagens topplinje, så den ikke tar en egen rad på hver dag
+  const addButton = compact || formOpen ? "" : `
+        <button type="button" onclick="showDayPlanForm(${jsArg(info.date)})" aria-expanded="false" aria-label="Legg til aktivitet ${escapeHtml(planDateLabel(info.date))}"
+          class="shrink-0 inline-flex items-center gap-1 min-h-[44px] -my-1 -mr-1.5 px-2.5 rounded-lg text-sm font-semibold text-brand-700 hover:bg-brand-50 transition">
+          <i data-lucide="plus" class="w-4 h-4"></i>Aktivitet
+        </button>`;
+  const addForm = compact || !formOpen ? "" : `
+      <form id="plan-form-${info.date}" onsubmit="handleAddDayPlanItem(event, ${jsArg(info.date)})" class="flex items-center gap-1.5 pt-1">
         <label class="sr-only" for="plan-time-${info.date}">Klokkeslett</label>
         <input id="plan-time-${info.date}" name="time" type="time" class="w-[5.5rem] shrink-0 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
         <label class="sr-only" for="plan-text-${info.date}">Ny aktivitet</label>
         <input id="plan-text-${info.date}" name="text" type="text" maxlength="140" required placeholder="Ny aktivitet" class="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500">
         <button type="submit" class="w-10 h-10 sm:w-8 sm:h-8 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white flex items-center justify-center shrink-0 transition" aria-label="Legg til aktivitet"><i data-lucide="plus" class="w-4 h-4"></i></button>
+        <button type="button" onclick="hideDayPlanForm()" class="w-10 h-10 sm:w-8 sm:h-8 rounded-lg text-slate-500 hover:bg-slate-100 flex items-center justify-center shrink-0 transition" aria-label="Lukk"><i data-lucide="x" class="w-4 h-4"></i></button>
       </form>`;
   const empty = !info.trains.length && !nightHtml && !info.items.length
     ? `<p class="text-sm text-slate-500">${compact ? "Ingenting planlagt i dag ennå." : "Ingenting planlagt ennå."}</p>` : "";
   return `
-    <article id="plan-day-${info.date}" data-plan-date="${info.date}"${compact ? " data-plan-extra" : ""} class="bg-white rounded-2xl border ${isToday ? "border-brand-300 ring-2 ring-brand-100" : "border-slate-200/90"} shadow-2xs p-4 sm:p-5 ${isPast && !isToday ? "opacity-80" : ""}">
+    <article id="plan-day-${info.date}" data-plan-date="${info.date}"${compact ? " data-plan-extra" : ""} class="scroll-mt-24 bg-white rounded-2xl border ${isToday ? "border-brand-300 ring-2 ring-brand-100" : "border-slate-200/90"} shadow-2xs p-4 sm:p-5 ${isPast && !isToday ? "opacity-80" : ""}">
       <header class="flex items-center gap-3">
         <div class="w-11 h-11 rounded-xl ${isToday ? "bg-brand-600 text-white" : "bg-sand-200 text-slate-800"} flex flex-col items-center justify-center shrink-0 leading-none" aria-hidden="true">
           <span class="text-[10px] font-semibold uppercase">${planWeekdayShort(info.date)}</span>
@@ -148,7 +169,7 @@ function planDayCardHtml(info, dayNo, today, { compact = false } = {}) {
           <p class="text-xs font-semibold text-slate-500">${dayNo ? `Dag ${dayNo}` : "Utenfor reiseperioden"}${info.place ? ` · <span class="text-slate-700">${escapeHtml(info.place)}</span>` : ""}</p>
           <h3 class="text-sm sm:text-base font-bold text-slate-900 first-letter:uppercase">${planDateLabel(info.date)}</h3>
         </div>
-        ${isToday ? `<span class="text-[11px] font-bold px-2 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200 shrink-0">I dag</span>` : ""}
+        ${isToday ? `<span class="text-xs font-bold px-2 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200 shrink-0">I dag</span>` : ""}${addButton}
       </header>
       <div class="mt-3 space-y-2.5">
         ${trainsHtml}${nightHtml}${itemsHtml}${empty}${addForm}
@@ -197,10 +218,53 @@ export function renderDayPlan() {
       <p class="text-xs text-slate-500 mt-0.5">Tog og aktiviteter med en dato før eller etter reisen. Endre datoen deres, eller reisens datoer, hvis de hører til turen.</p>
     </div>
     ${extraDates.map(date => planDayCardHtml(planDayInfo(date), 0, today, { compact: true })).join("")}` : "";
-  list.innerHTML = shown.map(date => {
+  // Datostripe øverst: hopp rett til en dag (nyttig på mobil, der planen blir lang)
+  const stripHtml = shown.length > 3 ? `
+    <nav aria-label="Hopp til dag" class="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto">
+      <ol class="flex gap-1.5 pb-1">
+        ${shown.map(date => {
+          const isToday = date === today;
+          const hasTrain = (appState.trains || []).some(t => t.date === date);
+          return `<li><button type="button" onclick="scrollToPlanDay(${jsArg(date)})" aria-label="${escapeHtml(planDateLabel(date))}${hasTrain ? ", reisedag" : ""}"
+            class="relative w-11 min-h-[48px] rounded-xl flex flex-col items-center justify-center leading-none transition ${isToday ? "bg-brand-600 text-white" : "bg-white border border-slate-200 text-slate-800 hover:bg-slate-50"}">
+            <span class="text-xs font-medium ${isToday ? "" : "text-slate-600"}">${planWeekdayShort(date)}</span>
+            <span class="text-sm font-bold mt-1">${new Date(date + "T00:00:00Z").getUTCDate()}</span>
+            ${hasTrain ? `<span class="absolute top-1 right-1 w-1.5 h-1.5 rounded-full ${isToday ? "bg-white" : "bg-sky-600"}" aria-hidden="true"></span>` : ""}
+          </button></li>`;
+        }).join("")}
+      </ol>
+    </nav>` : "";
+  list.innerHTML = stripHtml + shown.map(date => {
     const dayNo = start && date >= start && (!end || date <= end) ? isoDiffDays(start, date) + 1 : 0;
     return planDayCardHtml(planDayInfo(date), dayNo, today);
   }).join("") + extraHtml;
+}
+
+export function scrollToPlanDay(date) {
+  const card = document.getElementById(`plan-day-${date}`);
+  if (card) card.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function rerenderDayPlan() {
+  renderDayPlan();
+  applyEditMode();
+  if (window.lucide) lucide.createIcons();
+}
+
+export function showDayPlanForm(date) {
+  if (!requireEditPermission() || !isIsoDate(date)) return;
+  planOpenFormDate = date;
+  rerenderDayPlan();
+  const input = document.getElementById(`plan-text-${date}`);
+  if (input) input.focus();
+}
+
+export function hideDayPlanForm() {
+  const date = planOpenFormDate;
+  planOpenFormDate = "";
+  rerenderDayPlan();
+  const btn = date && document.querySelector(`#plan-day-${date} [onclick^="showDayPlanForm"]`);
+  if (btn) btn.focus();
 }
 
 // Kort på oversikten: «I dag» under reisen, ellers en snarvei til dagsplanen
@@ -284,6 +348,7 @@ export function handleAddDayPlanItem(e, date) {
     text,
     done: false
   });
+  planOpenFormDate = date; // la skjemaet stå åpent, så man kan legge til flere på samme dag
   persistState();
   renderDayPlan();
   renderOverviewDayCard();
