@@ -246,7 +246,7 @@ function renderStationDropdown(field, results) {
     return `
       <button 
         type="button" 
-        onclick="selectLiveStation(${jsArg(field)}, ${Number(idx)})" 
+        data-onclick="selectLiveStation(${jsArg(field)}, ${Number(idx)})" 
         class="w-full text-left px-3.5 py-2.5 hover:bg-brand-50/70 transition flex items-center justify-between gap-2"
       >
         <div class="min-w-0">
@@ -348,7 +348,7 @@ export function renderLiveRouteChips() {
   container.innerHTML = chips.map(c => `
     <button 
       type="button"
-      onclick="quickSearchRouteChip(${jsArg(c.fromName)}, ${Number(c.fromLat)}, ${Number(c.fromLng)}, ${jsArg(c.toName)}, ${Number(c.toLat)}, ${Number(c.toLng)}, ${jsArg(c.date)})"
+      data-onclick="quickSearchRouteChip(${jsArg(c.fromName)}, ${Number(c.fromLat)}, ${Number(c.fromLng)}, ${jsArg(c.toName)}, ${Number(c.toLat)}, ${Number(c.toLng)}, ${jsArg(c.date)})"
       class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition flex items-center gap-1.5 border ${
         c.isTripLeg 
           ? 'bg-brand-50 hover:bg-brand-100 text-brand-800 border-brand-200 shadow-2xs' 
@@ -704,7 +704,7 @@ function renderLiveSearchResults(usedFallbackDate, requestedDate, effectiveSearc
       <p class="text-xs font-bold text-slate-700">
         Fant ${liveSearchJourneys.length} reelle togforbindelser mellom <span class="text-brand-700">${escapeHtml(liveSearchJourneys[0].fromCity)}</span> og <span class="text-brand-700">${escapeHtml(liveSearchJourneys[0].toCity)}</span>
       </p>
-      <button type="button" onclick="document.getElementById('live-search-results').classList.add('hidden')" class="text-xs text-slate-500 hover:text-slate-600 font-medium">
+      <button type="button" data-onclick="hideLiveSearchResults()" class="text-xs text-slate-500 hover:text-slate-600 font-medium">
         Skjul treff ✕
       </button>
     </div>
@@ -775,7 +775,7 @@ function renderLiveSearchResults(usedFallbackDate, requestedDate, effectiveSearc
               <div class="grid grid-cols-2 sm:flex items-center gap-2 shrink-0">
                 <button 
                   type="button" 
-                  onclick="previewLiveRouteOnMap(${Number(idx)})" 
+                  data-onclick="previewLiveRouteOnMap(${Number(idx)})" 
                   class="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-semibold transition flex items-center justify-center gap-1.5"
                 >
                   <i data-lucide="map" class="w-3.5 h-3.5 text-brand-600 shrink-0"></i>
@@ -783,7 +783,7 @@ function renderLiveSearchResults(usedFallbackDate, requestedDate, effectiveSearc
                 </button>
                 <button 
                   type="button" 
-                  onclick="importLiveJourneyToTrip(${Number(idx)})" 
+                  data-onclick="importLiveJourneyToTrip(${Number(idx)})" 
                   class="px-3.5 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold shadow-2xs transition flex items-center justify-center gap-1.5"
                 >
                   <i data-lucide="plus-circle" class="w-3.5 h-3.5 shrink-0"></i>
@@ -1040,3 +1040,7 @@ function setupLiveTrainSearch() {
   renderLiveRouteChips();
 }
 
+export function hideLiveSearchResults() {
+  const el = document.getElementById("live-search-results");
+  if (el) el.classList.add("hidden");
+}

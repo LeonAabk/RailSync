@@ -315,7 +315,7 @@ export function renderFxCalculator() {
         <p id="fx-calc-source" class="text-xs text-slate-500">Kurs fra Den europeiske sentralbanken</p>
       </div>
     </div>
-    ${chips.length ? `<div class="flex flex-wrap gap-1.5 mt-3" aria-label="Valutaer på ruten">${chips.map(c => `<button type="button" onclick="setFxCalcCurrency(${jsArg(c)})" class="px-3 py-1.5 rounded-full text-xs font-semibold border transition ${c === fxCalc.from ? "bg-fjord-800 text-white border-fjord-800" : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"}">${c}</button>`).join("")}</div>` : ""}
+    ${chips.length ? `<div class="flex flex-wrap gap-1.5 mt-3" aria-label="Valutaer på ruten">${chips.map(c => `<button type="button" data-onclick="setFxCalcCurrency(${jsArg(c)})" class="px-3 py-1.5 rounded-full text-xs font-semibold border transition ${c === fxCalc.from ? "bg-fjord-800 text-white border-fjord-800" : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"}">${c}</button>`).join("")}</div>` : ""}
     <div class="mt-3 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
       <label class="sr-only" for="fx-calc-amount">Beløp</label>
       <input id="fx-calc-amount" type="number" inputmode="decimal" min="0" step="any" value="${escapeHtml(fxCalc.amount)}" class="field-input tabular-nums text-base">
@@ -323,7 +323,7 @@ export function renderFxCalculator() {
       <div class="w-24 shrink-0"><select id="fx-calc-from" class="field-input">${currencyOptionsHtml(fxCalc.from, true)}</select></div>
     </div>
     <div class="flex items-center justify-center my-2">
-      <button type="button" onclick="swapFxCalc()" class="w-9 h-9 rounded-full bg-sand-200 hover:bg-sand-300 text-slate-700 flex items-center justify-center transition" aria-label="Bytt om valutaene"><i data-lucide="arrow-up-down" class="w-4 h-4"></i></button>
+      <button type="button" data-onclick="swapFxCalc()" class="w-9 h-9 rounded-full bg-sand-200 hover:bg-sand-300 text-slate-700 flex items-center justify-center transition" aria-label="Bytt om valutaene"><i data-lucide="arrow-up-down" class="w-4 h-4"></i></button>
     </div>
     <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-2 items-center">
       <p id="fx-calc-result" class="rounded-xl bg-slate-50 border border-slate-200 px-3.5 py-2 text-lg font-bold text-slate-900 tabular-nums truncate" aria-live="polite">–</p>
@@ -424,7 +424,7 @@ export function renderCountryInfo() {
           <h4 class="font-bold text-slate-900 text-base">${escapeHtml(c.name)}</h4>
         </header>
         ${row("banknote", "bg-amber-50 text-amber-700", "Valuta", c.currency === "NOK" ? "Norske kroner" : `${escapeHtml((n => n.charAt(0).toUpperCase() + n.slice(1))(CURRENCY_NAMES[c.currency] || c.currency))} (${c.currency})${rate > 0 ? ` · 1 ${c.currency} = ${formatRate(rate)} kr` : ""}
-          <button type="button" onclick="openFxCalculator(${jsArg(c.currency)})" class="hit ml-1 text-xs font-semibold text-brand-700 hover:underline">Regn om</button>`)}
+          <button type="button" data-onclick="openFxCalculator(${jsArg(c.currency)})" class="hit ml-1 text-xs font-semibold text-brand-700 hover:underline">Regn om</button>`)}
         ${row("plug", plug.ok === false ? "bg-rose-50 text-rose-700" : plug.ok ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700", `Stikkontakt (type ${c.plugs.split("").join(", ")})`, escapeHtml(plug.text))}
         ${row("phone", "bg-rose-50 text-rose-700", "Nødnummer", `<span class="font-semibold">112</span>${c.extra ? ` · ${escapeHtml(c.extra)}` : ""}`)}
         ${row("smartphone", c.eea ? "bg-sky-50 text-sky-700" : "bg-amber-50 text-amber-700", "Mobil", c.eea ? "EU-roaming: som hjemme" : "Ikke EU-roaming. Sjekk prisen hos mobilselskapet ditt.")}
@@ -458,7 +458,7 @@ export function renderPackingAdapterHint() {
         <p class="text-sm font-semibold text-slate-900">Husk strømadapter</p>
         <p class="text-sm text-slate-600 mt-0.5">${missing.map(t => `${escapeHtml(need[t].join(" og "))} bruker stikkontakt type ${t}${t === "J" ? " (tynne stikk passer)" : ""}.`).join(" ")}</p>
       </div>
-      <button type="button" onclick="addAdapterToPacking()" class="shrink-0 px-3 py-1.5 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white text-xs font-semibold transition">Legg til</button>
+      <button type="button" data-onclick="addAdapterToPacking()" class="shrink-0 px-3 py-1.5 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white text-xs font-semibold transition">Legg til</button>
     </div>`;
 }
 

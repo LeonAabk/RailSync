@@ -518,14 +518,14 @@ function friendActionButtonHtml(traveler, extraClass = "") {
   const pending = label === "Forespørsel sendt";
   if (pending) {
     return `
-    <button type="button" onclick="cancelFriendRequest(${jsArg(traveler.uid)})" title="Trekk tilbake forespørselen"
+    <button type="button" data-onclick="cancelFriendRequest(${jsArg(traveler.uid)})" title="Trekk tilbake forespørselen"
       class="group px-3.5 py-1.5 rounded-lg font-semibold text-xs transition flex items-center gap-1.5 ${extraClass} border border-slate-200 bg-white text-slate-600 hover:border-rose-200 hover:text-rose-600">
       <i data-lucide="clock" class="w-3.5 h-3.5 group-hover:hidden"></i><i data-lucide="x" class="w-3.5 h-3.5 hidden group-hover:block"></i>
       <span class="group-hover:hidden">Forespørsel sendt</span><span class="hidden group-hover:inline">Trekk tilbake</span>
     </button>`;
   }
   return `
-    <button type="button" onclick="addOrAcceptFriend(${jsArg(traveler.uid)})"
+    <button type="button" data-onclick="addOrAcceptFriend(${jsArg(traveler.uid)})"
       class="px-3.5 py-1.5 rounded-lg font-semibold text-xs transition flex items-center gap-1.5 ${extraClass} bg-fjord-800 hover:bg-fjord-700 text-white">
       <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
       <span>${escapeHtml(label)}</span>
@@ -537,7 +537,7 @@ function shareWithFriendButtonHtml(traveler, extraClass = "") {
     return `<span class="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold text-xs flex items-center gap-1.5 ${extraClass}">
       <i data-lucide="check" class="w-3.5 h-3.5"></i><span>Med på aktiv reise</span></span>`;
   }
-  return `<button type="button" onclick="shareActiveTripWithFriend(${jsArg(traveler.uid)}, 'editor')" class="px-3.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs transition flex items-center gap-1.5 ${extraClass}">
+  return `<button type="button" data-onclick="shareActiveTripWithFriend(${jsArg(traveler.uid)}, 'editor')" class="px-3.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs transition flex items-center gap-1.5 ${extraClass}">
       <i data-lucide="share-2" class="w-3.5 h-3.5"></i><span>Del aktiv reise</span></button>`;
 }
 
@@ -648,14 +648,14 @@ export function renderSocialHub() {
   const friendAvatars = document.getElementById("social-hero-friend-avatars");
   if (friendAvatars) {
     if (friendsCount === 0) {
-      friendAvatars.innerHTML = `<button type="button" onclick="switchSocialSubTab('discover')" class="px-3 py-1 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-[11px] font-medium transition">Finn reisevenner</button>`;
+      friendAvatars.innerHTML = `<button type="button" data-onclick="switchSocialSubTab('discover')" class="px-3 py-1 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-[11px] font-medium transition">Finn reisevenner</button>`;
     } else {
       const known = getAllKnownTravelers();
       friendAvatars.innerHTML = friends.slice(0, 4).map(f => {
         const fresh = known.find(t => t.uid === f.uid) || f;
         const photo = safePhoto(fresh.photo);
         return `
-        <button type="button" onclick="openTravelerProfileModal(${jsArg(f.uid)})" title="${escapeHtml(fresh.displayName || "Reisende")}"
+        <button type="button" data-onclick="openTravelerProfileModal(${jsArg(f.uid)})" title="${escapeHtml(fresh.displayName || "Reisende")}"
           class="w-8 h-8 rounded-full ring-2 ring-white overflow-hidden text-[11px] font-semibold flex items-center justify-center hover:-translate-y-0.5 transition"
           style="background-color: ${avatarColor(fresh.avatarColor, "#2563eb")}; color: ${avatarInk(avatarColor(fresh.avatarColor, "#2563eb"))}">${photo ? `<img src="${escapeHtml(photo)}" alt="" class="w-full h-full object-cover">` : escapeHtml(getInitials(fresh.displayName || "Reisende"))}</button>`;
       }).join("") + (friendsCount > 4
@@ -703,7 +703,7 @@ export function renderSocialHub() {
       : visitedCountries.map(cName => `
         <span class="inline-flex items-center gap-1 pl-3 pr-1 py-1 rounded-md bg-slate-100 text-slate-800 text-xs font-medium">
           <span>${escapeHtml(cName)}</span>
-          <button type="button" onclick="toggleVisitedCountry(${jsArg(cName)})" class="hit w-6 h-6 rounded text-slate-400 hover:text-rose-600 hover:bg-white transition" title="Fjern ${escapeHtml(cName)}" aria-label="Fjern ${escapeHtml(cName)}">×</button>
+          <button type="button" data-onclick="toggleVisitedCountry(${jsArg(cName)})" class="hit w-6 h-6 rounded text-slate-400 hover:text-rose-600 hover:bg-white transition" title="Fjern ${escapeHtml(cName)}" aria-label="Fjern ${escapeHtml(cName)}">×</button>
         </span>`).join("");
   }
 
@@ -712,7 +712,7 @@ export function renderSocialHub() {
     pickerGrid.innerHTML = EUROPEAN_INTERRAIL_COUNTRIES.map(c => {
       const isSelected = visitedCountries.some(vc => vc.toLowerCase() === c.name.toLowerCase());
       return `
-        <button type="button" onclick="toggleVisitedCountry(${jsArg(c.name)})" aria-pressed="${isSelected ? "true" : "false"}"
+        <button type="button" data-onclick="toggleVisitedCountry(${jsArg(c.name)})" aria-pressed="${isSelected ? "true" : "false"}"
           class="px-3 py-2 rounded-lg text-xs font-medium border text-left flex items-center justify-between gap-1.5 transition ${isSelected ? "bg-fjord-800 text-white border-fjord-800" : "bg-white hover:bg-slate-50 text-slate-700 border-slate-200"}">
           <span class="truncate">${escapeHtml(c.name)}</span>
           ${isSelected ? `<i data-lucide="check" class="w-3.5 h-3.5 shrink-0"></i>` : ""}
@@ -733,7 +733,7 @@ export function renderSocialHub() {
             <p class="text-sm font-semibold text-slate-900 truncate">${escapeHtml(vp.city)}</p>
             <p class="text-xs text-slate-500 truncate">${escapeHtml(vp.country)}${vp.note ? ` · ${escapeHtml(vp.note)}` : ""}</p>
           </div>
-          <button type="button" onclick="deleteVisitedPlace(${jsArg(vp.id)})" class="hit p-2 sm:p-1.5 text-slate-500 hover:text-rose-600 rounded-lg transition shrink-0" title="Fjern sted" aria-label="Fjern ${escapeHtml(vp.city)}">
+          <button type="button" data-onclick="deleteVisitedPlace(${jsArg(vp.id)})" class="hit p-2 sm:p-1.5 text-slate-500 hover:text-rose-600 rounded-lg transition shrink-0" title="Fjern sted" aria-label="Fjern ${escapeHtml(vp.city)}">
             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
           </button>
         </div>`).join("");
@@ -752,14 +752,14 @@ export function renderSocialHub() {
               <p class="text-sm font-semibold text-slate-900 truncate">${escapeHtml(wl.city)}</p>
               <p class="text-xs text-slate-500 truncate">${escapeHtml(wl.country)} · ${escapeHtml(cleanTagLabel(wl.tag))}</p>
             </div>
-            <button type="button" onclick="deleteWishlistPlace(${jsArg(wl.id)})" class="hit p-2 sm:p-1.5 text-slate-500 hover:text-rose-600 rounded-lg transition shrink-0" title="Fjern fra ønskelisten" aria-label="Fjern ${escapeHtml(wl.city)}">
+            <button type="button" data-onclick="deleteWishlistPlace(${jsArg(wl.id)})" class="hit p-2 sm:p-1.5 text-slate-500 hover:text-rose-600 rounded-lg transition shrink-0" title="Fjern fra ønskelisten" aria-label="Fjern ${escapeHtml(wl.city)}">
               <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
             </button>
           </div>
           <div class="flex items-center gap-3 pl-[68px] pt-1 text-[11px] font-semibold">
-            <button type="button" onclick="addWishlistPlaceToActiveTrip(${jsArg(wl.id)})" class="text-brand-600 hover:text-brand-700">Legg til i aktiv reise</button>
+            <button type="button" data-onclick="addWishlistPlaceToActiveTrip(${jsArg(wl.id)})" class="text-brand-600 hover:text-brand-700">Legg til i aktiv reise</button>
             <span class="text-slate-200">|</span>
-            <button type="button" onclick="markWishlistPlaceVisited(${jsArg(wl.id)})" class="text-slate-500 hover:text-slate-800">Merk som besøkt</button>
+            <button type="button" data-onclick="markWishlistPlaceVisited(${jsArg(wl.id)})" class="text-slate-500 hover:text-slate-800">Merk som besøkt</button>
           </div>
         </div>`).join("");
   }
@@ -772,7 +772,7 @@ export function renderSocialHub() {
     setText("social-friend-requests-count", String(pendingReqCount));
     reqList.innerHTML = requests.map(req => `
       <div class="rounded-xl p-3.5 border border-slate-200 flex items-center justify-between gap-3">
-        <button type="button" onclick="openTravelerProfileModal(${jsArg(req.uid)})" class="flex items-center gap-3 min-w-0 text-left group">
+        <button type="button" data-onclick="openTravelerProfileModal(${jsArg(req.uid)})" class="flex items-center gap-3 min-w-0 text-left group">
           ${socialAvatarHtml(req, "w-10 h-10 text-sm", "#f97316")}
           <div class="min-w-0">
             <p class="text-sm font-semibold text-slate-900 group-hover:text-brand-600 truncate">${escapeHtml(req.displayName || "Reisende")}</p>
@@ -780,8 +780,8 @@ export function renderSocialHub() {
           </div>
         </button>
         <div class="flex items-center gap-1.5 shrink-0">
-          <button type="button" onclick="addOrAcceptFriend(${jsArg(req.uid)})" class="px-3 py-1.5 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white font-semibold text-xs transition">Godta</button>
-          <button type="button" onclick="declineFriendRequest(${jsArg(req.uid)})" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium text-xs transition">Avslå</button>
+          <button type="button" data-onclick="addOrAcceptFriend(${jsArg(req.uid)})" class="px-3 py-1.5 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white font-semibold text-xs transition">Godta</button>
+          <button type="button" data-onclick="declineFriendRequest(${jsArg(req.uid)})" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium text-xs transition">Avslå</button>
         </div>
       </div>`).join("");
   }
@@ -794,7 +794,7 @@ export function renderSocialHub() {
         <div class="col-span-full rounded-xl border border-dashed border-slate-200 p-8 text-center space-y-3">
           <p class="text-sm font-semibold text-slate-800">Ingen reisevenner ennå</p>
           <p class="text-xs text-slate-500 max-w-md mx-auto">Søk opp venner på navn eller @brukernavn og send en forespørsel. Når den er godtatt, kan dere dele reiser.</p>
-          <button type="button" onclick="switchSocialSubTab('discover')" class="px-4 py-2 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white font-semibold text-xs transition">Finn reisende</button>
+          <button type="button" data-onclick="switchSocialSubTab('discover')" class="px-4 py-2 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white font-semibold text-xs transition">Finn reisende</button>
         </div>`;
     } else {
       const allKnown = getAllKnownTravelers();
@@ -806,14 +806,14 @@ export function renderSocialHub() {
         return `
           <div class="rounded-xl border border-slate-200 p-4 flex flex-col justify-between gap-3 hover:border-slate-300 transition">
             <div class="flex items-start justify-between gap-2">
-              <button type="button" onclick="openTravelerProfileModal(${jsArg(enriched.uid)})" class="flex items-center gap-3 min-w-0 text-left group">
+              <button type="button" data-onclick="openTravelerProfileModal(${jsArg(enriched.uid)})" class="flex items-center gap-3 min-w-0 text-left group">
                 ${socialAvatarHtml(enriched)}
                 <div class="min-w-0">
                   <p class="text-sm font-semibold text-slate-900 group-hover:text-brand-600 truncate">${escapeHtml(enriched.displayName || "Reisende")}</p>
                   <p class="text-xs text-slate-500 truncate">${escapeHtml(enriched.username || "")}${enriched.homeStation ? ` · ${escapeHtml(enriched.homeStation)}` : ""}</p>
                 </div>
               </button>
-              <button type="button" onclick="removeFriend(${jsArg(enriched.uid)})" class="hit p-2 sm:p-1.5 text-slate-500 hover:text-rose-600 rounded-lg transition shrink-0" title="Fjern kontakt" aria-label="Fjern ${escapeHtml(enriched.displayName || "kontakt")}">
+              <button type="button" data-onclick="removeFriend(${jsArg(enriched.uid)})" class="hit p-2 sm:p-1.5 text-slate-500 hover:text-rose-600 rounded-lg transition shrink-0" title="Fjern kontakt" aria-label="Fjern ${escapeHtml(enriched.displayName || "kontakt")}">
                 <i data-lucide="user-minus" class="w-3.5 h-3.5"></i>
               </button>
             </div>
@@ -823,7 +823,7 @@ export function renderSocialHub() {
               ${sharedDreams.length > 0 ? `<p class="truncate text-brand-700"><span class="text-slate-500">Felles ønskemål:</span> ${sharedDreams.map(c => escapeHtml(c)).join(", ")}</p>` : ""}
             </div>
             <div class="flex items-center justify-between gap-2 flex-wrap">
-              <button type="button" onclick="openTravelerProfileModal(${jsArg(enriched.uid)})" class="text-xs font-semibold text-slate-600 hover:text-slate-900">Se profil</button>
+              <button type="button" data-onclick="openTravelerProfileModal(${jsArg(enriched.uid)})" class="text-xs font-semibold text-slate-600 hover:text-slate-900">Se profil</button>
               ${shareWithFriendButtonHtml(enriched)}
             </div>
           </div>`;
@@ -874,7 +874,7 @@ export function renderSocialDiscoverGrid() {
       <div class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 flex flex-col justify-between gap-4 hover:border-slate-300 transition">
         <div class="space-y-3">
           <div class="flex items-start justify-between gap-3">
-            <button type="button" onclick="openTravelerProfileModal(${jsArg(t.uid)})" class="flex items-center gap-3 min-w-0 text-left group">
+            <button type="button" data-onclick="openTravelerProfileModal(${jsArg(t.uid)})" class="flex items-center gap-3 min-w-0 text-left group">
               ${socialAvatarHtml(t, "w-12 h-12 text-base")}
               <div class="min-w-0">
                 <div class="flex items-center flex-wrap gap-1.5">
@@ -894,7 +894,7 @@ export function renderSocialDiscoverGrid() {
           </div>
         </div>
         <div class="flex items-center justify-between gap-2 flex-wrap">
-          <button type="button" onclick="openTravelerProfileModal(${jsArg(t.uid)})" class="text-xs font-semibold text-slate-600 hover:text-slate-900">Se profil</button>
+          <button type="button" data-onclick="openTravelerProfileModal(${jsArg(t.uid)})" class="text-xs font-semibold text-slate-600 hover:text-slate-900">Se profil</button>
           ${isFriend ? shareWithFriendButtonHtml(t) : friendActionButtonHtml(t)}
         </div>
       </div>`;
@@ -927,7 +927,7 @@ export function openTravelerProfileModal(targetUid) {
     <div class="relative h-32 sm:h-36 bg-slate-200 overflow-hidden">
       <img id="traveler-modal-cover" src="${escapeHtml(DEFAULT_COVER_URL)}" alt="" class="w-full h-full object-cover">
       <div class="absolute inset-0 bg-gradient-to-t from-slate-950/30 to-transparent"></div>
-      <button type="button" onclick="closeModal('modal-traveler-profile')" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/80 hover:bg-white text-slate-700 flex items-center justify-center transition" aria-label="Lukk">
+      <button type="button" data-onclick="closeModal('modal-traveler-profile')" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/80 hover:bg-white text-slate-700 flex items-center justify-center transition" aria-label="Lukk">
         <i data-lucide="x" class="w-4 h-4"></i>
       </button>
     </div>

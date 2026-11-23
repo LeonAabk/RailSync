@@ -30,6 +30,13 @@ export default [
     },
   },
 
+  // Hendelser fra HTML (lastes før app.js, vanlig skript)
+  {
+    files: ['assets/dispatch.js'],
+    languageOptions: { sourceType: 'script', globals: { ...globals.browser } },
+    rules: { ...js.configs.recommended.rules, 'no-empty': ['error', { allowEmptyCatch: true }], 'no-unused-vars': ['error', { caughtErrors: 'none' }] },
+  },
+
   // Service worker
   {
     files: ['sw.js'],

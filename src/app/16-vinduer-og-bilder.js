@@ -98,7 +98,7 @@ function formatDate(dateStr) {
   return escapeHtml(String(dateStr));
 }
 
-// Trygg verdi for inline-handlere: onclick="fn(${jsArg(id)})"
+// Trygg verdi for inline-handlere: data-onclick="fn(${jsArg(id)})"
 // JSON-strengen gir en gyldig JS-streng, og escapeHtml hindrer at den bryter ut av attributtet.
 function jsArg(value) {
   return escapeHtml(JSON.stringify(value == null ? "" : String(value)));

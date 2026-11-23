@@ -113,7 +113,7 @@ export function setupNominatimSearch() {
 
           return `
             <button type="button" 
-              onclick="selectSearchResult(${jsArg(cityName)}, ${jsArg(countryName)}, ${Number(lat)}, ${Number(lon)})"
+              data-onclick="selectSearchResult(${jsArg(cityName)}, ${jsArg(countryName)}, ${Number(lat)}, ${Number(lon)})"
               class="w-full text-left px-3.5 py-2.5 hover:bg-slate-50 border-b border-slate-100 last:border-0 flex items-center justify-between text-xs transition">
               <div class="min-w-0 pr-2">
                 <p class="font-bold text-slate-800">${escapeHtml(cityName)}</p>

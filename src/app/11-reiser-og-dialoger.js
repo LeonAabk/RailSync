@@ -225,7 +225,7 @@ export function renderTripManagerList() {
         <p class="text-sm text-slate-500 mt-1 max-w-sm mx-auto">${shared
           ? "Når noen deler en reise med deg, eller du blir med via en kode, dukker den opp her."
           : "Start en ny reise for å planlegge stopp, tog og pakkeliste."}</p>
-        <button type="button" onclick="${shared ? "focusJoinTripInput()" : "newTripFromPage()"}" class="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg ${shared ? "border border-slate-200 text-slate-700 hover:bg-slate-50" : "bg-fjord-800 hover:bg-fjord-700 text-white"} text-sm font-semibold transition">
+        <button type="button" data-onclick="${shared ? "focusJoinTripInput()" : "newTripFromPage()"}" class="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg ${shared ? "border border-slate-200 text-slate-700 hover:bg-slate-50" : "bg-fjord-800 hover:bg-fjord-700 text-white"} text-sm font-semibold transition">
           ${shared ? "Bli med via kode" : "Ny reise"}
         </button>
       </div>`;
@@ -261,10 +261,10 @@ export function renderTripManagerList() {
       : others > 0 ? `Du og ${others} til` : "Bare deg";
 
     const menuItems = [
-      editable ? `<button type="button" role="menuitem" onclick="renameTripInManager(${jsArg(id)})" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50"><i data-lucide="pencil" class="w-4 h-4 text-slate-400"></i><span>Endre navn</span></button>` : "",
-      owned ? `<button type="button" role="menuitem" onclick="shareTripFromList(${jsArg(id)})" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50"><i data-lucide="share-2" class="w-4 h-4 text-slate-400"></i><span>Del og tilgang</span></button>` : "",
-      `<button type="button" role="menuitem" onclick="closeTripCardMenus(); duplicateTrip(${jsArg(id)})" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50"><i data-lucide="copy" class="w-4 h-4 text-slate-400"></i><span>Lag en kopi</span></button>`,
-      `<div class="my-1 border-t border-slate-100"></div><button type="button" role="menuitem" onclick="deleteTrip(${jsArg(id)})" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-rose-600 hover:bg-rose-50"><i data-lucide="${owned ? "trash-2" : "log-out"}" class="w-4 h-4"></i><span>${owned ? "Slett reise" : "Forlat reise"}</span></button>`
+      editable ? `<button type="button" role="menuitem" data-onclick="renameTripInManager(${jsArg(id)})" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50"><i data-lucide="pencil" class="w-4 h-4 text-slate-400"></i><span>Endre navn</span></button>` : "",
+      owned ? `<button type="button" role="menuitem" data-onclick="shareTripFromList(${jsArg(id)})" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50"><i data-lucide="share-2" class="w-4 h-4 text-slate-400"></i><span>Del og tilgang</span></button>` : "",
+      `<button type="button" role="menuitem" data-onclick="closeTripCardMenus(); duplicateTrip(${jsArg(id)})" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50"><i data-lucide="copy" class="w-4 h-4 text-slate-400"></i><span>Lag en kopi</span></button>`,
+      `<div class="my-1 border-t border-slate-100"></div><button type="button" role="menuitem" data-onclick="deleteTrip(${jsArg(id)})" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-rose-600 hover:bg-rose-50"><i data-lucide="${owned ? "trash-2" : "log-out"}" class="w-4 h-4"></i><span>${owned ? "Slett reise" : "Forlat reise"}</span></button>`
     ].join("");
 
     return `
@@ -280,7 +280,7 @@ export function renderTripManagerList() {
               <p class="text-sm text-slate-500">${escapeHtml(tripDateRangeText(tripItem.trip))}</p>
             </div>
             <div class="relative shrink-0">
-              <button type="button" onclick="toggleTripCardMenu(${jsArg(id)}, event)" aria-haspopup="menu" aria-expanded="false" aria-label="Flere valg for ${escapeHtml(tripItem.title || "reisen")}" class="w-8 h-8 -mr-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition">
+              <button type="button" data-onclick="toggleTripCardMenu(${jsArg(id)}, event)" aria-haspopup="menu" aria-expanded="false" aria-label="Flere valg for ${escapeHtml(tripItem.title || "reisen")}" class="w-8 h-8 -mr-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition">
                 <i data-lucide="more-horizontal" class="w-4 h-4"></i>
               </button>
               <div data-trip-menu="${escapeHtml(id)}" role="menu" class="${openTripMenuId === id ? "" : "hidden "}absolute right-0 top-9 w-52 bg-white rounded-xl border border-slate-200 shadow-lg py-1.5 z-30">${menuItems}</div>
@@ -298,7 +298,7 @@ export function renderTripManagerList() {
             <div class="flex items-center -space-x-1.5 shrink-0">${tripMemberAvatarsHtml(members)}</div>
             <span class="text-xs text-slate-500 truncate">${escapeHtml(peopleText)}</span>
           </div>
-          <button type="button" onclick="openTripFromList(${jsArg(id)})" class="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-semibold transition ${isActive ? "border border-slate-200 text-slate-700 hover:bg-slate-50" : "bg-fjord-800 hover:bg-fjord-700 text-white"}">
+          <button type="button" data-onclick="openTripFromList(${jsArg(id)})" class="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-semibold transition ${isActive ? "border border-slate-200 text-slate-700 hover:bg-slate-50" : "bg-fjord-800 hover:bg-fjord-700 text-white"}">
             <span>${isActive ? "Gå til reisen" : "Åpne"}</span><i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
           </button>
         </div>
@@ -382,14 +382,14 @@ export function renderShareAndCollabModal() {
   set("share-modal-friends-picker", el => {
     const friendsList = Array.isArray(userProfile.friends) ? userProfile.friends : [];
     if (friendsList.length === 0) {
-      el.innerHTML = `<p class="text-sm text-slate-500">Du har ingen venner på RailSync ennå. <button type="button" onclick="closeModal('modal-share-trip'); switchTab('social'); switchSocialSubTab('discover')" class="font-medium text-slate-900 underline underline-offset-2">Finn reisende</button></p>`;
+      el.innerHTML = `<p class="text-sm text-slate-500">Du har ingen venner på RailSync ennå. <button type="button" data-onclick="closeModal('modal-share-trip'); switchTab('social'); switchSocialSubTab('discover')" class="font-medium text-slate-900 underline underline-offset-2">Finn reisende</button></p>`;
       return;
     }
     el.innerHTML = friendsList.map(friend => {
       const onTrip = members.some(m => (m.uid || m.id) === friend.uid);
       return `
         <li class="flex items-center justify-between gap-3 py-2.5">
-          <button type="button" onclick="openTravelerProfileModal(${jsArg(friend.uid)})" class="flex items-center gap-3 min-w-0 text-left">
+          <button type="button" data-onclick="openTravelerProfileModal(${jsArg(friend.uid)})" class="flex items-center gap-3 min-w-0 text-left">
             ${socialAvatarHtml(friend, "w-8 h-8 text-[11px]")}
             <span class="min-w-0">
               <span class="block text-sm font-medium text-slate-900 truncate">${escapeHtml(friend.displayName || "Reisende")}</span>
@@ -398,7 +398,7 @@ export function renderShareAndCollabModal() {
           </button>
           ${onTrip
             ? `<span class="text-xs text-slate-500 shrink-0">Med på reisen</span>`
-            : `<button type="button" onclick="shareActiveTripWithFriend(${jsArg(friend.uid)})" class="shrink-0 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition">Legg til</button>`}
+            : `<button type="button" data-onclick="shareActiveTripWithFriend(${jsArg(friend.uid)})" class="shrink-0 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition">Legg til</button>`}
         </li>`;
     }).join("");
   });
@@ -415,16 +415,16 @@ export function renderShareAndCollabModal() {
       const control = owned && !isOwnerRow
         ? `<div class="flex items-center gap-1 shrink-0">
              <label class="sr-only" for="member-role-${Number(idx)}">Tilgang for ${escapeHtml(person.displayName || m.name)}</label>
-             <select id="member-role-${Number(idx)}" onchange="setTripMemberRole(${Number(idx)}, this.value)" class="text-xs bg-white border border-slate-200 rounded-lg pl-2 pr-7 py-1.5 text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-600/20">
+             <select id="member-role-${Number(idx)}" data-onchange="setTripMemberRole(${Number(idx)}, this.value)" class="text-xs bg-white border border-slate-200 rounded-lg pl-2 pr-7 py-1.5 text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-600/20">
                <option value="editor" ${m.role !== "viewer" ? "selected" : ""}>Kan redigere</option>
                <option value="viewer" ${m.role === "viewer" ? "selected" : ""}>Kan se</option>
              </select>
-             <button type="button" onclick="confirmRemoveTripMember(${Number(idx)})" class="hit w-9 h-9 sm:w-7 sm:h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition" aria-label="Fjern ${escapeHtml(m.name)}"><i data-lucide="x" class="w-4 h-4"></i></button>
+             <button type="button" data-onclick="confirmRemoveTripMember(${Number(idx)})" class="hit w-9 h-9 sm:w-7 sm:h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition" aria-label="Fjern ${escapeHtml(m.name)}"><i data-lucide="x" class="w-4 h-4"></i></button>
            </div>`
         : `<span class="text-xs text-slate-500 shrink-0">${roleText}</span>`;
       return `
         <li class="flex items-center justify-between gap-3 py-2.5">
-          <div class="flex items-center gap-3 min-w-0 ${!isMe && uid ? "cursor-pointer" : ""}" ${!isMe && uid ? `onclick="openTravelerProfileModal(${jsArg(uid)})"` : ""}>
+          <div class="flex items-center gap-3 min-w-0 ${!isMe && uid ? "cursor-pointer" : ""}" ${!isMe && uid ? `data-onclick="openTravelerProfileModal(${jsArg(uid)})"` : ""}>
             ${socialAvatarHtml(person, "w-8 h-8 text-[11px]", "#0b8176")}
             <span class="min-w-0">
               <span class="block text-sm font-medium text-slate-900 truncate">${escapeHtml(person.displayName || "Reisende")}${isMe ? ` <span class="font-normal text-slate-500">(deg)</span>` : ""}</span>
@@ -446,7 +446,7 @@ export function renderShareAndCollabModal() {
           <span class="w-8 h-8 rounded-full border border-dashed border-slate-300 text-slate-500 text-[11px] font-semibold flex items-center justify-center shrink-0">${escapeHtml(getInitials(m.name || "?"))}</span>
           <span class="text-sm text-slate-700 truncate">${escapeHtml(m.name || "Uten navn")}</span>
         </div>
-        ${owned ? `<button type="button" onclick="confirmRemoveTripMember(${Number(idx)})" class="hit w-9 h-9 sm:w-7 sm:h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition shrink-0" aria-label="Fjern ${escapeHtml(m.name)}"><i data-lucide="x" class="w-4 h-4"></i></button>` : ""}
+        ${owned ? `<button type="button" data-onclick="confirmRemoveTripMember(${Number(idx)})" class="hit w-9 h-9 sm:w-7 sm:h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition shrink-0" aria-label="Fjern ${escapeHtml(m.name)}"><i data-lucide="x" class="w-4 h-4"></i></button>` : ""}
       </li>`).join("");
   });
 

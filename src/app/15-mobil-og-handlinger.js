@@ -12,7 +12,7 @@ export function openActionSheet(title, items) {
   actionSheetReturnFocus = document.activeElement;
   document.getElementById("action-sheet-title").textContent = title || "";
   list.innerHTML = actionSheetItems.map((it, i) => `
-    <button type="button" onclick="runActionSheetItem(${i})" ${it.disabled ? "disabled" : ""} class="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left text-sm font-medium transition ${it.danger ? "text-rose-600 hover:bg-rose-50" : "text-slate-800 hover:bg-slate-50"} disabled:opacity-40 disabled:cursor-not-allowed">
+    <button type="button" data-onclick="runActionSheetItem(${i})" ${it.disabled ? "disabled" : ""} class="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left text-sm font-medium transition ${it.danger ? "text-rose-600 hover:bg-rose-50" : "text-slate-800 hover:bg-slate-50"} disabled:opacity-40 disabled:cursor-not-allowed">
       <i data-lucide="${escapeHtml(it.icon || "circle")}" class="w-4 h-4 shrink-0 ${it.danger ? "" : "text-slate-500"}"></i>
       <span class="flex-1 min-w-0 truncate">${escapeHtml(it.label)}</span>
       ${it.hint ? `<span class="text-xs text-slate-500 shrink-0">${escapeHtml(it.hint)}</span>` : ""}
@@ -245,6 +245,12 @@ export function savePersonalBudgetStateOnly() {
     active.expenses = JSON.parse(JSON.stringify(appState.expenses));
   }
   saveAllTripsToLocalStorage();
+}
+
+// Hurtigvalg i «Mitt totalbudsjett» (10 000 kr osv.)
+export function setPersonalBudgetPreset(amount) {
+  const input = document.getElementById("personal-budget-input");
+  if (input) input.value = Number(amount) || 0;
 }
 
 export function openEditPersonalBudgetPrompt() {

@@ -259,10 +259,8 @@
   <link rel="stylesheet" href="./assets/railsync.css?v=dev">
 </head>
 <body data-auth="pending" class="min-h-screen md:h-full text-slate-800 antialiased bg-sand-100 flex flex-col md:flex-row w-full max-w-full overflow-x-hidden">
-  <script>
-    // Aldri logget inn på denne enheten: vis innloggingssiden med en gang i stedet for å vente på Firebase.
-    try { if (!localStorage.getItem("railsync_account_uid")) document.body.dataset.auth = "out"; } catch (e) {}
-  </script>
+  <!-- Hendelser fra HTML (data-onclick m.m.) uten inline JavaScript, og rask visning av innlogging. Må lastes før app.js. -->
+  <script src="./assets/dispatch.js?v=dev"></script>
 
   <!-- ========================================================================= -->
   <!-- INNLOGGING (appen krever konto)                                           -->
@@ -321,11 +319,11 @@
           <div id="auth-notice" class="hidden rounded-lg border border-brand-200 bg-brand-50 px-3.5 py-3 text-sm text-brand-900"></div>
 
           <div class="grid grid-cols-2 p-1 rounded-lg bg-slate-100 text-sm" role="tablist" aria-label="Velg innlogging eller ny konto">
-            <button type="button" id="auth-mode-login" role="tab" aria-selected="true" onclick="setAuthMode('login')" class="py-2 rounded-md font-semibold bg-white text-slate-900 shadow-sm transition">Logg inn</button>
-            <button type="button" id="auth-mode-signup" role="tab" aria-selected="false" onclick="setAuthMode('signup')" class="py-2 rounded-md font-medium text-slate-600 hover:text-slate-900 transition">Opprett konto</button>
+            <button type="button" id="auth-mode-login" role="tab" aria-selected="true" data-onclick="setAuthMode('login')" class="py-2 rounded-md font-semibold bg-white text-slate-900 shadow-sm transition">Logg inn</button>
+            <button type="button" id="auth-mode-signup" role="tab" aria-selected="false" data-onclick="setAuthMode('signup')" class="py-2 rounded-md font-medium text-slate-600 hover:text-slate-900 transition">Opprett konto</button>
           </div>
 
-          <button type="button" id="btn-google-auth" onclick="handleGoogleSignIn()" class="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-lg bg-white hover:bg-slate-50 border border-slate-300 text-sm font-semibold text-slate-800 transition">
+          <button type="button" id="btn-google-auth" data-onclick="handleGoogleSignIn()" class="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-lg bg-white hover:bg-slate-50 border border-slate-300 text-sm font-semibold text-slate-800 transition">
             <svg class="w-4 h-4" viewBox="0 0 24 24" aria-hidden="true">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
               <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -341,7 +339,7 @@
             <div class="flex-1 h-px bg-slate-200"></div>
           </div>
 
-          <form id="form-auth" onsubmit="event.preventDefault(); if (window.handleUsernameAuth) { handleUsernameAuth(event); } else { var e = document.getElementById('auth-error'); if (e) { e.textContent = 'Siden laster fortsatt. Prøv igjen om et øyeblikk.'; e.classList.remove('hidden'); } }" class="space-y-4" novalidate>
+          <form id="form-auth" data-onsubmit="handleUsernameAuth(event)" class="space-y-4" novalidate>
             <input type="checkbox" id="auth-is-new-user" class="hidden" tabindex="-1" aria-hidden="true">
             <div>
               <label for="auth-username" class="field-label">Brukernavn</label>
@@ -350,7 +348,7 @@
             <div>
               <div class="flex items-center justify-between">
                 <label for="auth-password" class="field-label">Passord</label>
-                <button type="button" onclick="togglePasswordVisibility()" id="btn-toggle-password" class="text-xs font-medium text-slate-500 hover:text-slate-800 mb-1.5">Vis</button>
+                <button type="button" data-onclick="togglePasswordVisibility()" id="btn-toggle-password" class="text-xs font-medium text-slate-500 hover:text-slate-800 mb-1.5">Vis</button>
               </div>
               <input type="password" id="auth-password" required minlength="6" autocomplete="current-password" class="auth-input">
               <p id="auth-password-hint" class="hidden text-xs text-slate-500 mt-1.5">Minst 6 tegn.</p>
@@ -382,7 +380,7 @@
           <span class="text-[11px] text-fjord-200 font-medium mt-1 block">Europa med tog</span>
         </div>
       </div>
-      <button onclick="openTripSettingsModal()" class="p-1.5 text-fjord-200 hover:text-white hover:bg-white/10 rounded-lg transition" title="Reiseinnstillinger">
+      <button data-onclick="openTripSettingsModal()" class="p-1.5 text-fjord-200 hover:text-white hover:bg-white/10 rounded-lg transition" title="Reiseinnstillinger">
         <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
       </button>
     </div>
@@ -391,29 +389,29 @@
     <nav class="flex-1 px-3 py-5 space-y-1 overflow-y-auto" aria-label="Hovednavigasjon">
       <p class="px-3 pb-2 text-[10px] font-semibold uppercase tracking-widest text-fjord-300">Planlegging</p>
       
-      <button onclick="switchTab('overview')" id="nav-btn-overview" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-semibold text-sm transition-all duration-150 text-white bg-white/10">
+      <button data-onclick="switchTab('overview')" id="nav-btn-overview" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-semibold text-sm transition-all duration-150 text-white bg-white/10">
         <i data-lucide="map" class="w-4 h-4 text-fjord-100"></i>
         <span>Oversikt & Kart</span>
       </button>
 
-      <button onclick="switchTab('plan')" id="nav-btn-plan" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all duration-150 text-fjord-200 hover:text-white hover:bg-white/5">
+      <button data-onclick="switchTab('plan')" id="nav-btn-plan" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all duration-150 text-fjord-200 hover:text-white hover:bg-white/5">
         <i data-lucide="calendar-days" class="w-4 h-4 text-fjord-200"></i>
         <span>Dagsplan</span>
       </button>
 
-      <button onclick="switchTab('trains')" id="nav-btn-trains" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all duration-150 text-fjord-200 hover:text-white hover:bg-white/5">
+      <button data-onclick="switchTab('trains')" id="nav-btn-trains" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all duration-150 text-fjord-200 hover:text-white hover:bg-white/5">
         <i data-lucide="train-front" class="w-4 h-4 text-fjord-200"></i>
         <span>Togruter</span>
         <span id="sidebar-train-badge" class="ml-auto text-[11px] font-semibold text-fjord-200">6</span>
       </button>
 
-      <button onclick="switchTab('budget')" id="nav-btn-budget" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all duration-150 text-fjord-200 hover:text-white hover:bg-white/5">
+      <button data-onclick="switchTab('budget')" id="nav-btn-budget" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all duration-150 text-fjord-200 hover:text-white hover:bg-white/5">
         <i data-lucide="wallet" class="w-4 h-4 text-fjord-200"></i>
         <span>Budsjett</span>
         <span id="sidebar-budget-badge" class="ml-auto text-[11px] font-semibold text-fjord-300 tabular-nums"></span>
       </button>
 
-      <button onclick="switchTab('packing')" id="nav-btn-packing" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all duration-150 text-fjord-200 hover:text-white hover:bg-white/5">
+      <button data-onclick="switchTab('packing')" id="nav-btn-packing" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all duration-150 text-fjord-200 hover:text-white hover:bg-white/5">
         <i data-lucide="check-square" class="w-4 h-4 text-fjord-200"></i>
         <span>Pakkeliste</span>
         <span id="sidebar-packing-progress" class="ml-auto text-[11px] font-semibold text-fjord-200">12/20</span>
@@ -422,13 +420,13 @@
       <div class="pt-5 pb-1">
         <p class="px-3 pb-2 text-[10px] font-semibold uppercase tracking-widest text-fjord-300">Personer & Reiser</p>
 
-        <button onclick="switchTab('social')" id="nav-btn-social" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all duration-150 text-fjord-200 hover:text-white hover:bg-white/5">
+        <button data-onclick="switchTab('social')" id="nav-btn-social" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all duration-150 text-fjord-200 hover:text-white hover:bg-white/5">
           <i data-lucide="user-round" class="w-4 h-4 text-fjord-200"></i>
           <span class="truncate">Profil og kontakter</span>
           <span id="sidebar-social-badge" class="ml-auto whitespace-nowrap text-[11px] font-semibold px-2 py-0.5 rounded-md bg-white/10 text-fjord-100">2</span>
         </button>
 
-        <button onclick="switchTab('trips')" id="nav-btn-trips" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all duration-150 text-fjord-200 hover:text-white hover:bg-white/5 mt-0.5">
+        <button data-onclick="switchTab('trips')" id="nav-btn-trips" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all duration-150 text-fjord-200 hover:text-white hover:bg-white/5 mt-0.5">
           <i data-lucide="folder" class="w-4 h-4 text-fjord-200"></i>
           <span>Reiser</span>
           <span id="sidebar-trips-count-badge" class="ml-auto text-[11px] font-semibold px-2 py-0.5 rounded-md bg-white/10 text-fjord-100">1</span>
@@ -438,7 +436,7 @@
 
     <!-- Pass Status & User Footer in Sidebar -->
     <div class="p-4 border-t border-white/10 space-y-3">
-      <button type="button" data-needs-trip onclick="openPassModal()" class="w-full text-left p-3.5 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500" aria-label="Mitt pass – åpne og endre">
+      <button type="button" data-needs-trip data-onclick="openPassModal()" class="w-full text-left p-3.5 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500" aria-label="Mitt pass – åpne og endre">
         <div class="flex items-center justify-between gap-2 text-xs mb-1.5">
           <span class="text-fjord-200 font-medium">Mitt pass</span>
           <span id="sidebar-pass-days-text" class="text-white font-semibold truncate"></span>
@@ -449,7 +447,7 @@
         <p id="sidebar-pass-remaining" class="mt-2 text-[11px] font-medium text-fjord-200 truncate"></p>
       </button>
 
-      <button onclick="switchTab('social')" class="w-full flex items-center justify-between px-3 py-2 rounded-xl hover:bg-white/5 transition">
+      <button data-onclick="switchTab('social')" class="w-full flex items-center justify-between px-3 py-2 rounded-xl hover:bg-white/5 transition">
         <div class="flex items-center gap-2.5 min-w-0">
           <span id="sidebar-user-avatar" class="w-7 h-7 rounded-full bg-brand-600 text-white text-xs font-bold flex items-center justify-center shrink-0">R</span>
           <span class="flex flex-col min-w-0 text-left">
@@ -474,12 +472,12 @@
         <div class="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2 min-w-0">
-              <button type="button" onclick="handleHeaderTitleClick()" class="hit hit-tall group select-none flex items-center gap-1.5 min-w-0 text-left rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500" aria-label="Bytt reise eller endre reiseinnstillinger">
+              <button type="button" data-onclick="handleHeaderTitleClick()" class="hit hit-tall group select-none flex items-center gap-1.5 min-w-0 text-left rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500" aria-label="Bytt reise eller endre reiseinnstillinger">
                 <h1 id="header-trip-title" class="text-[15px] sm:text-base font-bold text-slate-900 leading-tight truncate group-hover:text-brand-600 transition">RailSync</h1>
                 <i data-lucide="pencil" class="hidden sm:block w-3 h-3 text-slate-400 group-hover:text-brand-600 transition shrink-0"></i>
                 <i data-lucide="chevron-down" class="sm:hidden w-4 h-4 text-slate-400 shrink-0"></i>
               </button>
-              <span id="header-visibility-badge" onclick="handleSaveAndShareTrip()" class="hidden xl:inline-flex cursor-pointer items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-600 hover:bg-slate-200/70 transition shrink-0">
+              <span id="header-visibility-badge" data-onclick="handleSaveAndShareTrip()" class="hidden xl:inline-flex cursor-pointer items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-600 hover:bg-slate-200/70 transition shrink-0">
                 Privat
               </span>
             </div>
@@ -489,7 +487,7 @@
               <!-- Reisefølge Avatar Bubbles (Desktop/Tablet) -->
               <div id="header-collab-bar" class="hidden lg:flex items-center gap-2 pl-2 border-l border-slate-200 shrink-0">
                 <div id="header-members-avatars" class="flex items-center -space-x-1.5"></div>
-                <button onclick="handleSaveAndShareTrip()" class="text-[11px] font-medium text-slate-600 hover:text-slate-900 transition flex items-center gap-1">
+                <button data-onclick="handleSaveAndShareTrip()" class="text-[11px] font-medium text-slate-600 hover:text-slate-900 transition flex items-center gap-1">
                   <span id="header-members-count-label">Reisefølge</span>
                 </button>
               </div>
@@ -497,7 +495,7 @@
           </div>
 
           <!-- MINE REISER SWITCHER BUTTON (DESKTOP / TABLET) -->
-          <button onclick="switchTab('trips')" class="hidden sm:flex md:hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs border border-slate-200 transition shrink-0">
+          <button data-onclick="switchTab('trips')" class="hidden sm:flex md:hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs border border-slate-200 transition shrink-0">
             <i data-lucide="folder" class="w-3.5 h-3.5 text-slate-500"></i>
             <span>Reiser</span>
             <span id="header-trip-count-badge" class="px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 font-bold text-[10px]">1</span>
@@ -506,11 +504,11 @@
 
         <!-- Right: Action buttons (Profile, Settings, Save & Share) -->
         <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          <button type="button" id="mobile-trip-menu-btn" data-needs-trip onclick="openTripActionsSheet()" class="hit sm:hidden w-9 h-9 flex items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 shrink-0" aria-label="Flere valg for reisen">
+          <button type="button" id="mobile-trip-menu-btn" data-needs-trip data-onclick="openTripActionsSheet()" class="hit sm:hidden w-9 h-9 flex items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 shrink-0" aria-label="Flere valg for reisen">
             <i data-lucide="more-horizontal" class="w-5 h-5"></i>
           </button>
           <div id="auth-header-container" class="relative shrink-0">
-            <button id="user-profile-pill" type="button" onclick="toggleAccountMenu(event)" aria-haspopup="menu" aria-expanded="false" aria-controls="account-menu" class="flex items-center gap-2 p-1 sm:pl-1 sm:pr-2.5 rounded-full hover:bg-slate-100 text-slate-800 text-xs font-semibold transition">
+            <button id="user-profile-pill" type="button" data-onclick="toggleAccountMenu(event)" aria-haspopup="menu" aria-expanded="false" aria-controls="account-menu" class="flex items-center gap-2 p-1 sm:pl-1 sm:pr-2.5 rounded-full hover:bg-slate-100 text-slate-800 text-xs font-semibold transition">
               <span id="header-user-avatar" class="w-7 h-7 rounded-full bg-brand-600 text-white text-[11px] font-semibold flex items-center justify-center overflow-hidden">R</span>
               <span id="user-display-name" class="hidden lg:inline truncate max-w-[120px]">Min profil</span>
               <i data-lucide="chevron-down" class="hidden lg:block w-3.5 h-3.5 text-slate-400"></i>
@@ -520,27 +518,27 @@
                 <p id="account-menu-name" class="text-sm font-semibold text-slate-900 truncate">Min profil</p>
                 <p id="account-menu-handle" class="text-xs text-slate-500 truncate"></p>
               </div>
-              <button type="button" role="menuitem" onclick="closeAccountMenu(); switchTab('social')" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50">
+              <button type="button" role="menuitem" data-onclick="closeAccountMenu(); switchTab('social')" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50">
                 <i data-lucide="user" class="w-4 h-4 text-slate-400"></i><span>Profil og kontakter</span>
               </button>
-              <button type="button" role="menuitem" onclick="closeAccountMenu(); openUserProfileModal()" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50">
+              <button type="button" role="menuitem" data-onclick="closeAccountMenu(); openUserProfileModal()" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50">
                 <i data-lucide="settings" class="w-4 h-4 text-slate-400"></i><span>Kontoinnstillinger</span>
               </button>
               <div class="my-1 border-t border-slate-100"></div>
-              <button type="button" role="menuitem" data-install-item onclick="closeAccountMenu(); openInstallHelp()" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50">
+              <button type="button" role="menuitem" data-install-item data-onclick="closeAccountMenu(); openInstallHelp()" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50">
                 <i data-lucide="smartphone" class="w-4 h-4 text-slate-400"></i> Legg på hjemskjermen
               </button>
-              <button type="button" role="menuitem" onclick="closeAccountMenu(); handleLogout()" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50">
+              <button type="button" role="menuitem" data-onclick="closeAccountMenu(); handleLogout()" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50">
                 <i data-lucide="log-out" class="w-4 h-4 text-slate-400"></i><span>Logg ut</span>
               </button>
             </div>
           </div>
 
-          <button onclick="openTripSettingsModal()" class="hidden sm:flex p-2 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition shrink-0" title="Reiseinnstillinger">
+          <button data-onclick="openTripSettingsModal()" class="hidden sm:flex p-2 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition shrink-0" title="Reiseinnstillinger">
             <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
           </button>
 
-          <button id="btn-save-share" onclick="handleSaveAndShareTrip()" class="flex items-center gap-1.5 px-3 sm:px-3.5 h-9 sm:h-auto sm:py-2 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white font-semibold text-xs transition shrink-0">
+          <button id="btn-save-share" data-onclick="handleSaveAndShareTrip()" class="flex items-center gap-1.5 px-3 sm:px-3.5 h-9 sm:h-auto sm:py-2 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white font-semibold text-xs transition shrink-0">
             <i data-lucide="users" class="w-3.5 h-3.5"></i>
             <span class="hidden sm:inline">Del reise</span>
             <span class="sm:hidden">Del</span>
@@ -561,7 +559,7 @@
           <i data-lucide="eye" class="w-4 h-4 text-amber-600 shrink-0"></i>
           <span><strong>Du kan bare se denne reisen.</strong> Eieren har ikke gitt deg tilgang til å endre den. Lag en kopi hvis du vil planlegge videre selv.</span>
         </div>
-        <button onclick="duplicateActiveTrip()" class="px-3 py-1 rounded-md bg-fjord-800 hover:bg-fjord-700 text-white font-semibold text-xs transition shrink-0 self-start sm:self-auto">
+        <button data-onclick="duplicateActiveTrip()" class="px-3 py-1 rounded-md bg-fjord-800 hover:bg-fjord-700 text-white font-semibold text-xs transition shrink-0 self-start sm:self-auto">
           Lag en kopi
         </button>
       </div>
@@ -584,7 +582,7 @@
         </div>
 
         <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px] items-start">
-          <form id="form-new-trip" onsubmit="handleCreateTripFromForm(event)" novalidate class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-6 space-y-4">
+          <form id="form-new-trip" data-onsubmit="handleCreateTripFromForm(event)" novalidate class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-6 space-y-4">
             <h3 class="text-base font-semibold text-slate-900">Ny reise</h3>
             <div>
               <label for="new-trip-title" class="field-label">Navn på reisen</label>
@@ -631,13 +629,13 @@
             <p class="text-xs text-slate-500">Datoer, startsted og pass kan endres senere.</p>
             <p id="new-trip-error" class="hidden text-sm text-rose-600" role="alert"></p>
             <div class="flex items-center justify-end gap-2 pt-1">
-              <button type="button" id="new-trip-cancel" onclick="switchTab('trips')" class="hidden px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">Avbryt</button>
+              <button type="button" id="new-trip-cancel" data-onclick="switchTab('trips')" class="hidden px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">Avbryt</button>
               <button type="submit" class="px-4 py-2 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white text-sm font-semibold transition">Opprett reise</button>
             </div>
           </form>
 
           <aside class="space-y-4">
-            <form onsubmit="joinFromWelcome(event)" class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 space-y-3">
+            <form data-onsubmit="joinFromWelcome(event)" class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 space-y-3">
               <div>
                 <h3 class="text-sm font-semibold text-slate-900">Fått en kode fra en venn?</h3>
                 <p class="text-xs text-slate-500 mt-1">Bli med på reisen deres med koden eller lenken.</p>
@@ -673,7 +671,7 @@
         <!-- Clean Unified Metrics Bar (Inspired by Reference Image 1 & 2) -->
         <div class="bg-white rounded-xl border border-slate-200/90 shadow-2xs grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 sm:divide-x divide-slate-100">
           <!-- Stat 1: Antall land -->
-          <button type="button" onclick="openCountryInfo()" class="p-4 sm:px-6 sm:py-4 min-w-0 text-left hover:bg-slate-50 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500" aria-label="Land på ruten – valuta, stikkontakt, nødnummer og fraser">
+          <button type="button" data-onclick="openCountryInfo()" class="p-4 sm:px-6 sm:py-4 min-w-0 text-left hover:bg-slate-50 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500" aria-label="Land på ruten – valuta, stikkontakt, nødnummer og fraser">
             <div class="w-8 h-8 rounded-lg bg-brand-50 text-brand-700 flex items-center justify-center mb-2" aria-hidden="true"><i data-lucide="map-pin" class="w-4 h-4"></i></div>
             <p class="text-[11px] font-medium text-slate-500 uppercase tracking-wider truncate flex items-center gap-0.5">Land på ruten <i data-lucide="chevron-right" class="w-3 h-3 shrink-0"></i></p>
             <h3 id="stat-countries-count" class="text-lg sm:text-2xl font-bold text-slate-900 tracking-tight mt-0.5 truncate">4 land</h3>
@@ -689,7 +687,7 @@
           </div>
 
           <!-- Stat 3: Reisedager brukt -->
-          <button type="button" onclick="openPassModal()" class="p-4 sm:px-6 sm:py-4 min-w-0 text-left hover:bg-slate-50 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500" aria-label="Mitt pass – åpne og endre">
+          <button type="button" data-onclick="openPassModal()" class="p-4 sm:px-6 sm:py-4 min-w-0 text-left hover:bg-slate-50 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500" aria-label="Mitt pass – åpne og endre">
             <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center mb-2" aria-hidden="true"><i data-lucide="ticket" class="w-4 h-4"></i></div>
             <p class="text-[11px] font-medium text-slate-500 uppercase tracking-wider truncate">Mitt pass</p>
             <h3 id="stat-pass-days" class="text-lg sm:text-2xl font-bold text-slate-900 tracking-tight mt-0.5 truncate"></h3>
@@ -710,10 +708,10 @@
 
         <!-- Mobil/nettbrett: velg stopp eller kart -->
         <div data-needs-trip class="lg:hidden grid grid-cols-2 gap-1 p-1 rounded-xl bg-sand-200 border border-sand-300/70" role="tablist" aria-label="Vis stopp eller kart">
-          <button type="button" role="tab" id="ov-seg-stops" aria-controls="ov-panel-stops" onclick="setOverviewView('stops')" class="flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition">
+          <button type="button" role="tab" id="ov-seg-stops" aria-controls="ov-panel-stops" data-onclick="setOverviewView('stops')" class="flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition">
             <i data-lucide="list" class="w-4 h-4"></i><span>Stopp</span><span id="ov-seg-stops-count" class="text-xs font-medium text-slate-500"></span>
           </button>
-          <button type="button" role="tab" id="ov-seg-map" aria-controls="ov-panel-map" onclick="setOverviewView('map')" class="flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition">
+          <button type="button" role="tab" id="ov-seg-map" aria-controls="ov-panel-map" data-onclick="setOverviewView('map')" class="flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition">
             <i data-lucide="map" class="w-4 h-4"></i><span>Kart</span>
           </button>
         </div>
@@ -729,10 +727,10 @@
                 <p class="text-xs text-slate-500">Rekkefølge, opphold og togforbindelser</p>
               </div>
               <div class="flex items-center gap-1.5 shrink-0">
-                <button onclick="switchTab('trains'); focusLiveTrainSearch()" class="text-xs font-medium text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/70 px-2.5 py-1.5 rounded-lg transition">
+                <button data-onclick="switchTab('trains'); focusLiveTrainSearch()" class="text-xs font-medium text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/70 px-2.5 py-1.5 rounded-lg transition">
                   Finn tog
                 </button>
-                <button onclick="openAddStopModal()" class="text-xs font-semibold text-white bg-fjord-800 hover:bg-fjord-700 px-3 py-1.5 rounded-lg transition flex items-center gap-1">
+                <button data-onclick="openAddStopModal()" class="text-xs font-semibold text-white bg-fjord-800 hover:bg-fjord-700 px-3 py-1.5 rounded-lg transition flex items-center gap-1">
                   <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                   <span>Nytt stopp</span>
                 </button>
@@ -752,10 +750,10 @@
                 <h2 class="text-sm sm:text-base font-bold text-slate-900">Rutekart</h2>
               </div>
               <div class="flex items-center gap-1.5 flex-wrap">
-                <button id="btn-fetch-all-tracks" onclick="fetchRealTracksForAllTrains()" class="px-2.5 py-1 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200/70 rounded-lg transition">
+                <button id="btn-fetch-all-tracks" data-onclick="fetchRealTracksForAllTrains()" class="px-2.5 py-1 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200/70 rounded-lg transition">
                   <span id="btn-fetch-all-tracks-label">Oppdater jernbanespor</span>
                 </button>
-                <button onclick="resetMapView()" class="px-2.5 py-1 text-xs font-medium text-slate-600 hover:text-slate-900 bg-white border border-slate-200 rounded-lg">
+                <button data-onclick="resetMapView()" class="px-2.5 py-1 text-xs font-medium text-slate-600 hover:text-slate-900 bg-white border border-slate-200 rounded-lg">
                   Tilpass utsnitt
                 </button>
               </div>
@@ -817,7 +815,7 @@
             </div>
           </div>
         </div>
-        <button type="button" id="plan-past-toggle" onclick="togglePlanPastDays()" aria-expanded="false" class="hidden w-full text-sm font-medium text-slate-600 bg-sand-200 hover:bg-sand-300 rounded-xl py-2 transition"></button>
+        <button type="button" id="plan-past-toggle" data-onclick="togglePlanPastDays()" aria-expanded="false" class="hidden w-full text-sm font-medium text-slate-600 bg-sand-200 hover:bg-sand-300 rounded-xl py-2 transition"></button>
         <div id="plan-days" class="space-y-3"></div>
       </section>
 
@@ -858,7 +856,7 @@
             </div>
 
             <!-- Search Form -->
-            <form onsubmit="executeLiveTrainSearch(event)" class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+            <form data-onsubmit="executeLiveTrainSearch(event)" class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
               <!-- FROM STATION -->
               <div class="sm:col-span-4 relative">
                 <label for="live-from-input" class="block text-xs font-semibold text-slate-700 mb-1">Fra stasjon / by</label>
@@ -880,7 +878,7 @@
               <div class="sm:col-span-1 flex justify-center">
                 <button 
                   type="button" 
-                  onclick="swapLiveSearchStations()" 
+                  data-onclick="swapLiveSearchStations()" 
                   title="Bytt avreise- og ankomststasjon"
                   class="w-full sm:w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-slate-200 flex items-center justify-center transition"
                 >
@@ -965,18 +963,18 @@
             </div>
           </div>
 
-          <button type="button" id="btn-toggle-live-search" onclick="toggleLiveSearch()" aria-controls="live-search-card" aria-expanded="false" class="sm:hidden w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm transition">
+          <button type="button" id="btn-toggle-live-search" data-onclick="toggleLiveSearch()" aria-controls="live-search-card" aria-expanded="false" class="sm:hidden w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm transition">
             <i data-lucide="search" class="w-4 h-4"></i><span id="btn-toggle-live-search-label">Søk etter tog</span>
           </button>
 
           <div class="flex items-center gap-2 w-full sm:w-auto">
-            <select id="train-filter" onchange="renderTrains()" aria-label="Filtrer togreiser" class="flex-1 min-w-0 sm:flex-none bg-slate-50 border border-slate-200 text-xs sm:text-sm font-medium rounded-xl px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <select id="train-filter" data-onchange="renderTrains()" aria-label="Filtrer togreiser" class="flex-1 min-w-0 sm:flex-none bg-slate-50 border border-slate-200 text-xs sm:text-sm font-medium rounded-xl px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
               <option value="all">Alle togreiser</option>
               <option value="needs_reservation">Krever reservasjon</option>
               <option value="confirmed">Bekreftet reservasjon</option>
               <option value="travel_days">Bruker reisedag</option>
             </select>
-            <button onclick="openAddTrainModal()" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-fjord-800 hover:bg-fjord-700 text-white font-semibold text-xs sm:text-sm transition whitespace-nowrap">
+            <button data-onclick="openAddTrainModal()" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-fjord-800 hover:bg-fjord-700 text-white font-semibold text-xs sm:text-sm transition whitespace-nowrap">
               <i data-lucide="plus" class="w-4 h-4"></i>
               <span class="sm:hidden">Legg til</span><span class="hidden sm:inline">Manuell etappe</span>
             </button>
@@ -1003,10 +1001,10 @@
             </div>
           </div>
           <div class="flex items-center gap-2 self-start sm:self-auto">
-          <button type="button" onclick="openFxCalculator()" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-sm font-medium text-slate-700 transition" aria-label="Valutakalkulator"><i data-lucide="arrow-left-right" class="w-4 h-4 text-amber-700"></i><span class="hidden sm:inline">Valuta</span></button>
+          <button type="button" data-onclick="openFxCalculator()" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-sm font-medium text-slate-700 transition" aria-label="Valutakalkulator"><i data-lucide="arrow-left-right" class="w-4 h-4 text-amber-700"></i><span class="hidden sm:inline">Valuta</span></button>
           <div class="inline-flex p-1 rounded-xl bg-sand-200" role="tablist" aria-label="Budsjettvisning">
-            <button type="button" id="budget-view-btn-personal" onclick="switchBudgetView('personal')" role="tab" class="whitespace-nowrap px-3.5 py-1.5 rounded-lg text-sm font-medium transition">Budsjett</button>
-            <button type="button" id="budget-view-btn-shared" onclick="switchBudgetView('shared')" role="tab" class="whitespace-nowrap px-3.5 py-1.5 rounded-lg text-sm font-medium transition inline-flex items-center gap-1.5">Felles utgifter <span id="budget-shared-count" class="hidden text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-slate-200 text-slate-700"></span></button>
+            <button type="button" id="budget-view-btn-personal" data-onclick="switchBudgetView('personal')" role="tab" class="whitespace-nowrap px-3.5 py-1.5 rounded-lg text-sm font-medium transition">Budsjett</button>
+            <button type="button" id="budget-view-btn-shared" data-onclick="switchBudgetView('shared')" role="tab" class="whitespace-nowrap px-3.5 py-1.5 rounded-lg text-sm font-medium transition inline-flex items-center gap-1.5">Felles utgifter <span id="budget-shared-count" class="hidden text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-slate-200 text-slate-700"></span></button>
           </div>
           </div>
         </div>
@@ -1022,7 +1020,7 @@
               <span class="w-8 h-8 rounded-lg bg-brand-50 text-brand-700 flex items-center justify-center mb-2" aria-hidden="true"><i data-lucide="wallet" class="w-4 h-4"></i></span>
               <div class="flex items-center justify-between gap-2">
                 <p id="budget-total-label" class="text-xs text-slate-500 truncate">Mitt budsjett</p>
-                <button type="button" data-budget-own-only onclick="openEditPersonalBudgetPrompt()" class="hit hit-tall text-xs font-medium text-slate-900 underline underline-offset-2 shrink-0">Endre</button>
+                <button type="button" data-budget-own-only data-onclick="openEditPersonalBudgetPrompt()" class="hit hit-tall text-xs font-medium text-slate-900 underline underline-offset-2 shrink-0">Endre</button>
               </div>
               <p id="budget-total-val" class="text-lg sm:text-2xl font-semibold text-slate-900 mt-1 truncate tabular-nums">Ikke satt</p>
             </div>
@@ -1054,7 +1052,7 @@
                   <h3 class="text-sm font-semibold text-slate-900">Utgifter</h3>
                   <p id="expenses-count-badge" class="text-xs text-slate-500">0 utgifter</p>
                 </div>
-                <button type="button" data-budget-own-only onclick="openAddExpenseModal()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white text-sm font-semibold transition">
+                <button type="button" data-budget-own-only data-onclick="openAddExpenseModal()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white text-sm font-semibold transition">
                   <i data-lucide="plus" class="w-4 h-4"></i><span>Ny utgift</span>
                 </button>
               </div>
@@ -1078,7 +1076,7 @@
                   <h3 class="text-sm font-semibold text-slate-900">Felles utgifter</h3>
                   <p class="text-xs text-slate-500">Totalt <span id="shared-total-val" class="tabular-nums">0 kr</span></p>
                 </div>
-                <button type="button" onclick="openSharedExpenseModal()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white text-sm font-semibold transition">
+                <button type="button" data-onclick="openSharedExpenseModal()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white text-sm font-semibold transition">
                   <i data-lucide="plus" class="w-4 h-4"></i><span>Legg til</span>
                 </button>
               </div>
@@ -1117,7 +1115,7 @@
             </div>
             
             <div class="flex items-center gap-2">
-              <button onclick="openAddPackingItemModal()" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-fjord-800 hover:bg-fjord-700 text-white font-semibold text-xs sm:text-sm transition">
+              <button data-onclick="openAddPackingItemModal()" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-fjord-800 hover:bg-fjord-700 text-white font-semibold text-xs sm:text-sm transition">
                 <i data-lucide="plus" class="w-4 h-4"></i>
                 <span>Ny gjenstand</span>
               </button>
@@ -1158,7 +1156,7 @@
             <input 
               type="text" 
               id="social-top-quick-search" aria-label="Søk etter reisende"
-              oninput="handleTopBarTravelerSearch(this.value)"
+              data-oninput="handleTopBarTravelerSearch(this.value)"
               placeholder="Søk etter reisende eller sted" 
               class="w-full bg-slate-50 focus:bg-white border border-slate-200/90 rounded-lg pl-9 pr-3.5 py-2 text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 transition"
             >
@@ -1166,14 +1164,14 @@
 
           <!-- Clean Editorial Navigation Links + Profile Edit -->
           <div class="flex items-center justify-between md:justify-end gap-4 sm:gap-6 text-xs sm:text-sm border-t md:border-t-0 pt-2.5 md:pt-0 border-slate-100">
-            <button type="button" onclick="switchSocialSubTab('discover')" class="font-medium text-slate-600 hover:text-slate-900 transition">
+            <button type="button" data-onclick="switchSocialSubTab('discover')" class="font-medium text-slate-600 hover:text-slate-900 transition">
               Finn reisende
             </button>
-            <button type="button" onclick="switchSocialSubTab('friends')" class="font-medium text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5">
+            <button type="button" data-onclick="switchSocialSubTab('friends')" class="font-medium text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5">
               <span>Mine kontakter</span>
               <span id="social-top-friends-count" class="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-semibold">0</span>
             </button>
-            <button type="button" onclick="openUserProfileModal()" class="font-semibold text-brand-700 hover:text-brand-800 transition flex items-center gap-1.5">
+            <button type="button" data-onclick="openUserProfileModal()" class="font-semibold text-brand-700 hover:text-brand-800 transition flex items-center gap-1.5">
               <span>Innstillinger</span>
             </button>
           </div>
@@ -1203,10 +1201,10 @@
 
                 <!-- Top Corner Action Icons -->
                 <div class="absolute top-3.5 left-3.5 right-3.5 flex items-center justify-between z-10">
-                  <button type="button" onclick="openUserProfileModal()" title="Rediger profil" class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white flex items-center justify-center transition">
+                  <button type="button" data-onclick="openUserProfileModal()" title="Rediger profil" class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white flex items-center justify-center transition">
                     <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
                   </button>
-                  <button type="button" onclick="handleSaveAndShareTrip()" title="Del aktiv reise" class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white flex items-center justify-center transition">
+                  <button type="button" data-onclick="handleSaveAndShareTrip()" title="Del aktiv reise" class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white flex items-center justify-center transition">
                     <i data-lucide="share-2" class="w-4 h-4"></i>
                   </button>
                 </div>
@@ -1217,7 +1215,7 @@
                     <div id="social-hero-avatar" class="w-[72px] h-[72px] sm:w-20 sm:h-20 rounded-full overflow-hidden bg-slate-800 text-white font-bold text-2xl flex items-center justify-center ring-4 ring-white shadow-lg">
                       R
                     </div>
-                    <button type="button" onclick="openUserProfileModal()" title="Endre profil" class="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full bg-brand-600 hover:bg-brand-500 text-white ring-2 ring-white flex items-center justify-center shadow-xs transition">
+                    <button type="button" data-onclick="openUserProfileModal()" title="Endre profil" class="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full bg-brand-600 hover:bg-brand-500 text-white ring-2 ring-white flex items-center justify-center shadow-xs transition">
                       <i data-lucide="pencil" class="w-3 h-3"></i>
                     </button>
                   </div>
@@ -1234,15 +1232,15 @@
 
               <!-- FLOATING WHITE 3-COLUMN STAT CARD OVERLAPPING COVER BOTTOM (Reference Image 1: 1,250 | 239 | 125) -->
               <div class="relative z-20 -mt-9 mx-4 mb-4 bg-white rounded-xl shadow-md border border-slate-200/80 grid grid-cols-3 divide-x divide-slate-100 py-3.5 text-center">
-                <button type="button" onclick="switchSocialSubTab('passport')" class="px-2 hover:bg-slate-50/80 transition">
+                <button type="button" data-onclick="switchSocialSubTab('passport')" class="px-2 hover:bg-slate-50/80 transition">
                   <p id="social-stat-visited-countries" class="text-lg sm:text-xl font-bold text-slate-900 leading-none">0</p>
                   <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mt-1.5">Land</p>
                 </button>
-                <button type="button" onclick="switchSocialSubTab('passport')" class="px-2 hover:bg-slate-50/80 transition">
+                <button type="button" data-onclick="switchSocialSubTab('passport')" class="px-2 hover:bg-slate-50/80 transition">
                   <p id="social-stat-visited-places" class="text-lg sm:text-xl font-bold text-slate-900 leading-none">0</p>
                   <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mt-1.5">Steder</p>
                 </button>
-                <button type="button" onclick="switchSocialSubTab('friends')" class="px-2 hover:bg-slate-50/80 transition">
+                <button type="button" data-onclick="switchSocialSubTab('friends')" class="px-2 hover:bg-slate-50/80 transition">
                   <p id="social-stat-friends" class="text-lg sm:text-xl font-bold text-slate-900 leading-none">0</p>
                   <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mt-1.5">Kontakter</p>
                 </button>
@@ -1316,15 +1314,15 @@
 
               <!-- Action Row (Reference Image 2: Clean action buttons row) -->
               <div class="max-sm:hidden flex items-center flex-wrap gap-2.5 mt-5">
-                <button type="button" onclick="handleSaveAndShareTrip()" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs transition flex items-center gap-1.5 shadow-2xs">
+                <button type="button" data-onclick="handleSaveAndShareTrip()" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs transition flex items-center gap-1.5 shadow-2xs">
                   <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
                   <span>Del aktiv reise med venn</span>
                 </button>
-                <button type="button" onclick="openUserProfileModal()" class="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition flex items-center gap-1.5">
+                <button type="button" data-onclick="openUserProfileModal()" class="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition flex items-center gap-1.5">
                   <i data-lucide="user-pen" class="w-3.5 h-3.5"></i>
                   <span>Rediger profil</span>
                 </button>
-                <button type="button" onclick="switchSocialSubTab('discover')" class="px-3.5 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium text-xs transition flex items-center gap-1.5">
+                <button type="button" data-onclick="switchSocialSubTab('discover')" class="px-3.5 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium text-xs transition flex items-center gap-1.5">
                   <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
                   <span>Finn reisende</span>
                 </button>
@@ -1335,7 +1333,7 @@
                 <button 
                   type="button" 
                   role="tab" id="social-subtab-btn-passport" 
-                  onclick="switchSocialSubTab('passport')" 
+                  data-onclick="switchSocialSubTab('passport')" 
                   class="py-3.5 text-xs sm:text-sm font-semibold border-b-2 border-brand-600 text-slate-900 transition flex items-center gap-2 whitespace-nowrap"
                 >
                   <i data-lucide="user" class="w-4 h-4 text-brand-600"></i>
@@ -1345,7 +1343,7 @@
                 <button 
                   type="button" 
                   role="tab" id="social-subtab-btn-friends" 
-                  onclick="switchSocialSubTab('friends')" 
+                  data-onclick="switchSocialSubTab('friends')" 
                   class="py-3.5 text-xs sm:text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition flex items-center gap-2 whitespace-nowrap"
                 >
                   <i data-lucide="users" class="w-4 h-4"></i>
@@ -1356,7 +1354,7 @@
                 <button 
                   type="button" 
                   role="tab" id="social-subtab-btn-discover" 
-                  onclick="switchSocialSubTab('discover')" 
+                  data-onclick="switchSocialSubTab('discover')" 
                   class="py-3.5 text-xs sm:text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition flex items-center gap-2 whitespace-nowrap"
                 >
                   <i data-lucide="search" class="w-4 h-4"></i>
@@ -1374,7 +1372,7 @@
               <div class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-6">
                 <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                   <h3 class="text-sm font-bold text-slate-900">Profil- & Reisedetaljer</h3>
-                  <button type="button" onclick="openUserProfileModal()" class="text-xs font-semibold text-brand-600 hover:text-brand-700">Oppdater</button>
+                  <button type="button" data-onclick="openUserProfileModal()" class="text-xs font-semibold text-brand-600 hover:text-brand-700">Oppdater</button>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 divide-y divide-slate-100 text-xs sm:text-sm">
@@ -1419,7 +1417,7 @@
                     <h3 class="text-sm sm:text-base font-bold text-slate-900">Land jeg har besøkt</h3>
                     <p class="text-xs text-slate-500">Registrerte land i Europa vises på din profil for reisevenner</p>
                   </div>
-                  <button type="button" onclick="toggleCountryPickerGrid()" class="self-start sm:self-auto px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition flex items-center gap-1.5 shrink-0">
+                  <button type="button" data-onclick="toggleCountryPickerGrid()" class="self-start sm:self-auto px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition flex items-center gap-1.5 shrink-0">
                     <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                     <span id="btn-toggle-country-picker-text">Rediger landliste</span>
                   </button>
@@ -1458,7 +1456,7 @@
                   </div>
 
                   <!-- Clean Add Visited Place Form -->
-                  <form onsubmit="handleAddVisitedPlace(event)" class="pt-3 border-t border-slate-100 space-y-2.5">
+                  <form data-onsubmit="handleAddVisitedPlace(event)" class="pt-3 border-t border-slate-100 space-y-2.5">
                     <h4 class="text-sm font-semibold text-slate-900">Legg til et sted du har vært</h4>
                     <div class="grid grid-cols-2 gap-2">
                       <div>
@@ -1498,7 +1496,7 @@
                   </div>
 
                   <!-- Clean Add Wishlist Place Form -->
-                  <form onsubmit="handleAddWishlistPlace(event)" class="pt-3 border-t border-slate-100 space-y-2.5">
+                  <form data-onsubmit="handleAddWishlistPlace(event)" class="pt-3 border-t border-slate-100 space-y-2.5">
                     <h4 class="text-sm font-semibold text-slate-900">Legg til på ønskelisten</h4>
                     <div class="grid grid-cols-2 gap-2">
                       <div>
@@ -1544,7 +1542,7 @@
                     Del reiseruter direkte med kontaktene dine. Dere samarbeider i sanntid om stoppesteder og togruter, mens hver deltaker beholder sitt eget private budsjett.
                   </p>
                 </div>
-                <button onclick="switchSocialSubTab('discover')" class="self-start sm:self-auto px-4 py-2 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white font-semibold text-xs transition flex items-center gap-1.5 shrink-0">
+                <button data-onclick="switchSocialSubTab('discover')" class="self-start sm:self-auto px-4 py-2 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white font-semibold text-xs transition flex items-center gap-1.5 shrink-0">
                   <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
                   <span>Finn nye kontakter</span>
                 </button>
@@ -1591,7 +1589,7 @@
                     <h3 class="text-sm sm:text-base font-bold text-slate-900">Finn andre reisende</h3>
                     <p class="text-xs text-slate-500">Søk på navn, @brukernavn, hjemstasjon eller felles reisemål i Europa</p>
                   </div>
-                  <button onclick="refreshCloudDirectorySearch()" class="self-start sm:self-auto px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition flex items-center gap-1.5">
+                  <button data-onclick="refreshCloudDirectorySearch()" class="self-start sm:self-auto px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition flex items-center gap-1.5">
                     <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
                     <span>Oppdater katalog</span>
                   </button>
@@ -1603,7 +1601,7 @@
                   <input 
                     type="text" 
                     id="social-user-search-input" aria-label="Søk etter reisende" 
-                    oninput="handleSearchTravelersInput(this.value)"
+                    data-oninput="handleSearchTravelersInput(this.value)"
                     placeholder="Navn, @brukernavn, by eller land" 
                     class="w-full bg-slate-50 focus:bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500"
                   >
@@ -1612,8 +1610,8 @@
                 <!-- Clean Filter Pills (No Emoji Clutter) -->
                 <div class="flex items-center gap-2 flex-wrap text-xs">
                   <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mr-1">Vis:</span>
-                  <button type="button" onclick="setSocialDiscoverFilter('all')" id="discover-filter-all" class="px-3 py-1.5 rounded-lg font-semibold bg-fjord-800 text-white transition">Alle</button>
-                  <button type="button" onclick="setSocialDiscoverFilter('match')" id="discover-filter-match" class="px-3 py-1.5 rounded-lg font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 transition">Felles reisemål</button>
+                  <button type="button" data-onclick="setSocialDiscoverFilter('all')" id="discover-filter-all" class="px-3 py-1.5 rounded-lg font-semibold bg-fjord-800 text-white transition">Alle</button>
+                  <button type="button" data-onclick="setSocialDiscoverFilter('match')" id="discover-filter-match" class="px-3 py-1.5 rounded-lg font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 transition">Felles reisemål</button>
                 </div>
               </div>
 
@@ -1642,10 +1640,10 @@
             <p class="text-sm text-slate-600 mt-1">Alle reisene dine og reisene andre har delt med deg.</p>
           </div>
           <div class="flex items-center gap-2">
-            <button type="button" onclick="focusJoinTripInput()" class="whitespace-nowrap lg:hidden inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 transition">
+            <button type="button" data-onclick="focusJoinTripInput()" class="whitespace-nowrap lg:hidden inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 transition">
               <i data-lucide="log-in" class="w-4 h-4 text-slate-500"></i><span>Bli med</span>
             </button>
-            <button type="button" onclick="newTripFromPage()" class="whitespace-nowrap inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white text-sm font-semibold transition">
+            <button type="button" data-onclick="newTripFromPage()" class="whitespace-nowrap inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white text-sm font-semibold transition">
               <i data-lucide="plus" class="w-4 h-4"></i><span>Ny reise</span>
             </button>
           </div>
@@ -1655,11 +1653,11 @@
           <div class="space-y-4 min-w-0">
             <div class="flex items-center justify-between gap-3 border-b border-slate-200">
               <div class="flex items-center gap-5 -mb-px" role="tablist" aria-label="Filtrer reiser">
-                <button type="button" role="tab" id="trip-tab-btn-all" onclick="switchTripManagerTab('all')" class="trip-filter-tab py-2.5 text-sm font-medium border-b-2 transition">Alle <span id="trip-tab-count-all" class="ml-1 text-xs text-slate-500">0</span></button>
-                <button type="button" role="tab" id="trip-tab-btn-mine" onclick="switchTripManagerTab('mine')" class="trip-filter-tab py-2.5 text-sm font-medium border-b-2 transition">Mine <span id="trip-tab-count-mine" class="ml-1 text-xs text-slate-500">0</span></button>
-                <button type="button" role="tab" id="trip-tab-btn-shared" onclick="switchTripManagerTab('shared')" class="trip-filter-tab py-2.5 text-sm font-medium border-b-2 transition">Delt med meg <span id="trip-tab-count-shared" class="ml-1 text-xs text-slate-500">0</span></button>
+                <button type="button" role="tab" id="trip-tab-btn-all" data-onclick="switchTripManagerTab('all')" class="trip-filter-tab py-2.5 text-sm font-medium border-b-2 transition">Alle <span id="trip-tab-count-all" class="ml-1 text-xs text-slate-500">0</span></button>
+                <button type="button" role="tab" id="trip-tab-btn-mine" data-onclick="switchTripManagerTab('mine')" class="trip-filter-tab py-2.5 text-sm font-medium border-b-2 transition">Mine <span id="trip-tab-count-mine" class="ml-1 text-xs text-slate-500">0</span></button>
+                <button type="button" role="tab" id="trip-tab-btn-shared" data-onclick="switchTripManagerTab('shared')" class="trip-filter-tab py-2.5 text-sm font-medium border-b-2 transition">Delt med meg <span id="trip-tab-count-shared" class="ml-1 text-xs text-slate-500">0</span></button>
               </div>
-              <button type="button" onclick="refreshTripsFromCloud()" id="btn-refresh-trips" class="hidden sm:inline-flex items-center gap-1.5 pb-2 text-xs font-medium text-slate-600 hover:text-slate-900 transition" title="Hent siste versjon fra kontoen">
+              <button type="button" data-onclick="refreshTripsFromCloud()" id="btn-refresh-trips" class="hidden sm:inline-flex items-center gap-1.5 pb-2 text-xs font-medium text-slate-600 hover:text-slate-900 transition" title="Hent siste versjon fra kontoen">
                 <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i><span>Oppdater</span>
               </button>
             </div>
@@ -1672,7 +1670,7 @@
                 <h3 class="text-sm font-semibold text-slate-900">Bli med på en reise</h3>
                 <p class="text-xs text-slate-500 mt-1 leading-relaxed">Skriv inn koden eller lim inn lenken du har fått fra reisefølget.</p>
               </div>
-              <form onsubmit="handleJoinSharedTripByCode(event)" class="space-y-2.5">
+              <form data-onsubmit="handleJoinSharedTripByCode(event)" class="space-y-2.5">
                 <label for="join-trip-code-input" class="sr-only">Reisekode eller lenke</label>
                 <input type="text" id="join-trip-code-input" required autocomplete="off" spellcheck="false" placeholder="RS-XXXX-XXXX eller lenke" class="field-input font-mono">
                 <p id="join-trip-error" class="hidden text-xs text-rose-600"></p>
@@ -1696,15 +1694,15 @@
           <p class="text-sm text-slate-500 mt-1">Det andre reisende ser om deg, og standardvalgene for reisene dine.</p>
         </div>
 
-        <form id="form-user-profile" onsubmit="handleSaveUserProfile(event)" class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs divide-y divide-slate-100">
+        <form id="form-user-profile" data-onsubmit="handleSaveUserProfile(event)" class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs divide-y divide-slate-100">
           <div class="p-5 sm:p-7 grid gap-6 md:grid-cols-3">
             <div>
               <h3 class="text-sm font-semibold text-slate-900">Offentlig profil</h3>
               <p class="text-xs text-slate-500 mt-1 leading-relaxed">Vises for andre innloggede reisende og på reiser du deler.</p>
             </div>
             <div class="md:col-span-2 space-y-5">
-              <input type="file" id="profile-photo-input" accept="image/*" class="hidden" onchange="handleProfileImageSelected('photo', this)">
-              <input type="file" id="profile-cover-input" accept="image/*" class="hidden" onchange="handleProfileImageSelected('cover', this)">
+              <input type="file" id="profile-photo-input" accept="image/*" class="hidden" data-onchange="handleProfileImageSelected('photo', this)">
+              <input type="file" id="profile-cover-input" accept="image/*" class="hidden" data-onchange="handleProfileImageSelected('cover', this)">
 
               <div>
                 <p class="field-label">Bakgrunnsbilde</p>
@@ -1715,8 +1713,8 @@
                     <span class="text-xs">Ingen bakgrunn valgt</span>
                   </div>
                   <div class="absolute bottom-2.5 right-2.5 flex items-center gap-2">
-                    <button type="button" id="btn-remove-profile-cover" onclick="removeProfileImage('cover')" class="hidden px-3 py-1.5 rounded-lg bg-white/90 hover:bg-white text-xs font-medium text-slate-700 shadow-sm transition">Fjern</button>
-                    <button type="button" onclick="triggerProfileImagePicker('cover')" class="px-3 py-1.5 rounded-lg bg-white/90 hover:bg-white text-xs font-semibold text-slate-900 shadow-sm transition">Last opp bakgrunn</button>
+                    <button type="button" id="btn-remove-profile-cover" data-onclick="removeProfileImage('cover')" class="hidden px-3 py-1.5 rounded-lg bg-white/90 hover:bg-white text-xs font-medium text-slate-700 shadow-sm transition">Fjern</button>
+                    <button type="button" data-onclick="triggerProfileImagePicker('cover')" class="px-3 py-1.5 rounded-lg bg-white/90 hover:bg-white text-xs font-semibold text-slate-900 shadow-sm transition">Last opp bakgrunn</button>
                   </div>
                 </div>
                 <p class="text-xs text-slate-500 mt-1.5">Bredt bilde fungerer best. Bildet beskjæres til 3:1.</p>
@@ -1726,20 +1724,20 @@
                 <div id="profile-modal-avatar-preview" class="w-20 h-20 rounded-full bg-brand-600 text-white flex items-center justify-center text-2xl font-semibold shrink-0 overflow-hidden">R</div>
                 <div class="space-y-3">
                   <div class="flex items-center gap-2">
-                    <button type="button" onclick="triggerProfileImagePicker('photo')" class="whitespace-nowrap px-3.5 py-2 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white text-xs font-semibold transition">Last opp profilbilde</button>
-                    <button type="button" id="btn-remove-profile-photo" onclick="removeProfileImage('photo')" class="hidden px-3.5 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-xs font-medium text-slate-700 transition">Fjern</button>
+                    <button type="button" data-onclick="triggerProfileImagePicker('photo')" class="whitespace-nowrap px-3.5 py-2 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white text-xs font-semibold transition">Last opp profilbilde</button>
+                    <button type="button" id="btn-remove-profile-photo" data-onclick="removeProfileImage('photo')" class="hidden px-3.5 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-xs font-medium text-slate-700 transition">Fjern</button>
                   </div>
                   <div id="profile-color-row">
                     <p class="text-xs text-slate-500 mb-1.5">Farge når du ikke har profilbilde</p>
                     <input type="hidden" id="profile-avatar-color" value="#0b8176">
                     <div class="flex items-center gap-2 flex-wrap">
-                      <button type="button" data-profile-color="#0b8176" onclick="selectProfileColor('#0b8176')" class="w-6 h-6 rounded-full transition" style="background-color: #0b8176" aria-label="Profilfarge: Grønnblå" title="Grønnblå"></button>
-                      <button type="button" data-profile-color="#2563eb" onclick="selectProfileColor('#2563eb')" class="w-6 h-6 rounded-full transition" style="background-color: #2563eb" aria-label="Profilfarge: Blå" title="Blå"></button>
-                      <button type="button" data-profile-color="#7c3aed" onclick="selectProfileColor('#7c3aed')" class="w-6 h-6 rounded-full transition" style="background-color: #7c3aed" aria-label="Profilfarge: Lilla" title="Lilla"></button>
-                      <button type="button" data-profile-color="#e11d48" onclick="selectProfileColor('#e11d48')" class="w-6 h-6 rounded-full transition" style="background-color: #e11d48" aria-label="Profilfarge: Rød" title="Rød"></button>
-                      <button type="button" data-profile-color="#c2410c" onclick="selectProfileColor('#c2410c')" class="w-6 h-6 rounded-full transition" style="background-color: #c2410c" aria-label="Profilfarge: Oransje" title="Oransje"></button>
-                      <button type="button" data-profile-color="#047857" onclick="selectProfileColor('#047857')" class="w-6 h-6 rounded-full transition" style="background-color: #047857" aria-label="Profilfarge: Grønn" title="Grønn"></button>
-                      <button type="button" data-profile-color="#0f172a" onclick="selectProfileColor('#0f172a')" class="w-6 h-6 rounded-full transition" style="background-color: #0f172a" aria-label="Profilfarge: Mørkeblå" title="Mørkeblå"></button>
+                      <button type="button" data-profile-color="#0b8176" data-onclick="selectProfileColor('#0b8176')" class="w-6 h-6 rounded-full transition" style="background-color: #0b8176" aria-label="Profilfarge: Grønnblå" title="Grønnblå"></button>
+                      <button type="button" data-profile-color="#2563eb" data-onclick="selectProfileColor('#2563eb')" class="w-6 h-6 rounded-full transition" style="background-color: #2563eb" aria-label="Profilfarge: Blå" title="Blå"></button>
+                      <button type="button" data-profile-color="#7c3aed" data-onclick="selectProfileColor('#7c3aed')" class="w-6 h-6 rounded-full transition" style="background-color: #7c3aed" aria-label="Profilfarge: Lilla" title="Lilla"></button>
+                      <button type="button" data-profile-color="#e11d48" data-onclick="selectProfileColor('#e11d48')" class="w-6 h-6 rounded-full transition" style="background-color: #e11d48" aria-label="Profilfarge: Rød" title="Rød"></button>
+                      <button type="button" data-profile-color="#c2410c" data-onclick="selectProfileColor('#c2410c')" class="w-6 h-6 rounded-full transition" style="background-color: #c2410c" aria-label="Profilfarge: Oransje" title="Oransje"></button>
+                      <button type="button" data-profile-color="#047857" data-onclick="selectProfileColor('#047857')" class="w-6 h-6 rounded-full transition" style="background-color: #047857" aria-label="Profilfarge: Grønn" title="Grønn"></button>
+                      <button type="button" data-profile-color="#0f172a" data-onclick="selectProfileColor('#0f172a')" class="w-6 h-6 rounded-full transition" style="background-color: #0f172a" aria-label="Profilfarge: Mørkeblå" title="Mørkeblå"></button>
                     </div>
                   </div>
                 </div>
@@ -1769,7 +1767,7 @@
                   <label for="profile-bio" class="field-label">Om meg</label>
                   <span id="profile-bio-count" class="text-xs text-slate-500 mb-1.5">0 / 300</span>
                 </div>
-                <textarea id="profile-bio" rows="3" maxlength="300" oninput="updateBioCounter()" placeholder="Hvor drømmer du om å reise?" class="field-input resize-none"></textarea>
+                <textarea id="profile-bio" rows="3" maxlength="300" data-oninput="updateBioCounter()" placeholder="Hvor drømmer du om å reise?" class="field-input resize-none"></textarea>
               </div>
             </div>
           </div>
@@ -1796,7 +1794,7 @@
 
           <div class="px-5 sm:px-7 py-4 flex items-center justify-end gap-3 bg-slate-50/70 rounded-b-2xl">
             <span id="profile-save-status" class="text-xs text-slate-500 mr-auto" aria-live="polite"></span>
-            <button type="button" onclick="renderUserProfileModal()" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition">Tilbakestill</button>
+            <button type="button" data-onclick="renderUserProfileModal()" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition">Tilbakestill</button>
             <button type="submit" class="px-4 py-2 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white text-sm font-semibold transition">Lagre endringer</button>
           </div>
         </form>
@@ -1817,7 +1815,7 @@
                 <dd id="account-login-method" class="font-medium text-slate-900">–</dd>
               </div>
             </dl>
-            <button type="button" onclick="handleLogout()" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">
+            <button type="button" data-onclick="handleLogout()" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">
               <i data-lucide="log-out" class="w-4 h-4"></i>
               <span>Logg ut</span>
             </button>
@@ -1835,32 +1833,32 @@
   <!-- ========================================================================= -->
   <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-1.5 pt-1.5 pb-safe z-40 grid grid-cols-6 gap-0.5 shadow-xl" aria-label="Mobilnavigasjon">
     
-    <button onclick="switchTab('overview')" id="mobile-tab-overview" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-brand-600 font-bold active:scale-95 transition min-w-0">
+    <button data-onclick="switchTab('overview')" id="mobile-tab-overview" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-brand-600 font-bold active:scale-95 transition min-w-0">
       <i data-lucide="map-pin" class="w-5 h-5 shrink-0"></i>
       <span class="text-[10px] mt-0.5 truncate">Oversikt</span>
     </button>
 
-    <button onclick="switchTab('plan')" id="mobile-tab-plan" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-slate-500 font-medium active:scale-95 transition min-w-0">
+    <button data-onclick="switchTab('plan')" id="mobile-tab-plan" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-slate-500 font-medium active:scale-95 transition min-w-0">
       <i data-lucide="calendar-days" class="w-5 h-5 shrink-0"></i>
       <span class="text-[10px] mt-0.5 truncate">Dager</span>
     </button>
 
-    <button onclick="switchTab('trains')" id="mobile-tab-trains" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-slate-500 font-medium active:scale-95 transition min-w-0">
+    <button data-onclick="switchTab('trains')" id="mobile-tab-trains" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-slate-500 font-medium active:scale-95 transition min-w-0">
       <i data-lucide="train" class="w-5 h-5 shrink-0"></i>
       <span class="text-[10px] mt-0.5 truncate">Tog</span>
     </button>
 
-    <button onclick="switchTab('budget')" id="mobile-tab-budget" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-slate-500 font-medium active:scale-95 transition min-w-0">
+    <button data-onclick="switchTab('budget')" id="mobile-tab-budget" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-slate-500 font-medium active:scale-95 transition min-w-0">
       <i data-lucide="wallet" class="w-5 h-5 shrink-0"></i>
       <span class="text-[10px] mt-0.5 truncate">Budsjett</span>
     </button>
 
-    <button onclick="switchTab('packing')" id="mobile-tab-packing" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-slate-500 font-medium active:scale-95 transition min-w-0">
+    <button data-onclick="switchTab('packing')" id="mobile-tab-packing" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-slate-500 font-medium active:scale-95 transition min-w-0">
       <i data-lucide="check-square" class="w-5 h-5 shrink-0"></i>
       <span class="text-[10px] mt-0.5 truncate">Pakkeliste</span>
     </button>
 
-    <button onclick="switchTab('social')" id="mobile-tab-social" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-slate-500 font-medium active:scale-95 transition min-w-0 relative">
+    <button data-onclick="switchTab('social')" id="mobile-tab-social" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-slate-500 font-medium active:scale-95 transition min-w-0 relative">
       <i data-lucide="users" class="w-5 h-5 shrink-0"></i>
       <span class="text-[10px] mt-0.5 truncate">Profil</span>
       <span id="mobile-social-req-dot" class="hidden absolute top-1.5 right-3.5 w-2 h-2 rounded-full bg-rail-accent"></span>
@@ -1871,12 +1869,12 @@
   <!-- HANDLINGSARK («⋯»-meny, nedenfra på mobil)                                -->
   <!-- ========================================================================= -->
   <div id="action-sheet" class="fixed inset-0 z-[60] hidden" role="dialog" aria-modal="true" aria-labelledby="action-sheet-title">
-    <div class="absolute inset-0 bg-slate-900/50" onclick="closeActionSheet()"></div>
+    <div class="absolute inset-0 bg-slate-900/50" data-onclick="closeActionSheet()"></div>
     <div class="absolute inset-x-0 bottom-0 sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-80 bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl px-2 pt-2 pb-safe">
       <div class="mx-auto mb-2 h-1 w-10 rounded-full bg-slate-200 sm:hidden" aria-hidden="true"></div>
       <p id="action-sheet-title" class="px-3 pb-2 text-sm font-bold text-slate-900 truncate"></p>
       <div id="action-sheet-list" class="flex flex-col border-t border-slate-100 pt-1"></div>
-      <button type="button" onclick="closeActionSheet()" class="mt-1 mb-2 w-full py-3 rounded-xl text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition">Avbryt</button>
+      <button type="button" data-onclick="closeActionSheet()" class="mt-1 mb-2 w-full py-3 rounded-xl text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition">Avbryt</button>
     </div>
   </div>
 
@@ -1896,12 +1894,12 @@
             <p class="text-xs text-slate-500">Kartet og reiseruten oppdateres umiddelbart</p>
           </div>
         </div>
-        <button onclick="closeModal('modal-add-stop')" class="text-slate-500 hover:text-slate-600 p-1 rounded-lg">
+        <button data-onclick="closeModal('modal-add-stop')" class="text-slate-500 hover:text-slate-600 p-1 rounded-lg">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
 
-      <form id="form-add-stop" onsubmit="handleSaveStop(event)" class="space-y-4">
+      <form id="form-add-stop" data-onsubmit="handleSaveStop(event)" class="space-y-4">
         <input type="hidden" id="stop-edit-id" value="">
 
         <!-- 1. LIVE GEOCODING SEARCH (OpenStreetMap Nominatim API) -->
@@ -1934,7 +1932,7 @@
         <!-- 2. Quick Selector for Popular Cities -->
         <div>
           <label for="stop-preset-select" class="block text-xs font-semibold text-slate-600 mb-1">Eller velg en populær by</label>
-          <select id="stop-preset-select" onchange="handlePresetCitySelect(this.value)" class="w-full bg-slate-50 border border-slate-200 text-xs sm:text-sm rounded-xl px-3.5 py-2 text-slate-700 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          <select id="stop-preset-select" data-onchange="handlePresetCitySelect(this.value)" class="w-full bg-slate-50 border border-slate-200 text-xs sm:text-sm rounded-xl px-3.5 py-2 text-slate-700 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
             <option value="">Velg by …</option>
             <option value="Oslo|Norge|59.9139|10.7522">Oslo, Norge</option>
             <option value="København|Danmark|55.6761|12.5683">København, Danmark</option>
@@ -2019,7 +2017,7 @@
 
         <!-- Submit and Cancel buttons -->
         <div class="modal-actions pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
-          <button type="button" onclick="closeModal('modal-add-stop')" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-semibold text-sm transition">
+          <button type="button" data-onclick="closeModal('modal-add-stop')" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-semibold text-sm transition">
             Avbryt
           </button>
           <button type="submit" class="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm shadow-sm transition">
@@ -2045,12 +2043,12 @@
             <p class="text-xs text-slate-500">Endre tittel, datoer, pass og budsjett</p>
           </div>
         </div>
-        <button onclick="closeModal('modal-trip-settings')" class="text-slate-500 hover:text-slate-600 p-1 rounded-lg">
+        <button data-onclick="closeModal('modal-trip-settings')" class="text-slate-500 hover:text-slate-600 p-1 rounded-lg">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
 
-      <form id="form-trip-settings" onsubmit="handleSaveTripSettings(event)" class="space-y-4">
+      <form id="form-trip-settings" data-onsubmit="handleSaveTripSettings(event)" class="space-y-4">
         <div>
           <label for="settings-title" class="block text-xs font-semibold text-slate-700 mb-1">Navn på reisen *</label>
           <input type="text" id="settings-title" required class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3.5 py-2.5 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
@@ -2072,7 +2070,7 @@
             <p class="text-xs font-semibold text-slate-700">Mitt pass</p>
             <p id="settings-pass-label" class="text-sm text-slate-600 truncate"></p>
           </div>
-          <button type="button" onclick="closeModal('modal-trip-settings'); openPassModal()" class="shrink-0 px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-xs font-semibold text-slate-700 transition">Endre pass</button>
+          <button type="button" data-onclick="closeModal('modal-trip-settings'); openPassModal()" class="shrink-0 px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-xs font-semibold text-slate-700 transition">Endre pass</button>
         </div>
 
         <div>
@@ -2081,12 +2079,12 @@
         </div>
 
         <div class="modal-actions pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
-          <button type="button" onclick="duplicateCurrentTripFromSettings()" class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm border border-slate-200 transition flex items-center gap-1.5" title="Opprett en kopi av denne reisen">
+          <button type="button" data-onclick="duplicateCurrentTripFromSettings()" class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm border border-slate-200 transition flex items-center gap-1.5" title="Opprett en kopi av denne reisen">
             <i data-lucide="copy" class="w-4 h-4 text-brand-600"></i>
             <span>Kopier reise</span>
           </button>
           <div class="flex items-center gap-2">
-            <button type="button" onclick="closeModal('modal-trip-settings')" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-semibold text-sm transition">
+            <button type="button" data-onclick="closeModal('modal-trip-settings')" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-semibold text-sm transition">
               Avbryt
             </button>
             <button type="submit" class="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm shadow-sm transition">
@@ -2113,11 +2111,11 @@
             <p class="text-xs text-slate-500">Reisefølget kan se passet ditt, men bare du kan endre det.</p>
           </div>
         </div>
-        <button type="button" onclick="closeModal('modal-pass')" class="text-slate-500 hover:text-slate-600 p-1 rounded-lg" aria-label="Lukk">
+        <button type="button" data-onclick="closeModal('modal-pass')" class="text-slate-500 hover:text-slate-600 p-1 rounded-lg" aria-label="Lukk">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
-      <form id="form-pass" onsubmit="handleSavePass(event)" oninput="updatePassForm()" onchange="updatePassForm()" class="space-y-4">
+      <form id="form-pass" data-onsubmit="handleSavePass(event)" data-oninput="updatePassForm()" data-onchange="updatePassForm()" class="space-y-4">
         <fieldset>
           <legend class="field-label">Type pass</legend>
           <div class="grid grid-cols-2 gap-2">
@@ -2202,7 +2200,7 @@
         <div id="pass-group-list" class="hidden space-y-1.5"></div>
         <p class="text-xs text-slate-500">Flere tog samme dag teller som én reisedag. Direkte nattog som går etter kl. 19 teller på ankomstdagen, slik Interrail-reglene sier.</p>
         <div class="modal-actions pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
-          <button type="button" onclick="closeModal('modal-pass')" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-semibold text-sm transition">Avbryt</button>
+          <button type="button" data-onclick="closeModal('modal-pass')" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-semibold text-sm transition">Avbryt</button>
           <button type="submit" class="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm shadow-sm transition">Lagre pass</button>
         </div>
       </form>
@@ -2224,12 +2222,12 @@
             <p class="text-xs text-slate-500">Hold orden på avgang, tognummer og sete</p>
           </div>
         </div>
-        <button onclick="closeModal('modal-add-train')" class="text-slate-500 hover:text-slate-600 p-1 rounded-lg">
+        <button data-onclick="closeModal('modal-add-train')" class="text-slate-500 hover:text-slate-600 p-1 rounded-lg">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
 
-      <form id="form-add-train" onsubmit="handleSaveTrain(event)" class="space-y-4">
+      <form id="form-add-train" data-onsubmit="handleSaveTrain(event)" class="space-y-4">
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label for="train-from" class="block text-xs font-semibold text-slate-700 mb-1">Fra stasjon *</label>
@@ -2288,7 +2286,7 @@
         </div>
 
         <div class="modal-actions pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
-          <button type="button" onclick="closeModal('modal-add-train')" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-semibold text-sm transition">
+          <button type="button" data-onclick="closeModal('modal-add-train')" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-semibold text-sm transition">
             Avbryt
           </button>
           <button type="submit" class="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm shadow-sm transition">
@@ -2309,20 +2307,20 @@
           <h3 id="country-info-title" class="text-base font-semibold text-slate-900">Land på ruten</h3>
           <p class="text-sm text-slate-500 mt-0.5">Valuta, stikkontakt, nødnummer, mobil og nyttige fraser.</p>
         </div>
-        <button type="button" onclick="closeModal('modal-country-info')" class="w-8 h-8 -mr-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition shrink-0" aria-label="Lukk"><i data-lucide="x" class="w-4 h-4"></i></button>
+        <button type="button" data-onclick="closeModal('modal-country-info')" class="w-8 h-8 -mr-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition shrink-0" aria-label="Lukk"><i data-lucide="x" class="w-4 h-4"></i></button>
       </div>
       <div id="country-info-list" class="px-5 py-4 space-y-3 overflow-y-auto"></div>
     </div>
   </div>
 
   <div id="modal-shared-expense" class="fixed inset-0 z-50 hidden bg-slate-900/50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="shared-expense-modal-title">
-    <form id="form-shared-expense" onsubmit="handleSaveSharedExpense(event)" class="bg-white rounded-2xl max-w-md w-full shadow-xl border border-slate-200 max-h-[92vh] flex flex-col">
+    <form id="form-shared-expense" data-onsubmit="handleSaveSharedExpense(event)" class="bg-white rounded-2xl max-w-md w-full shadow-xl border border-slate-200 max-h-[92vh] flex flex-col">
       <div class="px-5 sm:px-6 pt-5 pb-4 border-b border-slate-100 flex items-start justify-between gap-4">
         <div>
           <h3 id="shared-expense-modal-title" class="text-base font-semibold text-slate-900">Ny felles utgift</h3>
           <p class="text-sm text-slate-500 mt-0.5">Noen la ut, og flere skal dele på det.</p>
         </div>
-        <button type="button" onclick="closeModal('modal-shared-expense')" class="w-8 h-8 -mr-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition shrink-0" aria-label="Lukk"><i data-lucide="x" class="w-4 h-4"></i></button>
+        <button type="button" data-onclick="closeModal('modal-shared-expense')" class="w-8 h-8 -mr-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition shrink-0" aria-label="Lukk"><i data-lucide="x" class="w-4 h-4"></i></button>
       </div>
       <div class="px-5 sm:px-6 py-5 space-y-4 overflow-y-auto">
         <input type="hidden" id="shared-expense-id">
@@ -2367,7 +2365,7 @@
         <p id="shared-expense-error" class="hidden text-sm text-rose-600"></p>
       </div>
       <div class="modal-actions px-5 sm:px-6 py-3.5 bg-slate-50 border-t border-slate-100 rounded-b-2xl flex justify-end gap-2">
-        <button type="button" onclick="closeModal('modal-shared-expense')" class="px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 transition">Avbryt</button>
+        <button type="button" data-onclick="closeModal('modal-shared-expense')" class="px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 transition">Avbryt</button>
         <button type="submit" class="px-4 py-2 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white text-sm font-semibold transition">Lagre</button>
       </div>
     </form>
@@ -2385,12 +2383,12 @@
             <p class="text-xs text-slate-500">Reisefølget kan se det, bare du kan endre det</p>
           </div>
         </div>
-        <button onclick="closeModal('modal-add-expense')" class="text-slate-500 hover:text-slate-600 p-1 rounded-lg">
+        <button data-onclick="closeModal('modal-add-expense')" class="text-slate-500 hover:text-slate-600 p-1 rounded-lg">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
 
-      <form id="form-add-expense" onsubmit="handleSaveExpense(event)" class="space-y-4">
+      <form id="form-add-expense" data-onsubmit="handleSaveExpense(event)" class="space-y-4">
         <div>
           <label for="expense-title" class="block text-xs font-semibold text-slate-700 mb-1">Beskrivelse *</label>
           <input type="text" id="expense-title" required placeholder="f.eks. Middag i Trastevere" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3.5 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
@@ -2429,7 +2427,7 @@
         </div>
 
         <div class="modal-actions pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
-          <button type="button" onclick="closeModal('modal-add-expense')" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-semibold text-sm transition">
+          <button type="button" data-onclick="closeModal('modal-add-expense')" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-semibold text-sm transition">
             Avbryt
           </button>
           <button type="submit" class="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm shadow-sm transition">
@@ -2455,26 +2453,26 @@
             <p class="text-xs text-slate-500">Privat for deg på denne reisen</p>
           </div>
         </div>
-        <button onclick="closeModal('modal-edit-budget')" class="text-slate-500 hover:text-slate-600 p-1 rounded-lg">
+        <button data-onclick="closeModal('modal-edit-budget')" class="text-slate-500 hover:text-slate-600 p-1 rounded-lg">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
 
-      <form id="form-edit-personal-budget" onsubmit="handleSavePersonalBudget(event)" class="space-y-4">
+      <form id="form-edit-personal-budget" data-onsubmit="handleSavePersonalBudget(event)" class="space-y-4">
         <div>
           <label for="personal-budget-input" class="block text-xs font-semibold text-slate-700 mb-1">Din budsjettramme (NOK) *</label>
           <input type="number" id="personal-budget-input" required step="500" min="0" class="w-full bg-slate-50 border border-slate-200 text-base rounded-xl px-3.5 py-2.5 text-slate-900 font-bold focus:ring-2 focus:ring-brand-500 focus:outline-none">
           <div class="flex items-center gap-1.5 flex-wrap mt-2">
-            <button type="button" onclick="document.getElementById('personal-budget-input').value = 10000" class="px-2.5 py-1 text-xs rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition">10 000 kr</button>
-            <button type="button" onclick="document.getElementById('personal-budget-input').value = 15000" class="px-2.5 py-1 text-xs rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition">15 000 kr</button>
-            <button type="button" onclick="document.getElementById('personal-budget-input').value = 20000" class="px-2.5 py-1 text-xs rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition">20 000 kr</button>
-            <button type="button" onclick="document.getElementById('personal-budget-input').value = 25000" class="px-2.5 py-1 text-xs rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition">25 000 kr</button>
-            <button type="button" onclick="document.getElementById('personal-budget-input').value = 30000" class="px-2.5 py-1 text-xs rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition">30 000 kr</button>
+            <button type="button" data-onclick="setPersonalBudgetPreset(10000)" class="px-2.5 py-1 text-xs rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition">10 000 kr</button>
+            <button type="button" data-onclick="setPersonalBudgetPreset(15000)" class="px-2.5 py-1 text-xs rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition">15 000 kr</button>
+            <button type="button" data-onclick="setPersonalBudgetPreset(20000)" class="px-2.5 py-1 text-xs rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition">20 000 kr</button>
+            <button type="button" data-onclick="setPersonalBudgetPreset(25000)" class="px-2.5 py-1 text-xs rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition">25 000 kr</button>
+            <button type="button" data-onclick="setPersonalBudgetPreset(30000)" class="px-2.5 py-1 text-xs rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition">30 000 kr</button>
           </div>
         </div>
 
         <div class="modal-actions pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
-          <button type="button" onclick="closeModal('modal-edit-budget')" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-semibold text-xs sm:text-sm transition">
+          <button type="button" data-onclick="closeModal('modal-edit-budget')" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-semibold text-xs sm:text-sm transition">
             Avbryt
           </button>
           <button type="submit" class="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs sm:text-sm shadow-sm transition">
@@ -2500,12 +2498,12 @@
             <p class="text-xs text-slate-500">Legg til noe du ikke må glemme</p>
           </div>
         </div>
-        <button onclick="closeModal('modal-add-packing')" class="text-slate-500 hover:text-slate-600 p-1 rounded-lg">
+        <button data-onclick="closeModal('modal-add-packing')" class="text-slate-500 hover:text-slate-600 p-1 rounded-lg">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
 
-      <form id="form-add-packing" onsubmit="handleSavePackingItem(event)" class="space-y-4">
+      <form id="form-add-packing" data-onsubmit="handleSavePackingItem(event)" class="space-y-4">
         <div>
           <label for="packing-text" class="block text-xs font-semibold text-slate-700 mb-1">Gjenstand / Huskelapp *</label>
           <input type="text" id="packing-text" required placeholder="f.eks. Hengelås med kode til hostel-locker" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3.5 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
@@ -2523,7 +2521,7 @@
         </div>
 
         <div class="modal-actions pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
-          <button type="button" onclick="closeModal('modal-add-packing')" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-semibold text-sm transition">
+          <button type="button" data-onclick="closeModal('modal-add-packing')" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-semibold text-sm transition">
             Avbryt
           </button>
           <button type="submit" class="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm shadow-sm transition">
@@ -2539,7 +2537,7 @@
   <!-- ========================================================================= -->
   <div id="update-banner" class="hidden fixed bottom-20 lg:bottom-6 left-1/2 -translate-x-1/2 z-[70] w-[calc(100%-2rem)] max-w-md bg-fjord-800 text-white rounded-xl shadow-xl px-4 py-3 flex items-center justify-between gap-3" role="status">
     <p class="text-sm">En ny versjon av RailSync er klar.</p>
-    <button type="button" onclick="location.reload()" class="shrink-0 px-3 py-1.5 rounded-lg bg-white text-slate-900 text-xs font-semibold">Oppdater</button>
+    <button type="button" data-onclick="reloadPage()" class="shrink-0 px-3 py-1.5 rounded-lg bg-white text-slate-900 text-xs font-semibold">Oppdater</button>
   </div>
 
   <div id="modal-app-dialog" class="fixed inset-0 z-[60] hidden bg-slate-900/50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="app-dialog-title">
@@ -2572,7 +2570,7 @@
           </div>
           <p id="share-modal-trip-title" class="text-sm text-slate-500 truncate mt-0.5"></p>
         </div>
-        <button type="button" onclick="closeModal('modal-share-trip')" class="w-8 h-8 -mr-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition shrink-0" aria-label="Lukk">
+        <button type="button" data-onclick="closeModal('modal-share-trip')" class="w-8 h-8 -mr-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition shrink-0" aria-label="Lukk">
           <i data-lucide="x" class="w-4 h-4"></i>
         </button>
       </div>
@@ -2584,14 +2582,14 @@
           <div class="grid gap-3 sm:grid-cols-2">
             <div>
               <label for="share-visibility-select" class="field-label">Hvem ser reisen</label>
-              <select id="share-visibility-select" onchange="handleUpdateTripSharingSettings()" class="field-input">
+              <select id="share-visibility-select" data-onchange="handleUpdateTripSharingSettings()" class="field-input">
                 <option value="private">Bare meg</option>
                 <option value="shared">Meg og reisefølget</option>
               </select>
             </div>
             <div>
               <label for="share-permission-select" class="field-label">Reisefølget kan</label>
-              <select id="share-permission-select" onchange="handleUpdateTripSharingSettings()" class="field-input">
+              <select id="share-permission-select" data-onchange="handleUpdateTripSharingSettings()" class="field-input">
                 <option value="edit">Se og redigere</option>
                 <option value="view">Bare se</option>
               </select>
@@ -2607,17 +2605,17 @@
               <p class="text-xs text-slate-500">Reisekode</p>
               <p id="share-code-badge" class="font-mono text-sm font-semibold text-slate-900 tracking-wide">–</p>
             </div>
-            <button type="button" onclick="copyShareCodeOnly()" class="shrink-0 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition">Kopier kode</button>
+            <button type="button" data-onclick="copyShareCodeOnly()" class="shrink-0 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition">Kopier kode</button>
           </div>
           <div class="flex items-center gap-2">
             <label for="share-url-input" class="sr-only">Lenke til reisen</label>
-            <input type="text" id="share-url-input" readonly onclick="this.select()" class="field-input font-mono text-xs flex-1 min-w-0">
-            <button type="button" id="btn-copy-url" onclick="copyShareTripUrl()" class="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white text-xs font-semibold transition">
+            <input type="text" id="share-url-input" readonly data-onclick="selectText(this)" class="field-input font-mono text-xs flex-1 min-w-0">
+            <button type="button" id="btn-copy-url" data-onclick="copyShareTripUrl()" class="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white text-xs font-semibold transition">
               <i data-lucide="link" class="w-3.5 h-3.5"></i><span id="btn-copy-url-text">Kopier lenke</span>
             </button>
           </div>
           <div id="native-share-container" class="hidden">
-            <button type="button" onclick="triggerNativeShare()" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">
+            <button type="button" data-onclick="triggerNativeShare()" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">
               <i data-lucide="send" class="w-4 h-4 text-slate-500"></i><span>Send invitasjon</span>
             </button>
           </div>
@@ -2641,7 +2639,7 @@
           </div>
           <p id="share-guests-empty" class="text-sm text-slate-500">Ingen navn lagt til.</p>
           <ul id="share-guests-list" class="divide-y divide-slate-100"></ul>
-          <form data-share-owner-only onsubmit="handleAddTripMember(event)" class="flex items-center gap-2 pt-1">
+          <form data-share-owner-only data-onsubmit="handleAddTripMember(event)" class="flex items-center gap-2 pt-1">
             <label for="new-member-name" class="sr-only">Navn</label>
             <input type="text" id="new-member-name" required maxlength="60" placeholder="Navn, for eksempel Sander" class="field-input flex-1 min-w-0">
             <button type="submit" class="shrink-0 px-3.5 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">Legg til</button>
@@ -2658,10 +2656,10 @@
       </div>
 
       <div class="px-5 sm:px-6 py-3.5 bg-slate-50 border-t border-slate-100 rounded-b-2xl flex items-center justify-between gap-3">
-        <button type="button" onclick="duplicateActiveTripAndCloseModal()" class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 transition">
+        <button type="button" data-onclick="duplicateActiveTripAndCloseModal()" class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 transition">
           <i data-lucide="copy" class="w-4 h-4"></i><span>Lag en kopi</span>
         </button>
-        <button type="button" onclick="closeModal('modal-share-trip')" class="px-4 py-2 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white text-sm font-semibold transition">Ferdig</button>
+        <button type="button" data-onclick="closeModal('modal-share-trip')" class="px-4 py-2 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white text-sm font-semibold transition">Ferdig</button>
       </div>
     </div>
   </div>

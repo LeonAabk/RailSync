@@ -302,8 +302,8 @@ const LOCK_ACTIONS = /\b(togglePackingItem|toggleTrainReservation|toggleDayPlanI
 
 export function applyEditMode(isEditable = canEditActiveTrip()) {
   document.body.dataset.canEdit = isEditable ? "true" : "false";
-  document.querySelectorAll("[onclick],[onsubmit],[onchange]").forEach(el => {
-    const handler = (el.getAttribute("onclick") || "") + (el.getAttribute("onsubmit") || "") + (el.getAttribute("onchange") || "");
+  document.querySelectorAll("[data-onclick],[data-onsubmit],[data-onchange]").forEach(el => {
+    const handler = (el.getAttribute("data-onclick") || "") + (el.getAttribute("data-onsubmit") || "") + (el.getAttribute("data-onchange") || "");
     if (EDIT_ACTIONS.test(handler)) el.setAttribute("data-edit-only", "");
     else if (LOCK_ACTIONS.test(handler)) el.setAttribute("data-edit-lock", "");
   });

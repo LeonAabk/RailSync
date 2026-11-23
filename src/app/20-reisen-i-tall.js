@@ -90,7 +90,7 @@ export function renderTripStats() {
           <p class="text-xs text-slate-500 truncate">${done ? "Slik ble turen" : "Slik blir turen etter planen"}</p>
         </div>
       </div>
-      <button type="button" onclick="shareTripStats()" class="shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-fjord-800 hover:bg-fjord-700 px-3 py-1.5 rounded-lg transition"><i data-lucide="share-2" class="w-3.5 h-3.5"></i>Del som bilde</button>
+      <button type="button" data-onclick="shareTripStats()" class="shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-fjord-800 hover:bg-fjord-700 px-3 py-1.5 rounded-lg transition"><i data-lucide="share-2" class="w-3.5 h-3.5"></i>Del som bilde</button>
     </div>
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
       ${tile("route", "bg-brand-50 text-brand-700", `ca. ${fmtInt(s.km)} km`, "med tog")}

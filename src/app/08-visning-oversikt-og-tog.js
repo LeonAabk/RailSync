@@ -77,7 +77,7 @@ export function renderOverview() {
     container.innerHTML = `
       <div class="text-center py-8 text-slate-500">
         <p class="text-sm">Ingen stoppesteder registrert ennå.</p>
-        <button onclick="openAddStopModal()" class="mt-2 text-xs text-brand-600 font-semibold underline">Legg til første by</button>
+        <button data-onclick="openAddStopModal()" class="mt-2 text-xs text-brand-600 font-semibold underline">Legg til første by</button>
       </div>
     `;
     return;
@@ -112,7 +112,7 @@ export function renderOverview() {
               <div class="flex items-baseline gap-1.5 flex-wrap">
                 <h3 class="font-extrabold text-slate-900 text-sm sm:text-base leading-snug">
                   ${Number.isFinite(Number(stop.lat)) && Number.isFinite(Number(stop.lng)) && stop.lat !== null && stop.lng !== null
-                    ? `<button type="button" onclick="centerMapOnStop(${Number(stop.lat)}, ${Number(stop.lng)})" class="hit hit-tall text-left hover:text-brand-600 rounded" aria-label="Vis ${escapeHtml(stop.city)} på kartet">${escapeHtml(stop.city)}</button>`
+                    ? `<button type="button" data-onclick="centerMapOnStop(${Number(stop.lat)}, ${Number(stop.lng)})" class="hit hit-tall text-left hover:text-brand-600 rounded" aria-label="Vis ${escapeHtml(stop.city)} på kartet">${escapeHtml(stop.city)}</button>`
                     : escapeHtml(stop.city)}
                 </h3>
                 <span class="text-xs text-slate-500 font-medium">${escapeHtml(stop.country)}</span>
@@ -133,7 +133,7 @@ export function renderOverview() {
             <div class="hidden sm:flex items-center gap-1">
               <button 
                 title="Flytt opp i reiseruten" 
-                onclick="moveStopOrder(${jsArg(stop.id)}, -1)" 
+                data-onclick="moveStopOrder(${jsArg(stop.id)}, -1)" 
                 class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-800 bg-white border border-slate-200/80 shadow-2xs transition ${isStart ? 'opacity-25 cursor-not-allowed' : ''}"
                 ${isStart ? 'disabled' : ''}
               >
@@ -142,31 +142,31 @@ export function renderOverview() {
 
               <button 
                 title="Flytt ned i reiseruten" 
-                onclick="moveStopOrder(${jsArg(stop.id)}, 1)" 
+                data-onclick="moveStopOrder(${jsArg(stop.id)}, 1)" 
                 class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-800 bg-white border border-slate-200/80 shadow-2xs transition ${isEnd ? 'opacity-25 cursor-not-allowed' : ''}"
                 ${isEnd ? 'disabled' : ''}
               >
                 <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
               </button>
 
-              <button title="Rediger stoppested" onclick="openEditStopModal(${jsArg(stop.id)})" class="px-2 h-7 flex items-center gap-1 rounded-lg text-[11px] font-semibold text-slate-600 hover:text-brand-600 bg-white border border-slate-200/80 shadow-2xs transition">
+              <button title="Rediger stoppested" data-onclick="openEditStopModal(${jsArg(stop.id)})" class="px-2 h-7 flex items-center gap-1 rounded-lg text-[11px] font-semibold text-slate-600 hover:text-brand-600 bg-white border border-slate-200/80 shadow-2xs transition">
                 <i data-lucide="pencil" class="w-3 h-3"></i>
                 <span>Endre</span>
               </button>
 
-              <button title="Vis på kartet" onclick="centerMapOnStop(${Number(stop.lat)}, ${Number(stop.lng)})" class="px-2 h-7 flex items-center gap-1 rounded-lg text-[11px] font-semibold text-slate-600 hover:text-brand-600 bg-white border border-slate-200/80 shadow-2xs transition">
+              <button title="Vis på kartet" data-onclick="centerMapOnStop(${Number(stop.lat)}, ${Number(stop.lng)})" class="px-2 h-7 flex items-center gap-1 rounded-lg text-[11px] font-semibold text-slate-600 hover:text-brand-600 bg-white border border-slate-200/80 shadow-2xs transition">
                 <i data-lucide="map-pin" class="w-3 h-3 text-brand-600"></i>
                 <span>Kart</span>
               </button>
 
-              <button title="Fjern stoppested" onclick="deleteStop(${jsArg(stop.id)})" class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-600 bg-white border border-slate-200/80 shadow-2xs transition">
+              <button title="Fjern stoppested" data-onclick="deleteStop(${jsArg(stop.id)})" class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-600 bg-white border border-slate-200/80 shadow-2xs transition">
                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
               </button>
             </div>
 
             ${!isEnd ? `
               <button 
-                onclick="quickSearchBetweenStops(${Number(idx)}, ${Number(idx + 1)})" 
+                data-onclick="quickSearchBetweenStops(${Number(idx)}, ${Number(idx + 1)})" 
                 class="text-xs sm:text-[11px] font-bold text-brand-700 hover:text-brand-800 bg-brand-50 hover:bg-brand-100 border border-brand-200/80 px-3 py-2 sm:px-2.5 sm:py-1 rounded-lg transition flex items-center gap-1"
                 title="Søk reelle togtider fra ${escapeHtml(stop.city)} til ${escapeHtml(appState.stops[idx + 1].city)}"
               >
@@ -174,7 +174,7 @@ export function renderOverview() {
                 <span class="truncate max-w-[170px] sm:max-w-none">Tog → ${escapeHtml(appState.stops[idx + 1].city)}</span>
               </button>
             ` : ''}
-            <button type="button" onclick="openStopMenu(${jsArg(stop.id)})" class="hit sm:hidden ml-auto w-10 h-9 flex items-center justify-center rounded-lg text-slate-600 bg-white border border-slate-200/80 shadow-2xs" aria-label="Flere valg for ${escapeHtml(stop.city)}">
+            <button type="button" data-onclick="openStopMenu(${jsArg(stop.id)})" class="hit sm:hidden ml-auto w-10 h-9 flex items-center justify-center rounded-lg text-slate-600 bg-white border border-slate-200/80 shadow-2xs" aria-label="Flere valg for ${escapeHtml(stop.city)}">
               <i data-lucide="more-horizontal" class="w-4 h-4"></i>
             </button>
           </div>
@@ -335,24 +335,24 @@ export function renderTrains() {
 
           <div class="flex items-center gap-1.5 flex-wrap ml-auto">
             ${hasTrack ? `
-              <button onclick="focusTrainTrackOnMap(${jsArg(train.id)})" class="text-xs font-semibold px-3 py-2 sm:px-2.5 sm:py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-brand-50 hover:text-brand-700 transition flex items-center gap-1">
+              <button data-onclick="focusTrainTrackOnMap(${jsArg(train.id)})" class="text-xs font-semibold px-3 py-2 sm:px-2.5 sm:py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-brand-50 hover:text-brand-700 transition flex items-center gap-1">
                 <i data-lucide="map-pin" class="w-3.5 h-3.5"></i> Vis i kart
               </button>
             ` : `
-              <button onclick="fetchRealTrackForSingleTrain(${jsArg(train.id)})" class="text-xs font-semibold px-3 py-2 sm:px-2.5 sm:py-1.5 rounded-lg bg-brand-50 text-brand-700 hover:bg-brand-100 transition flex items-center gap-1">
+              <button data-onclick="fetchRealTrackForSingleTrain(${jsArg(train.id)})" class="text-xs font-semibold px-3 py-2 sm:px-2.5 sm:py-1.5 rounded-lg bg-brand-50 text-brand-700 hover:bg-brand-100 transition flex items-center gap-1">
                 <i data-lucide="zap" class="w-3.5 h-3.5"></i> Hent spor
               </button>
             `}
             ${train.reservationStatus === 'required' ? `
-              <button onclick="toggleTrainReservation(${jsArg(train.id)})" class="text-xs font-semibold px-3 py-2 sm:px-2.5 sm:py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition">
+              <button data-onclick="toggleTrainReservation(${jsArg(train.id)})" class="text-xs font-semibold px-3 py-2 sm:px-2.5 sm:py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition">
                 Merk bestilt
               </button>
             ` : `
-              <button onclick="toggleTrainReservation(${jsArg(train.id)})" class="text-xs font-medium text-slate-600 hover:text-slate-800 px-2.5 py-2 sm:py-1 rounded-lg hover:bg-slate-50" title="Bytt mellom: må reserveres, reservert, ikke nødvendig">
+              <button data-onclick="toggleTrainReservation(${jsArg(train.id)})" class="text-xs font-medium text-slate-600 hover:text-slate-800 px-2.5 py-2 sm:py-1 rounded-lg hover:bg-slate-50" title="Bytt mellom: må reserveres, reservert, ikke nødvendig">
                 Endre reservasjon
               </button>
             `}
-            <button onclick="deleteTrain(${jsArg(train.id)})" class="hit text-slate-500 hover:text-rose-600 p-2 sm:p-1.5 rounded-lg hover:bg-slate-50 transition" title="Slett togreise" aria-label="Slett togreise ${escapeHtml(train.fromCity || "")} → ${escapeHtml(train.toCity || "")}">
+            <button data-onclick="deleteTrain(${jsArg(train.id)})" class="hit text-slate-500 hover:text-rose-600 p-2 sm:p-1.5 rounded-lg hover:bg-slate-50 transition" title="Slett togreise" aria-label="Slett togreise ${escapeHtml(train.fromCity || "")} → ${escapeHtml(train.toCity || "")}">
               <i data-lucide="trash-2" class="w-4 h-4"></i>
             </button>
           </div>

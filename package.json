@@ -4,7 +4,7 @@
   "description": "RailSync – planlegg Interrail sammen. Publiseres på aabakstudio.com/RailSync via GitHub Actions.",
   "scripts": {
     "build": "node scripts/build-app.cjs",
-    "lint": "node scripts/lint.mjs",
+    "lint": "node scripts/lint.mjs && node scripts/check-handlers.mjs",
     "test": "node --test tests/unit/*.test.mjs",
     "test:rules": "npx --yes firebase-tools@15.37.0 emulators:exec --only firestore --project demo-railsync \"node --test tests/rules/*.test.mjs\""
   },

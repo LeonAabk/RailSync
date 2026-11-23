@@ -136,13 +136,13 @@ function renderOnboarding() {
         <h3 class="text-sm font-semibold text-slate-900">Kom i gang</h3>
         <p class="text-xs text-slate-500 mt-0.5">${doneCount} av ${steps.length} er gjort</p>
       </div>
-      <button type="button" onclick="dismissOnboarding()" class="text-xs font-medium text-slate-500 hover:text-slate-900 transition">Skjul</button>
+      <button type="button" data-onclick="dismissOnboarding()" class="text-xs font-medium text-slate-500 hover:text-slate-900 transition">Skjul</button>
     </div>
     <div class="mt-3 w-full bg-slate-100 rounded-full h-1.5 overflow-hidden"><div class="bg-brand-600 h-1.5 rounded-full" style="width:${Math.round(doneCount / steps.length * 100)}%"></div></div>
     <ol class="mt-3 grid gap-1 sm:grid-cols-2 lg:grid-cols-5">
       ${steps.map(st => `
         <li>
-          <button type="button" ${st.done ? "disabled" : `onclick="${st.action}"`} class="w-full flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition ${st.done ? "text-slate-400" : "text-slate-800 hover:bg-slate-50"}">
+          <button type="button" ${st.done ? "disabled" : `data-onclick="${st.action}"`} class="w-full flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition ${st.done ? "text-slate-400" : "text-slate-800 hover:bg-slate-50"}">
             <span class="w-5 h-5 rounded-full shrink-0 flex items-center justify-center ${st.done ? "bg-emerald-500 text-white" : "border border-slate-300"}">${st.done ? '<i data-lucide="check" class="w-3 h-3"></i>' : ""}</span>
             <span class="${st.done ? "line-through" : ""}">${st.label}</span>
           </button>
@@ -155,8 +155,8 @@ const NEEDS_TRIP = /\b(handleSaveAndShareTrip|openTripSettingsModal)\(/;
 function applyTripPresence() {
   const has = hasActiveTrip();
   document.body.dataset.hasTrip = has ? "true" : "false";
-  document.querySelectorAll("[onclick]").forEach(el => {
-    if (NEEDS_TRIP.test(el.getAttribute("onclick") || "") && !el.closest("#tab-welcome")) el.setAttribute("data-needs-trip", "");
+  document.querySelectorAll("[data-onclick]").forEach(el => {
+    if (NEEDS_TRIP.test(el.getAttribute("data-onclick") || "") && !el.closest("#tab-welcome")) el.setAttribute("data-needs-trip", "");
   });
   if (!has) {
     const title = document.getElementById("header-trip-title");

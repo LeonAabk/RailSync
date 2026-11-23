@@ -142,10 +142,10 @@ export function updateMapLayers() {
           ${stop.accommodationNote ? `<div class="text-[11px] text-slate-500 bg-slate-50 p-2 rounded-lg border border-slate-100 italic break-words">${escapeHtml(stop.accommodationNote)}</div>` : ''}
         </div>
         <div class="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
-          <button onclick="openEditStopModal(${jsArg(stop.id)})" class="text-xs text-brand-600 hover:text-brand-800 font-semibold px-2 py-1 rounded hover:bg-brand-50 transition">
+          <button data-onclick="openEditStopModal(${jsArg(stop.id)})" class="text-xs text-brand-600 hover:text-brand-800 font-semibold px-2 py-1 rounded hover:bg-brand-50 transition">
             Rediger
           </button>
-          <button onclick="deleteStop(${jsArg(stop.id)})" class="text-xs text-rose-600 hover:text-rose-800 font-semibold px-2 py-1 rounded hover:bg-rose-50 transition">
+          <button data-onclick="deleteStop(${jsArg(stop.id)})" class="text-xs text-rose-600 hover:text-rose-800 font-semibold px-2 py-1 rounded hover:bg-rose-50 transition">
             Fjern stopp
           </button>
         </div>

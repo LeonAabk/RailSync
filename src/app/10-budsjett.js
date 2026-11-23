@@ -539,7 +539,7 @@ export function renderBudget() {
     el.classList.toggle("hidden", !(inCloud && accountPeople.length > 1) || budgetViewMode !== "personal");
     el.innerHTML = accountPeople.map(p => {
       const on = p.id === budgetViewUid;
-      return `<button type="button" onclick="selectBudgetPerson(${jsArg(p.id)})" class="shrink-0 inline-flex items-center gap-2 pl-1 pr-3 py-1 rounded-full border text-sm transition ${on ? "border-slate-900 bg-fjord-800 text-white" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}">
+      return `<button type="button" data-onclick="selectBudgetPerson(${jsArg(p.id)})" class="shrink-0 inline-flex items-center gap-2 pl-1 pr-3 py-1 rounded-full border text-sm transition ${on ? "border-slate-900 bg-fjord-800 text-white" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}">
         ${socialAvatarHtml({ displayName: p.name, avatarColor: p.avatarColor, photo: p.id === me ? userProfile.photo : ((userProfile.friends || []).find(f => f.uid === p.id) || {}).photo }, "w-6 h-6 text-[10px]", "#0b8176")}
         <span>${escapeHtml(p.id === me ? "Meg" : p.name)}</span></button>`;
     }).join("");
@@ -617,13 +617,13 @@ export function renderBudget() {
         </div>
         <div class="flex items-center gap-1.5 shrink-0">
           <span class="text-right"><span class="block text-sm font-semibold text-slate-900 tabular-nums">${formatMoney(exp.amount)}</span>${expenseOrigHtml(exp)}</span>
-          ${viewingMe ? `<button type="button" onclick="deleteExpense(${jsArg(exp.id)})" class="hit w-10 h-10 sm:w-8 sm:h-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition" aria-label="Slett ${escapeHtml(exp.title || "utgift")}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ""}
+          ${viewingMe ? `<button type="button" data-onclick="deleteExpense(${jsArg(exp.id)})" class="hit w-10 h-10 sm:w-8 sm:h-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition" aria-label="Slett ${escapeHtml(exp.title || "utgift")}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ""}
         </div>
       </div>`).join("");
   });
   set("budget-shared-share-row", el => {
     el.classList.toggle("hidden", share.cents === 0);
-    el.innerHTML = share.cents === 0 ? "" : `<button type="button" onclick="switchBudgetView('shared')" class="w-full px-5 py-3 flex items-center justify-between gap-3 text-left hover:bg-slate-50 transition">
+    el.innerHTML = share.cents === 0 ? "" : `<button type="button" data-onclick="switchBudgetView('shared')" class="w-full px-5 py-3 flex items-center justify-between gap-3 text-left hover:bg-slate-50 transition">
         <span class="min-w-0"><span class="block text-sm font-medium text-slate-900">Andel av felles utgifter</span><span class="block text-xs text-slate-500 mt-0.5">Se felles utgifter og oppgjør</span></span>
         <span class="text-sm font-semibold text-slate-900 tabular-nums">${formatMoney(share.cents / 100)}</span></button>`;
   });
@@ -657,13 +657,13 @@ export function renderBudget() {
           </div>
           <div class="flex items-center gap-1.5 shrink-0">
             <span class="text-sm font-semibold text-emerald-700 tabular-nums">${formatMoney(e.amount)}</span>
-            ${canChange ? `<button type="button" onclick="deleteSharedExpense(${jsArg(e.id)})" class="hit w-10 h-10 sm:w-8 sm:h-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition" aria-label="Angre betaling"><i data-lucide="undo-2" class="w-4 h-4"></i></button>` : ""}
+            ${canChange ? `<button type="button" data-onclick="deleteSharedExpense(${jsArg(e.id)})" class="hit w-10 h-10 sm:w-8 sm:h-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition" aria-label="Angre betaling"><i data-lucide="undo-2" class="w-4 h-4"></i></button>` : ""}
           </div></div>`;
       }
       const split = Array.isArray(e.split) ? e.split : [];
       const splitText = split.length === people.length && people.every(p => split.includes(p.id)) ? "alle" : split.map(id => nameOf(e, id)).join(", ");
       return `<div class="px-5 py-3 flex items-center justify-between gap-3">
-        <button type="button" ${canChange ? `onclick="openSharedExpenseModal(${jsArg(e.id)})"` : "disabled"} class="min-w-0 text-left flex items-center gap-3 ${canChange ? "" : "cursor-default"}">
+        <button type="button" ${canChange ? `data-onclick="openSharedExpenseModal(${jsArg(e.id)})"` : "disabled"} class="min-w-0 text-left flex items-center gap-3 ${canChange ? "" : "cursor-default"}">
           ${categoryChipHtml(e.category)}
           <span class="min-w-0 block">
           <p class="text-sm font-medium text-slate-900 truncate">${escapeHtml(e.title || "Utgift")}</p>
@@ -672,7 +672,7 @@ export function renderBudget() {
         </button>
         <div class="flex items-center gap-1.5 shrink-0">
           <span class="text-right"><span class="block text-sm font-semibold text-slate-900 tabular-nums">${formatMoney(e.amount)}</span>${expenseOrigHtml(e)}</span>
-          ${canChange ? `<button type="button" onclick="deleteSharedExpense(${jsArg(e.id)})" class="hit w-10 h-10 sm:w-8 sm:h-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition" aria-label="Slett ${escapeHtml(e.title || "utgift")}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ""}
+          ${canChange ? `<button type="button" data-onclick="deleteSharedExpense(${jsArg(e.id)})" class="hit w-10 h-10 sm:w-8 sm:h-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition" aria-label="Slett ${escapeHtml(e.title || "utgift")}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ""}
         </div></div>`;
     }).join("");
   });
@@ -699,7 +699,7 @@ export function renderBudget() {
     el.innerHTML = transfers.map(t => `
       <div class="flex items-center justify-between gap-3 py-2.5">
         <p class="text-sm text-slate-700 min-w-0"><span class="font-medium text-slate-900">${escapeHtml(t.from === me ? "Du" : nameOf(null, t.from))}</span> betaler <span class="font-medium text-slate-900">${escapeHtml(t.to === me ? "deg" : nameOf(null, t.to))}</span><br><span class="font-semibold text-slate-900 tabular-nums">${formatMoney(t.cents / 100)}</span></p>
-        <button type="button" onclick="registerSettlementPayment(${jsArg(t.from)}, ${jsArg(t.to)}, ${Number(t.cents)})" class="shrink-0 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition">Registrer betalt</button>
+        <button type="button" data-onclick="registerSettlementPayment(${jsArg(t.from)}, ${jsArg(t.to)}, ${Number(t.cents)})" class="shrink-0 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition">Registrer betalt</button>
       </div>`).join("");
   });
 
@@ -759,8 +759,8 @@ export function renderPacking() {
         <p class="text-sm font-semibold text-slate-900">Pakkelisten er tom</p>
         <p class="text-sm text-slate-500 mt-1 max-w-sm mx-auto">Legg til det du skal ha med, eller start med en liste over det de fleste trenger på Interrail.</p>
         <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
-          <button type="button" onclick="addPackingSuggestions()" class="px-4 py-2 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white text-sm font-semibold transition">Bruk forslag</button>
-          <button type="button" onclick="openAddPackingItemModal()" class="px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">Legg til selv</button>
+          <button type="button" data-onclick="addPackingSuggestions()" class="px-4 py-2 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white text-sm font-semibold transition">Bruk forslag</button>
+          <button type="button" data-onclick="openAddPackingItemModal()" class="px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">Legg til selv</button>
         </div>
       </div>`;
     return;
@@ -791,14 +791,14 @@ export function renderPacking() {
                   <input 
                     type="checkbox" 
                     ${item.checked ? 'checked' : ''} 
-                    onchange="togglePackingItem(${jsArg(item.id)})"
+                    data-onchange="togglePackingItem(${jsArg(item.id)})"
                     class="w-4 h-4 rounded text-brand-600 focus:ring-brand-500 border-slate-300 transition cursor-pointer"
                   >
                   <span class="text-xs sm:text-sm font-medium ${item.checked ? 'line-through text-slate-500' : 'text-slate-700'}">
                     ${escapeHtml(item.text)}
                   </span>
                 </label>
-                <button onclick="deletePackingItem(${jsArg(item.id)})" class="hit opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100 text-slate-500 hover:text-rose-600 p-2 sm:p-1 rounded-lg transition" title="Slett" aria-label="Slett ${escapeHtml(item.text || "")}">
+                <button data-onclick="deletePackingItem(${jsArg(item.id)})" class="hit opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100 text-slate-500 hover:text-rose-600 p-2 sm:p-1 rounded-lg transition" title="Slett" aria-label="Slett ${escapeHtml(item.text || "")}">
                   <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                 </button>
               </div>
@@ -807,7 +807,7 @@ export function renderPacking() {
         </div>
 
         <div class="mt-2 pt-2 border-t border-slate-100">
-          <form onsubmit="handleQuickAddPacking(event, ${jsArg(categoryName)})" class="flex items-center gap-1.5">
+          <form data-onsubmit="handleQuickAddPacking(event, ${jsArg(categoryName)})" class="flex items-center gap-1.5">
             <input 
               type="text" 
               name="quickItemText"

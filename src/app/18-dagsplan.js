@@ -133,28 +133,28 @@ function planDayCardHtml(info, dayNo, today, { compact = false } = {}) {
   }
   const itemsHtml = info.items.map(p => `
       <div class="flex items-center gap-2.5 group">
-        <button type="button" onclick="toggleDayPlanItem(${jsArg(p.id)})" class="hit w-8 h-8 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center shrink-0 transition ${p.done ? "bg-emerald-100 text-emerald-700" : "bg-amber-50 text-amber-700 hover:bg-amber-100"}" aria-label="${p.done ? "Marker som ikke gjort" : "Marker som gjort"}: ${escapeHtml(p.text || "")}" aria-pressed="${p.done ? "true" : "false"}">
+        <button type="button" data-onclick="toggleDayPlanItem(${jsArg(p.id)})" class="hit w-8 h-8 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center shrink-0 transition ${p.done ? "bg-emerald-100 text-emerald-700" : "bg-amber-50 text-amber-700 hover:bg-amber-100"}" aria-label="${p.done ? "Marker som ikke gjort" : "Marker som gjort"}: ${escapeHtml(p.text || "")}" aria-pressed="${p.done ? "true" : "false"}">
           <i data-lucide="${p.done ? "check" : "map-pin"}" class="w-3.5 h-3.5"></i>
         </button>
         <p class="min-w-0 flex-1 text-sm ${p.done ? "text-slate-500 line-through" : "text-slate-900"}">${p.time ? `<span class="font-semibold tabular-nums">${escapeHtml(p.time)}</span> ` : ""}${escapeHtml(p.text || "")}</p>
-        <button type="button" onclick="deleteDayPlanItem(${jsArg(p.id)})" class="hit w-8 h-8 sm:w-7 sm:h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center shrink-0 transition" aria-label="Slett ${escapeHtml(p.text || "aktivitet")}"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+        <button type="button" data-onclick="deleteDayPlanItem(${jsArg(p.id)})" class="hit w-8 h-8 sm:w-7 sm:h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center shrink-0 transition" aria-label="Slett ${escapeHtml(p.text || "aktivitet")}"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
       </div>`).join("");
   // «+ Aktivitet» åpner skjemaet for denne dagen; det står åpent etter lagring så man kan legge til flere
   const formOpen = planOpenFormDate === info.date;
   // Knappen ligger i dagens topplinje, så den ikke tar en egen rad på hver dag
   const addButton = compact || formOpen ? "" : `
-        <button type="button" onclick="showDayPlanForm(${jsArg(info.date)})" aria-expanded="false" aria-label="Legg til aktivitet ${escapeHtml(planDateLabel(info.date))}"
+        <button type="button" data-onclick="showDayPlanForm(${jsArg(info.date)})" aria-expanded="false" aria-label="Legg til aktivitet ${escapeHtml(planDateLabel(info.date))}"
           class="shrink-0 inline-flex items-center gap-1 min-h-[44px] -my-1 -mr-1.5 px-2.5 rounded-lg text-sm font-semibold text-brand-700 hover:bg-brand-50 transition">
           <i data-lucide="plus" class="w-4 h-4"></i>Aktivitet
         </button>`;
   const addForm = compact || !formOpen ? "" : `
-      <form id="plan-form-${info.date}" onsubmit="handleAddDayPlanItem(event, ${jsArg(info.date)})" class="flex items-center gap-1.5 pt-1">
+      <form id="plan-form-${info.date}" data-onsubmit="handleAddDayPlanItem(event, ${jsArg(info.date)})" class="flex items-center gap-1.5 pt-1">
         <label class="sr-only" for="plan-time-${info.date}">Klokkeslett</label>
         <input id="plan-time-${info.date}" name="time" type="time" class="w-[5.5rem] shrink-0 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
         <label class="sr-only" for="plan-text-${info.date}">Ny aktivitet</label>
         <input id="plan-text-${info.date}" name="text" type="text" maxlength="140" required placeholder="Ny aktivitet" class="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500">
         <button type="submit" class="w-10 h-10 sm:w-8 sm:h-8 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white flex items-center justify-center shrink-0 transition" aria-label="Legg til aktivitet"><i data-lucide="plus" class="w-4 h-4"></i></button>
-        <button type="button" onclick="hideDayPlanForm()" class="w-10 h-10 sm:w-8 sm:h-8 rounded-lg text-slate-500 hover:bg-slate-100 flex items-center justify-center shrink-0 transition" aria-label="Lukk"><i data-lucide="x" class="w-4 h-4"></i></button>
+        <button type="button" data-onclick="hideDayPlanForm()" class="w-10 h-10 sm:w-8 sm:h-8 rounded-lg text-slate-500 hover:bg-slate-100 flex items-center justify-center shrink-0 transition" aria-label="Lukk"><i data-lucide="x" class="w-4 h-4"></i></button>
       </form>`;
   const empty = !info.trains.length && !nightHtml && !info.items.length
     ? `<p class="text-sm text-slate-500">${compact ? "Ingenting planlagt i dag ennå." : "Ingenting planlagt ennå."}</p>` : "";
@@ -200,7 +200,7 @@ export function renderDayPlan() {
         <span class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center mx-auto" aria-hidden="true"><i data-lucide="calendar-days" class="w-5 h-5"></i></span>
         <p class="text-sm font-medium text-slate-900 mt-3">Sett datoer for reisen</p>
         <p class="text-sm text-slate-500 mt-1 max-w-sm mx-auto">Når reisen har start- og sluttdato, får du én plan per dag med tog, overnatting og det dere skal gjøre.</p>
-        <button type="button" onclick="openTripSettingsModal()" class="mt-4 px-4 py-2 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white text-sm font-semibold transition">Sett datoer</button>
+        <button type="button" data-onclick="openTripSettingsModal()" class="mt-4 px-4 py-2 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white text-sm font-semibold transition">Sett datoer</button>
       </div>`;
     return;
   }
@@ -225,7 +225,7 @@ export function renderDayPlan() {
         ${shown.map(date => {
           const isToday = date === today;
           const hasTrain = (appState.trains || []).some(t => t.date === date);
-          return `<li><button type="button" onclick="scrollToPlanDay(${jsArg(date)})" aria-label="${escapeHtml(planDateLabel(date))}${hasTrain ? ", reisedag" : ""}"
+          return `<li><button type="button" data-onclick="scrollToPlanDay(${jsArg(date)})" aria-label="${escapeHtml(planDateLabel(date))}${hasTrain ? ", reisedag" : ""}"
             class="relative w-11 min-h-[48px] rounded-xl flex flex-col items-center justify-center leading-none transition ${isToday ? "bg-brand-600 text-white" : "bg-white border border-slate-200 text-slate-800 hover:bg-slate-50"}">
             <span class="text-xs font-medium ${isToday ? "" : "text-slate-600"}">${planWeekdayShort(date)}</span>
             <span class="text-sm font-bold mt-1">${new Date(date + "T00:00:00Z").getUTCDate()}</span>
@@ -263,7 +263,7 @@ export function hideDayPlanForm() {
   const date = planOpenFormDate;
   planOpenFormDate = "";
   rerenderDayPlan();
-  const btn = date && document.querySelector(`#plan-day-${date} [onclick^="showDayPlanForm"]`);
+  const btn = date && document.querySelector(`#plan-day-${date} [data-onclick^="showDayPlanForm"]`);
   if (btn) btn.focus();
 }
 
@@ -296,15 +296,15 @@ export function renderOverviewDayCard() {
             <p class="text-xs text-slate-500 truncate first-letter:uppercase">${planDateLabel(today)}${info.place ? ` · ${escapeHtml(info.place)}` : ""}</p>
           </div>
         </div>
-        <button type="button" onclick="openDayPlan(${jsArg(today)})" class="shrink-0 text-xs font-semibold text-slate-700 bg-sand-200 hover:bg-sand-300 px-3 py-1.5 rounded-lg transition">Dagsplan</button>
+        <button type="button" data-onclick="openDayPlan(${jsArg(today)})" class="shrink-0 text-xs font-semibold text-slate-700 bg-sand-200 hover:bg-sand-300 px-3 py-1.5 rounded-lg transition">Dagsplan</button>
       </div>
-      ${lines.length ? `<ul class="mt-3 space-y-2">${lines.join("")}</ul>${more}` : `<p class="text-sm text-slate-500 mt-3">Ingenting planlagt i dag ennå. <button type="button" onclick="openDayPlan(${jsArg(today)})" class="font-semibold text-brand-700 hover:underline">Legg til noe</button></p>`}`;
+      ${lines.length ? `<ul class="mt-3 space-y-2">${lines.join("")}</ul>${more}` : `<p class="text-sm text-slate-500 mt-3">Ingenting planlagt i dag ennå. <button type="button" data-onclick="openDayPlan(${jsArg(today)})" class="font-semibold text-brand-700 hover:underline">Legg til noe</button></p>`}`;
     return;
   }
   const itemsCount = (appState.dayPlan || []).length;
   const before = start && today < start;
   el.innerHTML = `
-    <button type="button" onclick="openDayPlan()" class="w-full flex items-center justify-between gap-3 text-left">
+    <button type="button" data-onclick="openDayPlan()" class="w-full flex items-center justify-between gap-3 text-left">
       <span class="flex items-center gap-3 min-w-0">
         <span class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0" aria-hidden="true"><i data-lucide="calendar-days" class="w-5 h-5"></i></span>
         <span class="min-w-0">

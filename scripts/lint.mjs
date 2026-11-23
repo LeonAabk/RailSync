@@ -35,7 +35,7 @@ function locate(n) {
 const eslint = new ESLint({ cwd: root });
 const results = [
   ...(await eslint.lintText(text, { filePath: path.join(root, 'app.lint.js') })),
-  ...(await eslint.lintFiles(['sw.js', 'scripts', 'tests', 'eslint.config.mjs'])),
+  ...(await eslint.lintFiles(['sw.js', 'assets/dispatch.js', 'scripts', 'tests', 'eslint.config.mjs'])),
 ];
 
 let errors = 0;
