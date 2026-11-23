@@ -21,6 +21,7 @@ const SHELL_FILES = [
   "./assets/railsync.css?v=" + VERSION,
   "./assets/icons.js?v=" + VERSION,
   "./assets/dispatch.js?v=" + VERSION,
+  "./assets/designs.css?v=" + VERSION,
   "./manifest.webmanifest",
   "./assets/icon.svg",
   "./assets/favicon-32.png",

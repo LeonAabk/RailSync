@@ -89,6 +89,8 @@ jobs:
           # Ingen inline JavaScript (stoppes av Content-Security-Policy)
           ! grep -qE '[^-]on(click|submit|change|input)="' _site/index.html _site/app.js
           test -s _site/assets/dispatch.js
+          test -s _site/assets/designs.css
+          grep -q "designs.css?v=${VER}" _site/index.html
           ls -la _site _site/assets
 
       - uses: actions/upload-pages-artifact@v5

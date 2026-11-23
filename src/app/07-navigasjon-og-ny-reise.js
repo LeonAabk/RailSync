@@ -191,11 +191,13 @@ export function switchTab(tabId) {
   document.querySelectorAll(".nav-item").forEach(btn => {
     btn.classList.remove("text-white", "bg-white/10", "shadow-sm", "font-semibold");
     btn.classList.add("text-fjord-200", "hover:bg-white/10", "font-medium");
+    btn.removeAttribute("aria-current");
   });
   const activeNavBtn = document.getElementById(`nav-btn-${tabId}`);
   if (activeNavBtn) {
     activeNavBtn.classList.add("text-white", "bg-white/10", "shadow-sm", "font-semibold");
     activeNavBtn.classList.remove("text-fjord-200", "font-medium");
+    activeNavBtn.setAttribute("aria-current", "page");
   }
 
   document.querySelectorAll(".mobile-nav-btn").forEach(btn => {

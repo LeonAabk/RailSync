@@ -1,0 +1,204 @@
+/* =============================================================================
+   RailSync – designretninger
+   Aktiveres med <html data-design="nordlys|plakat|sommer">. Uten attributtet vises dagens design.
+   Lagt oppå Tailwind-klassene (høyere spesifisitet), så markeringen er den samme for alle retninger.
+   Forhåndsvisning: ?design=nordlys i adressen (huskes i nettleseren), ?design=standard tilbake.
+   ============================================================================= */
+
+/* ---------- Skrift (egen server, OFL-lisens i assets/fonts/) ---------- */
+@font-face { font-family: "Big Shoulders Display"; font-weight: 600 900; font-display: swap;
+  src: url(./fonts/big-shoulders-display-latin-ext.woff2) format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: "Big Shoulders Display"; font-weight: 600 900; font-display: swap;
+  src: url(./fonts/big-shoulders-display-latin.woff2) format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Fredoka"; font-weight: 400 700; font-display: swap;
+  src: url(./fonts/fredoka-latin-ext.woff2) format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: "Fredoka"; font-weight: 400 700; font-display: swap;
+  src: url(./fonts/fredoka-latin.woff2) format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+
+/* ---------- Felles: hver del av appen har sin farge (--sec, som «r g b») ---------- */
+html[data-design] { --sec: var(--c-overview); }
+html[data-design] #tab-overview, html[data-design] #nav-btn-overview, html[data-design] #mobile-tab-overview { --sec: var(--c-overview); }
+html[data-design] #tab-plan, html[data-design] #nav-btn-plan, html[data-design] #mobile-tab-plan { --sec: var(--c-plan); }
+html[data-design] #tab-trains, html[data-design] #nav-btn-trains, html[data-design] #mobile-tab-trains { --sec: var(--c-trains); }
+html[data-design] #tab-budget, html[data-design] #nav-btn-budget, html[data-design] #mobile-tab-budget { --sec: var(--c-budget); }
+html[data-design] #tab-packing, html[data-design] #nav-btn-packing, html[data-design] #mobile-tab-packing { --sec: var(--c-packing); }
+html[data-design] #tab-social, html[data-design] #tab-account, html[data-design] #nav-btn-social, html[data-design] #mobile-tab-social { --sec: var(--c-social); }
+html[data-design] #tab-trips, html[data-design] #nav-btn-trips { --sec: var(--c-trips); }
+
+/* Sidetitlenes ikonboks får delens farge */
+html[data-design] section.tab-content > div:first-child span.w-10.h-10,
+html[data-design] section.tab-content > div:first-child > div:first-child span.w-10.h-10 {
+  background: rgb(var(--sec) / 0.14) !important; color: rgb(var(--sec)) !important;
+}
+/* Kort øverst i hver del: en farget kant i delens farge */
+html[data-design] section.tab-content:not(#tab-overview) > .rounded-2xl.border { border-top: 3px solid rgb(var(--sec)); }
+/* Mobil bunnmeny: aktiv fane i delens farge */
+html[data-design] .mobile-nav-btn[aria-current="page"] { color: rgb(var(--sec)) !important; background: rgb(var(--sec) / 0.12) !important; }
+
+/* =============================================================================
+   1. NORDLYS – nattblått, nordlysgradient, én farge per del
+   ============================================================================= */
+html[data-design="nordlys"] {
+  --c-overview: 13 148 136; --c-plan: 124 58 237; --c-trains: 37 99 235; --c-budget: 217 119 6;
+  --c-packing: 219 39 119; --c-social: 5 150 105; --c-trips: 79 70 229;
+  --night: #0b1530; --night-2: #141c4a;
+  background: #eef2fa;
+}
+html[data-design="nordlys"] body, html[data-design="nordlys"] body > main { background: #eef2fa; }
+html[data-design="nordlys"] body > aside {
+  background:
+    radial-gradient(120% 40% at 0% 0%, rgb(20 184 166 / 0.28), transparent 60%),
+    radial-gradient(90% 35% at 100% 18%, rgb(124 58 237 / 0.30), transparent 60%),
+    linear-gradient(180deg, var(--night), var(--night-2)) !important;
+  border-right: 0;
+}
+html[data-design="nordlys"] .nav-item :is(i, svg) { color: color-mix(in srgb, rgb(var(--sec)) 55%, white) !important; }
+html[data-design="nordlys"] .nav-item[aria-current="page"] {
+  background: linear-gradient(90deg, rgb(var(--sec) / 0.35), rgb(255 255 255 / 0.04)) !important;
+  box-shadow: inset 3px 0 0 rgb(var(--sec));
+}
+html[data-design="nordlys"] body > main > header { background: rgb(255 255 255 / 0.86); backdrop-filter: blur(10px); border-color: #e1e7f3; }
+html[data-design="nordlys"] #overview-hero {
+  background:
+    radial-gradient(45% 90% at 6% 10%, rgb(52 211 153 / 0.95), transparent 60%),
+    radial-gradient(40% 100% at 30% 0%, rgb(45 212 191 / 0.85), transparent 60%),
+    radial-gradient(45% 110% at 62% 0%, rgb(99 102 241 / 0.9), transparent 60%),
+    radial-gradient(45% 120% at 96% 10%, rgb(192 132 252 / 0.9), transparent 60%),
+    linear-gradient(135deg, var(--night), #1e1b4b) !important;
+  box-shadow: 0 24px 50px -24px rgb(30 27 75 / 0.6);
+}
+html[data-design="nordlys"] #overview-hero > .grid { background: rgb(255 255 255 / 0.12); border-color: rgb(255 255 255 / 0.14); }
+html[data-design="nordlys"] #overview-hero > .grid > * { background: rgb(11 21 48 / 0.55) !important; backdrop-filter: blur(6px); }
+html[data-design="nordlys"] #overview-hero > .grid > button:hover { background: rgb(11 21 48 / 0.35) !important; }
+html[data-design="nordlys"] #overview-hero-main { font-size: clamp(1.75rem, 3vw, 2.5rem); letter-spacing: -0.03em; }
+html[data-design="nordlys"] #stat-pass-bar { background: linear-gradient(90deg, #2dd4bf, #a78bfa) !important; }
+html[data-design="nordlys"] .rounded-2xl.border, html[data-design="nordlys"] .rounded-xl.border { border-color: #e1e7f3; }
+html[data-design="nordlys"] .shadow-2xs { box-shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 8px 24px -18px rgb(30 41 99 / 0.35); }
+html[data-design="nordlys"] :is(.bg-fjord-800, .bg-brand-600):is(button, a) {
+  background: linear-gradient(135deg, #0d9488, #4f46e5) !important; border-color: transparent;
+  box-shadow: 0 8px 18px -10px rgb(79 70 229 / 0.7);
+}
+html[data-design="nordlys"] :is(.bg-fjord-800, .bg-brand-600):is(button, a):hover { filter: brightness(1.08); }
+html[data-design="nordlys"] .rail-marker-pin { background: linear-gradient(135deg, #0d9488, #4f46e5); }
+html[data-design="nordlys"] h2 { letter-spacing: -0.025em; }
+html[data-design="nordlys"] body > nav.fixed { background: rgb(255 255 255 / 0.9); }
+
+/* =============================================================================
+   2. PLAKAT – klassisk europeisk togplakat: marine, signalrødt, sennep, kondensert skrift
+   ============================================================================= */
+html[data-design="plakat"] {
+  --c-overview: 230 57 70; --c-plan: 42 157 143; --c-trains: 29 53 87; --c-budget: 214 140 0;
+  --c-packing: 230 57 70; --c-social: 42 157 143; --c-trips: 29 53 87;
+  --ink: #1d3557; --red: #e63946; --mustard: #ffb703; --teal: #2a9d8f; --paper: #f2ede3;
+  background: var(--paper);
+}
+html[data-design="plakat"] body, html[data-design="plakat"] body > main { background: var(--paper); }
+html[data-design="plakat"] :is(h2, h3.text-base, #overview-hero-main, .font-display) {
+  font-family: "Big Shoulders Display", "Plus Jakarta Sans", sans-serif; text-transform: uppercase; letter-spacing: 0.01em;
+}
+html[data-design="plakat"] h2 { font-size: 1.55rem !important; font-weight: 800 !important; color: var(--ink); line-height: 1.05; }
+html[data-design="plakat"] section.tab-content > div:first-child h2 { font-size: clamp(2rem, 3.4vw, 2.6rem) !important; }
+html[data-design="plakat"] #overview-hero [id$="-sub"] { text-transform: none; letter-spacing: 0; font-weight: 500; color: #e8dfcc !important; font-family: "Plus Jakarta Sans", sans-serif; }
+html[data-design="plakat"] body > aside { background: var(--ink) !important; border-right: 0; position: relative; }
+html[data-design="plakat"] body > aside::before {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 8px;
+  background: linear-gradient(90deg, var(--red) 0 33.3%, var(--mustard) 33.3% 66.6%, var(--teal) 66.6% 100%);
+}
+html[data-design="plakat"] .nav-item[aria-current="page"] { background: var(--mustard) !important; color: var(--ink) !important; box-shadow: none; }
+html[data-design="plakat"] .nav-item[aria-current="page"] :is(i, svg, span) { color: var(--ink) !important; }
+html[data-design="plakat"] body > main > header { background: var(--paper); border-bottom: 3px solid var(--ink); }
+html[data-design="plakat"] #overview-hero {
+  background: var(--ink) !important; border-radius: 14px; position: relative;
+  box-shadow: 8px 8px 0 var(--red);
+}
+html[data-design="plakat"] #overview-hero::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 10px;
+  background: repeating-linear-gradient(90deg, var(--red) 0 46px, var(--mustard) 46px 92px, var(--teal) 92px 138px);
+}
+html[data-design="plakat"] #overview-hero-kicker { color: var(--mustard) !important; text-transform: uppercase; letter-spacing: 0.14em; margin-top: 0.4rem; }
+html[data-design="plakat"] #overview-hero-main { font-size: clamp(2.4rem, 5vw, 3.6rem); font-weight: 900; line-height: 0.95; color: #fff; }
+html[data-design="plakat"] #overview-hero-route { color: #f1e9d8 !important; font-weight: 600; }
+html[data-design="plakat"] #overview-hero > .grid { background: transparent; border-top: 2px dashed rgb(255 255 255 / 0.35); gap: 0; }
+html[data-design="plakat"] #overview-hero > .grid > * { background: transparent !important; border-left: 2px dashed rgb(255 255 255 / 0.2); }
+html[data-design="plakat"] #overview-hero > .grid > *:first-child { border-left: 0; }
+html[data-design="plakat"] #overview-hero > .grid p:first-child { color: var(--mustard) !important; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; }
+html[data-design="plakat"] #overview-hero > .grid [id^="stat-"]:not([id$="-sub"]):not(#stat-pass-bar) { font-family: "Big Shoulders Display", sans-serif; font-size: 2rem; font-weight: 800; text-transform: uppercase; }
+html[data-design="plakat"] #stat-pass-bar { background: var(--mustard) !important; }
+html[data-design="plakat"] .rounded-2xl.border, html[data-design="plakat"] .rounded-xl.border {
+  border: 2px solid var(--ink) !important; border-radius: 12px; box-shadow: 5px 5px 0 rgb(29 53 87 / 0.9);
+}
+html[data-design="plakat"] section.tab-content:not(#tab-overview) > .rounded-2xl.border { border-top: 8px solid rgb(var(--sec)) !important; }
+html[data-design="plakat"] :is(.bg-fjord-800, .bg-brand-600):is(button, a) {
+  background: var(--red) !important; color: #fff !important; border: 2px solid var(--ink); box-shadow: 3px 3px 0 var(--ink);
+  text-transform: uppercase; letter-spacing: 0.04em; font-weight: 800;
+}
+html[data-design="plakat"] :is(.bg-fjord-800, .bg-brand-600):is(button, a):active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+html[data-design="plakat"] .rail-marker-pin { background: var(--red); border-color: var(--ink); }
+html[data-design="plakat"] .rail-marker-pin.start { background: var(--ink); }
+html[data-design="plakat"] body > nav.fixed { background: var(--ink); border-top: 4px solid var(--mustard); }
+html[data-design="plakat"] body > nav.fixed .mobile-nav-btn { color: #e6dcc6 !important; }
+html[data-design="plakat"] body > nav.fixed .mobile-nav-btn[aria-current="page"] { color: var(--ink) !important; background: var(--mustard) !important; }
+
+/* =============================================================================
+   3. SOMMER – lyst og varmt: solnedgangsgradient, korall og himmelblått, myke former
+   ============================================================================= */
+html[data-design="sommer"] {
+  --c-overview: 249 115 22; --c-plan: 168 85 247; --c-trains: 14 165 233; --c-budget: 234 179 8;
+  --c-packing: 236 72 153; --c-social: 16 185 129; --c-trips: 244 63 94;
+  background: #fff8f1;
+}
+html[data-design="sommer"] body, html[data-design="sommer"] body > main {
+  background: radial-gradient(80% 50% at 100% 0%, #e0f2fe 0%, transparent 60%), radial-gradient(70% 40% at 0% 100%, #ffe4e6 0%, transparent 60%), #fff8f1;
+  background-attachment: fixed;
+}
+html[data-design="sommer"] :is(h2, h3, #overview-hero-main) { font-family: "Fredoka", "Plus Jakarta Sans", sans-serif; letter-spacing: 0; font-weight: 600; }
+html[data-design="sommer"] h2 { font-size: 1.3rem !important; line-height: 1.2; }
+html[data-design="sommer"] section.tab-content > div:first-child h2 { font-size: clamp(1.7rem, 2.8vw, 2.2rem) !important; }
+/* Lys sidemeny med fargede ikonbobler */
+html[data-design="sommer"] body > aside { background: rgb(255 255 255 / 0.85) !important; border-right: 1px solid #fde2cf; color: #1f2937; backdrop-filter: blur(12px); }
+html[data-design="sommer"] body > aside :is(.text-white, .text-fjord-200, .text-fjord-100) { color: #374151 !important; }
+html[data-design="sommer"] body > aside .border-white\/10 { border-color: #fde2cf !important; }
+html[data-design="sommer"] body > aside .bg-white\/5, html[data-design="sommer"] body > aside .bg-white\/10 { background: #fff1e6 !important; }
+html[data-design="sommer"] body > aside .bg-brand-600 { background: linear-gradient(135deg, #fb923c, #f43f5e) !important; }
+html[data-design="sommer"] body > aside .bg-brand-600 :is(i, svg) { color: #fff !important; }
+html[data-design="sommer"] .nav-item { border-radius: 999px; }
+html[data-design="sommer"] .nav-item :is(i, svg) {
+  color: rgb(var(--sec)) !important; background: rgb(var(--sec) / 0.14); border-radius: 999px; padding: 4px; box-sizing: content-box;
+}
+html[data-design="sommer"] .nav-item[aria-current="page"] { background: rgb(var(--sec) / 0.14) !important; color: rgb(var(--sec)) !important; box-shadow: none; }
+html[data-design="sommer"] .nav-item[aria-current="page"] span { color: #111827 !important; }
+html[data-design="sommer"] body > aside .text-\[11px\] { color: #9a6b4a !important; }
+html[data-design="sommer"] body > main > header { background: rgb(255 255 255 / 0.75); backdrop-filter: blur(12px); border-color: #fde2cf; }
+html[data-design="sommer"] #overview-hero {
+  background: linear-gradient(120deg, #fb923c 0%, #f43f5e 45%, #a855f7 100%) !important;
+  border-radius: 28px; box-shadow: 0 26px 50px -28px rgb(244 63 94 / 0.75);
+}
+html[data-design="sommer"] #overview-hero > i { color: rgb(255 255 255 / 0.14) !important; }
+html[data-design="sommer"] #overview-hero > .grid { background: transparent; border-top: 0; gap: 10px; padding: 0 14px 14px; }
+html[data-design="sommer"] #overview-hero > .grid > * { background: rgb(255 255 255 / 0.18) !important; border-radius: 18px; backdrop-filter: blur(6px); }
+html[data-design="sommer"] #overview-hero > .grid > button:hover { background: rgb(255 255 255 / 0.28) !important; }
+html[data-design="sommer"] #overview-hero :is(.text-fjord-200, .text-fjord-100, .text-fjord-100\/80) { color: rgb(255 255 255 / 0.88) !important; }
+html[data-design="sommer"] #stat-pass-bar { background: #fff !important; }
+html[data-design="sommer"] .rounded-2xl.border, html[data-design="sommer"] .rounded-xl.border { border-radius: 24px; border-color: #fbe3d3; }
+html[data-design="sommer"] .shadow-2xs { box-shadow: 0 12px 30px -22px rgb(244 114 82 / 0.55); }
+html[data-design="sommer"] section.tab-content:not(#tab-overview) > .rounded-2xl.border { border-top: 0; box-shadow: inset 0 4px 0 rgb(var(--sec)), 0 12px 30px -22px rgb(244 114 82 / 0.55); }
+html[data-design="sommer"] :is(.bg-fjord-800, .bg-brand-600):is(button, a) {
+  background: linear-gradient(135deg, #fb923c, #f43f5e) !important; border-radius: 999px; border-color: transparent;
+  box-shadow: 0 10px 20px -12px rgb(244 63 94 / 0.9);
+}
+html[data-design="sommer"] .rail-marker-pin { background: linear-gradient(135deg, #fb923c, #f43f5e); }
+html[data-design="sommer"] body > nav.fixed { background: rgb(255 255 255 / 0.9); border-color: #fde2cf; }
+html[data-design="sommer"] .mobile-nav-btn[aria-current="page"] { border-radius: 999px; }
+
+/* Stoppnumre langs ruten */
+html[data-design="nordlys"] #timeline-container .w-6.h-6.rounded-full { background: linear-gradient(135deg, #14b8a6, #6366f1) !important; }
+html[data-design="nordlys"] #timeline-container .w-6.h-6.rounded-full.bg-fjord-800 { background: #0b1530 !important; }
+html[data-design="plakat"] #timeline-container .w-6.h-6.rounded-full { background: var(--red) !important; border: 2px solid var(--ink); width: 1.75rem; height: 1.75rem; left: -2px; font-family: "Big Shoulders Display", sans-serif; font-size: 1rem; }
+html[data-design="plakat"] #timeline-container .w-6.h-6.rounded-full.bg-fjord-800 { background: var(--ink) !important; }
+html[data-design="plakat"] #timeline-container .w-0.5 { background: repeating-linear-gradient(180deg, var(--ink) 0 8px, transparent 8px 14px) !important; width: 3px; }
+html[data-design="sommer"] #timeline-container .w-6.h-6.rounded-full { background: linear-gradient(135deg, #fb923c, #f43f5e) !important; box-shadow: 0 4px 10px -4px rgb(244 63 94 / 0.8); }
+html[data-design="sommer"] #timeline-container .w-6.h-6.rounded-full.bg-fjord-800 { background: linear-gradient(135deg, #a855f7, #6366f1) !important; }
