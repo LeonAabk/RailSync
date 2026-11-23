@@ -811,7 +811,7 @@ export function renderPacking() {
             <input 
               type="text" 
               name="quickItemText"
-              placeholder="+ Legg til i ${escapeHtml(categoryName)}..." 
+              placeholder="Ny gjenstand …" aria-label="Ny gjenstand i ${escapeHtml(categoryName)}" 
               required 
               class="flex-1 bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-800 font-medium focus:ring-1 focus:ring-brand-500 focus:outline-none"
             >
