@@ -26,11 +26,50 @@ export function handlePresetCitySelect(val) {
   document.getElementById("stop-country").value = country;
   document.getElementById("stop-lat").value = lat;
   document.getElementById("stop-lng").value = lng;
+  stopCoordsCity = city;
+  updateStopMapStatus();
+}
+
+// Byen koordinatene i skjemaet hører til (satt av søk, liste eller når et stopp redigeres)
+let stopCoordsCity = "";
+
+// Statuslinje i stoppvinduet: vises stoppet på kartet? (erstatter synlige koordinatfelt)
+function updateStopMapStatus() {
+  const el = document.getElementById("stop-map-status");
+  if (!el) return;
+  const city = (document.getElementById("stop-city").value || "").trim();
+  const lat = parseFloat(document.getElementById("stop-lat").value);
+  const lng = parseFloat(document.getElementById("stop-lng").value);
+  const dot = (cls) => `<span class="w-2 h-2 mt-1.5 rounded-full shrink-0 ${cls}" aria-hidden="true"></span>`;
+  let tone = "bg-slate-50 text-slate-600";
+  let html;
+  const sameCity = !stopCoordsCity || stopCoordsCity.toLowerCase() === city.toLowerCase();
+  if (Number.isFinite(lat) && Number.isFinite(lng) && city && !sameCity) {
+    tone = "bg-amber-50 text-amber-900";
+    html = `${dot("bg-amber-500")}<span>Kartposisjonen er for ${escapeHtml(stopCoordsCity)}. Søk etter ${escapeHtml(city)} over hvis stoppet ligger et annet sted.</span>`;
+  } else if (Number.isFinite(lat) && Number.isFinite(lng)) {
+    tone = "bg-emerald-50 text-emerald-800";
+    html = `${dot("bg-emerald-500")}<span>${city ? `${escapeHtml(city)} vises på kartet.` : "Vises på kartet."}</span>`;
+  } else if (city && findStationByName(city)) {
+    tone = "bg-emerald-50 text-emerald-800";
+    html = `${dot("bg-emerald-500")}<span>${escapeHtml(city)} plasseres på kartet når du lagrer.</span>`;
+  } else if (city) {
+    tone = "bg-amber-50 text-amber-900";
+    html = `${dot("bg-amber-500")}<span>Fant ikke ${escapeHtml(city)} på kartet. Søk etter byen over for å plassere den, eller lagre uten kartposisjon.</span>`;
+  } else {
+    html = `${dot("bg-slate-400")}<span>Søk etter en by, eller velg fra listen. Da vises stoppet på kartet.</span>`;
+  }
+  el.className = `flex items-start gap-2 text-sm rounded-xl px-3 py-2.5 ${tone}`;
+  el.innerHTML = html;
 }
 
 let searchDebounceTimer = null;
 
 export function setupNominatimSearch() {
+  ["stop-city", "stop-lat", "stop-lng"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("input", updateStopMapStatus);
+  });
   const input = document.getElementById("stop-search-input");
   const dropdown = document.getElementById("search-results-dropdown");
   const spinner = document.getElementById("search-spinner");
@@ -102,6 +141,8 @@ export function selectSearchResult(city, country, lat, lng) {
   document.getElementById("stop-lng").value = lng;
   document.getElementById("stop-search-input").value = `${city}, ${country}`;
   document.getElementById("search-results-dropdown").classList.add("hidden");
+  stopCoordsCity = city;
+  updateStopMapStatus();
 }
 
 export function openAddStopModal() {
@@ -110,6 +151,7 @@ export function openAddStopModal() {
   document.getElementById("modal-stop-title").textContent = "Legg til stoppested";
   document.getElementById("modal-stop-btn-text").textContent = "Lagre stoppested";
   document.getElementById("form-add-stop").reset();
+  stopCoordsCity = "";
   document.getElementById("stop-preset-select").value = "";
   document.getElementById("stop-search-input").value = "";
   document.getElementById("search-results-dropdown").classList.add("hidden");
@@ -130,6 +172,9 @@ export function openAddStopModal() {
     }
   }
 
+  const coords = document.getElementById("stop-coords-details");
+  if (coords) coords.open = false;
+  updateStopMapStatus();
   openModal('modal-add-stop');
 }
 
@@ -148,6 +193,7 @@ export function openEditStopModal(stopId) {
   document.getElementById("stop-departure").value = stop.departure;
   document.getElementById("stop-lat").value = stop.lat;
   document.getElementById("stop-lng").value = stop.lng;
+  stopCoordsCity = stop.city || "";
   document.getElementById("stop-accom-status").value = stop.accommodationStatus;
   document.getElementById("stop-accom-note").value = stop.accommodationNote || "";
 
@@ -155,6 +201,9 @@ export function openEditStopModal(stopId) {
   document.getElementById("stop-search-input").value = "";
   document.getElementById("search-results-dropdown").classList.add("hidden");
 
+  const coords = document.getElementById("stop-coords-details");
+  if (coords) coords.open = false;
+  updateStopMapStatus();
   openModal('modal-add-stop');
 }
 
