@@ -1,8 +1,13 @@
-{
+﻿{
   "name": "railsync",
   "private": true,
   "description": "RailSync – planlegg Interrail sammen. Publiseres på aabakstudio.com/RailSync via GitHub Actions.",
   "scripts": {
-    "build": "node scripts/build-app.cjs"
+    "build": "node scripts/build-app.cjs",
+    "test:rules": "npx --yes firebase-tools@15.37.0 emulators:exec --only firestore --project demo-railsync \"node --test tests/rules/*.test.mjs\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "6.0.0",
+    "firebase": "13.4.0"
   }
 }
