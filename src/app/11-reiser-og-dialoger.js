@@ -179,7 +179,7 @@ function tripMemberAvatarsHtml(members) {
     const uid = m.uid || m.id;
     const fresh = known.find(t => t.uid === uid) || (currentUser && uid === currentUser.uid ? userProfile : null);
     const person = { displayName: m.name, avatarColor: m.avatarColor, photo: fresh ? fresh.photo : "" };
-    return `<span class="ring-2 ring-white rounded-full" title="${escapeHtml(m.name || "Reisende")}">${socialAvatarHtml(person, "w-6 h-6 text-[9px]", "#0d9488")}</span>`;
+    return `<span class="ring-2 ring-white rounded-full" title="${escapeHtml(m.name || "Reisende")}">${socialAvatarHtml(person, "w-6 h-6 text-[9px]", "#0b8176")}</span>`;
   }).join("");
 }
 
@@ -190,7 +190,7 @@ export function switchTripManagerTab(tabName) {
     btn.classList.toggle("border-slate-900", active);
     btn.classList.toggle("text-slate-900", active);
     btn.classList.toggle("border-transparent", !active);
-    btn.classList.toggle("text-slate-500", !active);
+    btn.classList.toggle("text-slate-600", !active);
     btn.setAttribute("aria-selected", active ? "true" : "false");
   });
   renderTripManagerList();
@@ -425,7 +425,7 @@ export function renderShareAndCollabModal() {
       return `
         <li class="flex items-center justify-between gap-3 py-2.5">
           <div class="flex items-center gap-3 min-w-0 ${!isMe && uid ? "cursor-pointer" : ""}" ${!isMe && uid ? `onclick="openTravelerProfileModal(${jsArg(uid)})"` : ""}>
-            ${socialAvatarHtml(person, "w-8 h-8 text-[11px]", "#0d9488")}
+            ${socialAvatarHtml(person, "w-8 h-8 text-[11px]", "#0b8176")}
             <span class="min-w-0">
               <span class="block text-sm font-medium text-slate-900 truncate">${escapeHtml(person.displayName || "Reisende")}${isMe ? ` <span class="font-normal text-slate-500">(deg)</span>` : ""}</span>
               ${person.username ? `<span class="block text-xs text-slate-500 truncate">${escapeHtml(person.username)}</span>` : ""}
@@ -512,7 +512,7 @@ export function handleAddTripMember(e) {
 
   const name = nameInput.value.trim().slice(0, 60);
   const role = "guest";
-  const palette = ["#f97316", "#2563eb", "#7c3aed", "#e11d48", "#059669", "#0d9488"];
+  const palette = ["#c2410c", "#2563eb", "#7c3aed", "#e11d48", "#047857", "#0b8176"];
   const color = palette[(active.members ? active.members.length : 1) % palette.length];
 
   if (!Array.isArray(active.members)) active.members = [];

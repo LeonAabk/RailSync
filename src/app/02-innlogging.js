@@ -133,7 +133,7 @@ function describeLogin(user) {
 export function updateAuthUI(user) {
   const activeName = userProfile.displayName || (user && (user.displayName || (user.email ? user.email.split("@")[0] : ""))) || "Min profil";
   const handle = userProfile.username || "";
-  const bgColor = safeColor(userProfile.avatarColor, "#0d9488");
+  const bgColor = safeColor(userProfile.avatarColor, "#0b8176");
   const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
 
   setText("user-display-name", activeName);

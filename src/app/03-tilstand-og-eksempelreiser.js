@@ -191,7 +191,7 @@ export function ensureTripCollaborationFields(tripObj) {
 
   const activeUid = currentUser ? currentUser.uid : (userProfile.uid || "local_user");
   const activeName = userProfile.displayName || (currentUser && currentUser.displayName) || "Meg";
-  const activeColor = userProfile.avatarColor || "#0d9488";
+  const activeColor = userProfile.avatarColor || "#0b8176";
 
   if (!tripObj.owner || !tripObj.owner.uid) {
     tripObj.owner = {

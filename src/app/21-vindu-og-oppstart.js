@@ -149,6 +149,22 @@ window.focusTrainTrackOnMap = focusTrainTrackOnMap;
 window.fetchRealTrackForSingleTrain = fetchRealTrackForSingleTrain;
 window.fetchRealTracksForAllTrains = fetchRealTracksForAllTrains;
 
+// Faner: piltaster (og Home/End) flytter mellom fanene i en role="tablist", som skjermlesere og tastaturbrukere forventer
+document.addEventListener("keydown", (e) => {
+  if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
+  const tab = e.target.closest && e.target.closest('[role="tab"]');
+  const list = tab && tab.closest('[role="tablist"]');
+  if (!list) return;
+  const tabs = [...list.querySelectorAll('[role="tab"]')].filter(t => t.offsetParent !== null && !t.disabled);
+  const i = tabs.indexOf(tab);
+  if (i === -1) return;
+  const next = e.key === "Home" ? 0 : e.key === "End" ? tabs.length - 1
+    : (i + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+  e.preventDefault();
+  tabs[next].focus();
+  tabs[next].click();
+});
+
 // =============================================================================
 // 10. INITIALIZATION
 // =============================================================================

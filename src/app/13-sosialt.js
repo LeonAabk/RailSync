@@ -493,7 +493,8 @@ function socialAvatarHtml(person, sizeClass = "w-11 h-11 text-sm", fallback = "#
   if (photo) {
     return `<div class="${sizeClass} rounded-full overflow-hidden shrink-0 bg-slate-100"><img src="${escapeHtml(photo)}" alt="" loading="lazy" class="w-full h-full object-cover"></div>`;
   }
-  return `<div class="${sizeClass} rounded-full text-white font-semibold flex items-center justify-center shrink-0" style="background-color: ${safeColor(person && person.avatarColor, fallback)}">${escapeHtml(getInitials(name))}</div>`;
+  const bg = avatarColor(person && person.avatarColor, fallback);
+  return `<div class="${sizeClass} rounded-full font-semibold flex items-center justify-center shrink-0" style="background-color: ${bg}; color: ${avatarInk(bg)}">${escapeHtml(getInitials(name))}</div>`;
 }
 
 function placeThumbHtml(city, country, sizeClass = "w-12 h-12") {
@@ -598,7 +599,7 @@ export function renderSocialHub() {
   const active = getActiveTripObject();
 
   // 1. Identitet (venstre kort + høyre topp + detaljgrid)
-  paintAvatar(document.getElementById("social-hero-avatar"), userProfile, "#0d9488");
+  paintAvatar(document.getElementById("social-hero-avatar"), userProfile, "#0b8176");
   const heroCover = document.getElementById("social-hero-cover");
   if (heroCover) {
     const wanted = isSafePhotoDataUrl(userCover, MAX_COVER_CHARS) ? userCover : DEFAULT_COVER_URL;
@@ -655,8 +656,8 @@ export function renderSocialHub() {
         const photo = safePhoto(fresh.photo);
         return `
         <button type="button" onclick="openTravelerProfileModal(${jsArg(f.uid)})" title="${escapeHtml(fresh.displayName || "Reisende")}"
-          class="w-8 h-8 rounded-full ring-2 ring-white overflow-hidden text-white text-[11px] font-semibold flex items-center justify-center hover:-translate-y-0.5 transition"
-          style="background-color: ${safeColor(fresh.avatarColor, "#2563eb")}">${photo ? `<img src="${escapeHtml(photo)}" alt="" class="w-full h-full object-cover">` : escapeHtml(getInitials(fresh.displayName || "Reisende"))}</button>`;
+          class="w-8 h-8 rounded-full ring-2 ring-white overflow-hidden text-[11px] font-semibold flex items-center justify-center hover:-translate-y-0.5 transition"
+          style="background-color: ${avatarColor(fresh.avatarColor, "#2563eb")}; color: ${avatarInk(avatarColor(fresh.avatarColor, "#2563eb"))}">${photo ? `<img src="${escapeHtml(photo)}" alt="" class="w-full h-full object-cover">` : escapeHtml(getInitials(fresh.displayName || "Reisende"))}</button>`;
       }).join("") + (friendsCount > 4
         ? `<span class="w-8 h-8 rounded-full ring-2 ring-white bg-white text-slate-800 text-[11px] font-semibold flex items-center justify-center">+${Number(friendsCount - 4)}</span>`
         : "");
@@ -1067,7 +1068,7 @@ export function duplicateTrip(tripId) {
   newTrip.owner = {
     uid: currentUser ? currentUser.uid : userProfile.uid,
     name: userProfile.displayName || "Reisende",
-    avatarColor: userProfile.avatarColor || "#0d9488"
+    avatarColor: userProfile.avatarColor || "#0b8176"
   };
   newTrip.members = [
     {

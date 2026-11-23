@@ -88,7 +88,7 @@ export function setOverviewView(view, opts = {}) {
     b.classList.toggle("bg-white", on);
     b.classList.toggle("shadow-xs", on);
     b.classList.toggle("text-slate-900", on);
-    b.classList.toggle("text-slate-500", !on);
+    b.classList.toggle("text-slate-600", !on);
   });
   if (overviewView === "map" && map) {
     map.invalidateSize();

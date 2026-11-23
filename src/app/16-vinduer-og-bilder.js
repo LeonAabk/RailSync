@@ -91,8 +91,27 @@ function jsArg(value) {
 }
 
 // Bare #RRGGBB godtas i style-attributter (hindrer CSS-injeksjon fra andres profiler)
-function safeColor(color, fallback = "#0d9488") {
+function safeColor(color, fallback = "#0b8176") {
   return typeof color === "string" && /^#[0-9a-fA-F]{6}$/.test(color) ? color : fallback;
+}
+
+// Avatarfarger: tidligere valg (teal, oransje, grønn) vises som en litt mørkere variant av samme farge,
+// så hvite initialer får nok kontrast (WCAG 4.5:1). Brukerens lagrede valg endres ikke.
+const AVATAR_COLOR_UPGRADE = { "#0d9488": "#0b8176", "#f97316": "#c2410c", "#059669": "#047857" };
+
+function avatarColor(color, fallback = "#0b8176") {
+  const c = safeColor(color, fallback).toLowerCase();
+  return AVATAR_COLOR_UPGRADE[c] || c;
+}
+
+// Tekstfarge for initialer på en bakgrunnsfarge: hvit der den gir minst 4.5:1, ellers mørk
+function avatarInk(background) {
+  const hex = safeColor(background, "#0b8176");
+  const lum = [1, 3, 5]
+    .map(i => parseInt(hex.slice(i, i + 2), 16) / 255)
+    .map(v => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+  const l = 0.2126 * lum[0] + 0.7152 * lum[1] + 0.0722 * lum[2];
+  return 1.05 / (l + 0.05) >= 4.5 ? "#ffffff" : "#0f172a";
 }
 
 // ---------------------------------------------------------------------------
@@ -120,10 +139,12 @@ function safePhoto(value) {
 }
 
 // Fyller et avatar-element med profilbilde eller initialer
-function paintAvatar(el, person, fallback = "#0d9488") {
+function paintAvatar(el, person, fallback = "#0b8176") {
   if (!el) return;
   const name = (person && person.displayName) || "Reisende";
-  el.style.backgroundColor = safeColor(person && person.avatarColor, fallback);
+  const bg = avatarColor(person && person.avatarColor, fallback);
+  el.style.backgroundColor = bg;
+  el.style.color = avatarInk(bg);
   el.classList.add("overflow-hidden");
   const photo = safePhoto(person && person.photo);
   if (photo) {

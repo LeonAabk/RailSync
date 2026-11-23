@@ -36,9 +36,41 @@ describe('jsArg – verdier inne i onclick="…"', () => {
 describe('safeColor', () => {
   test('bare #RRGGBB slipper gjennom (hindrer CSS-injeksjon)', () => {
     assert.equal(app.safeColor('#0D9488'), '#0D9488');
-    assert.equal(app.safeColor('red'), '#0d9488');
-    assert.equal(app.safeColor('#fff'), '#0d9488');
+    assert.equal(app.safeColor('red'), '#0b8176');
+    assert.equal(app.safeColor('#fff'), '#0b8176');
     assert.equal(app.safeColor('#000000;background:url(x)', '#123456'), '#123456');
+  });
+});
+
+describe('avatarColor og avatarInk – lesbare initialer (WCAG 4.5:1)', () => {
+  const lum = (hex) => {
+    const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+      .map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  };
+  const contrast = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+
+  test('eldre farger vises som mørkere variant av samme farge', () => {
+    assert.equal(app.avatarColor('#0d9488'), '#0b8176');
+    assert.equal(app.avatarColor('#F97316'), '#c2410c');
+    assert.equal(app.avatarColor('#059669'), '#047857');
+    assert.equal(app.avatarColor('#2563eb'), '#2563eb');
+    assert.equal(app.avatarColor('ugyldig', '#7c3aed'), '#7c3aed');
+  });
+
+  test('alle fargene i profilvelgeren gir hvit tekst med minst 4.5:1', () => {
+    for (const c of ['#0b8176', '#2563eb', '#7c3aed', '#e11d48', '#c2410c', '#047857', '#0f172a']) {
+      assert.equal(app.avatarInk(c), '#ffffff', c);
+      assert.ok(contrast(c, '#ffffff') >= 4.5, `${c}: ${contrast(c, '#ffffff').toFixed(2)}`);
+    }
+  });
+
+  test('lyse farger (som andre kan ha lagret) får mørk tekst, og alltid nok kontrast', () => {
+    for (const c of ['#fde047', '#a7f3d0', '#ffffff', '#94a3b8', '#14b8a6', '#000000', '#ff0000']) {
+      const ink = app.avatarInk(c);
+      assert.ok(contrast(c, ink) >= 4.5 || contrast(c, '#ffffff') < 4.5 && contrast(c, '#0f172a') >= contrast(c, '#ffffff'), `${c} med ${ink}`);
+    }
+    assert.equal(app.avatarInk('#fde047'), '#0f172a');
   });
 });
 

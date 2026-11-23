@@ -189,7 +189,7 @@ export function openUserProfileModal() {
 }
 
 export function selectProfileColor(color) {
-  const safe = safeColor(color, "#0d9488");
+  const safe = safeColor(color, "#0b8176");
   const colorInput = document.getElementById("profile-avatar-color");
   const preview = document.getElementById("profile-modal-avatar-preview");
   if (colorInput) colorInput.value = safe;
@@ -218,7 +218,7 @@ export function renderUserProfileModal() {
   const passSelect = document.getElementById("profile-pass-type");
   if (passSelect && userProfile.defaultPassType) passSelect.value = userProfile.defaultPassType;
 
-  const color = safeColor(userProfile.avatarColor, "#0d9488");
+  const color = safeColor(userProfile.avatarColor, "#0b8176");
   selectProfileColor(color);
   renderProfileMediaPreviews();
 
@@ -266,7 +266,7 @@ export async function handleSaveUserProfile(e) {
   userProfile.username = newHandle;
   userProfile.homeStation = ((stationInput && stationInput.value.trim()) || "").slice(0, 80);
   userProfile.defaultPassType = passSelect ? passSelect.value : userProfile.defaultPassType;
-  userProfile.avatarColor = safeColor(colorInput && colorInput.value, "#0d9488");
+  userProfile.avatarColor = safeColor(colorInput && colorInput.value, "#0b8176");
   userProfile.bio = ((bioInput && bioInput.value.trim()) || "").slice(0, 300);
 
   // Update owner/member entry on user's owned trips so their new name & avatar color show everywhere

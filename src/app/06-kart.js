@@ -162,7 +162,7 @@ export function updateMapLayers() {
 
   if (latlngs.length > 1) {
     routePolyline = L.polyline(latlngs, {
-      color: trainsWithGeometry.length > 0 ? '#94a3b8' : '#0d9488',
+      color: trainsWithGeometry.length > 0 ? '#94a3b8' : '#0b8176',
       weight: trainsWithGeometry.length > 0 ? 2.5 : 4,
       opacity: trainsWithGeometry.length > 0 ? 0.5 : 0.85,
       dashArray: '8, 8',
@@ -173,7 +173,7 @@ export function updateMapLayers() {
 
   trainsWithGeometry.forEach((train) => {
     const poly = L.polyline(train.routeGeometry, {
-      color: '#0d9488',
+      color: '#0b8176',
       weight: 4.5,
       opacity: 0.92,
       lineCap: 'round',

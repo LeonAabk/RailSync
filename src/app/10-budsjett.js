@@ -525,8 +525,8 @@ export function renderBudget() {
 
   // Faner og personvelger
   const sharedList = sharedExpensesFor(tid);
-  set("budget-view-btn-personal", el => { const on = budgetViewMode === "personal"; el.classList.toggle("bg-white", on); el.classList.toggle("shadow-sm", on); el.classList.toggle("text-slate-900", on); el.classList.toggle("text-slate-500", !on); el.setAttribute("aria-selected", on); });
-  set("budget-view-btn-shared", el => { const on = budgetViewMode === "shared"; el.classList.toggle("bg-white", on); el.classList.toggle("shadow-sm", on); el.classList.toggle("text-slate-900", on); el.classList.toggle("text-slate-500", !on); el.setAttribute("aria-selected", on); });
+  set("budget-view-btn-personal", el => { const on = budgetViewMode === "personal"; el.classList.toggle("bg-white", on); el.classList.toggle("shadow-sm", on); el.classList.toggle("text-slate-900", on); el.classList.toggle("text-slate-600", !on); el.setAttribute("aria-selected", on); });
+  set("budget-view-btn-shared", el => { const on = budgetViewMode === "shared"; el.classList.toggle("bg-white", on); el.classList.toggle("shadow-sm", on); el.classList.toggle("text-slate-900", on); el.classList.toggle("text-slate-600", !on); el.setAttribute("aria-selected", on); });
   set("budget-shared-count", el => { const n = sharedList.filter(e => e.kind === "expense").length; el.textContent = n ? String(n) : ""; el.classList.toggle("hidden", !n); });
   set("budget-panel-personal", el => el.classList.toggle("hidden", budgetViewMode !== "personal"));
   set("budget-panel-shared", el => el.classList.toggle("hidden", budgetViewMode !== "shared"));
@@ -540,7 +540,7 @@ export function renderBudget() {
     el.innerHTML = accountPeople.map(p => {
       const on = p.id === budgetViewUid;
       return `<button type="button" onclick="selectBudgetPerson(${jsArg(p.id)})" class="shrink-0 inline-flex items-center gap-2 pl-1 pr-3 py-1 rounded-full border text-sm transition ${on ? "border-slate-900 bg-fjord-800 text-white" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}">
-        ${socialAvatarHtml({ displayName: p.name, avatarColor: p.avatarColor, photo: p.id === me ? userProfile.photo : ((userProfile.friends || []).find(f => f.uid === p.id) || {}).photo }, "w-6 h-6 text-[10px]", "#0d9488")}
+        ${socialAvatarHtml({ displayName: p.name, avatarColor: p.avatarColor, photo: p.id === me ? userProfile.photo : ((userProfile.friends || []).find(f => f.uid === p.id) || {}).photo }, "w-6 h-6 text-[10px]", "#0b8176")}
         <span>${escapeHtml(p.id === me ? "Meg" : p.name)}</span></button>`;
     }).join("");
   });
@@ -878,8 +878,8 @@ export function renderHeaderCollaborationBar() {
   const avatarsHtml = members.slice(0, 5).map(m => `
     <span 
       title="${escapeHtml(m.name)} (${m.role === 'owner' ? 'Eier' : (m.role === 'viewer' ? 'Kun visning' : 'Kan redigere')})"
-      class="w-6 h-6 rounded-full text-white text-[10px] font-extrabold flex items-center justify-center ring-2 ring-white shadow-2xs"
-      style="background-color: ${safeColor(m.avatarColor, '#0d9488')}"
+      class="w-6 h-6 rounded-full text-[10px] font-extrabold flex items-center justify-center ring-2 ring-white shadow-2xs"
+      style="background-color: ${avatarColor(m.avatarColor)}; color: ${avatarInk(avatarColor(m.avatarColor))}"
     >
       ${escapeHtml(getInitials(m.name))}
     </span>

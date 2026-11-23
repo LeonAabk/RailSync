@@ -207,7 +207,7 @@ export let userProfile = {
   uid: "local_user",
   displayName: "Reisende",
   username: "@reisende",
-  avatarColor: "#0d9488",
+  avatarColor: "#0b8176",
   homeStation: "",
   defaultPassType: "",
   bio: "",
@@ -280,7 +280,7 @@ function buildPublicProfilePayload(uid) {
     uid,
     displayName,
     username,
-    avatarColor: safeColor(userProfile.avatarColor, "#0d9488"),
+    avatarColor: safeColor(userProfile.avatarColor, "#0b8176"),
     photo: safePhoto(userProfile.photo),
     homeStation: str(userProfile.homeStation, 80),
     bio: str(userProfile.bio, 300),
@@ -297,7 +297,7 @@ function myPublicSnippet() {
   return {
     displayName: String(userProfile.displayName || "Reisende").slice(0, 60),
     username: String(userProfile.username || "@reisende").slice(0, 30),
-    avatarColor: safeColor(userProfile.avatarColor, "#0d9488"),
+    avatarColor: safeColor(userProfile.avatarColor, "#0b8176"),
     photo: safePhoto(userProfile.photo),
     homeStation: String(userProfile.homeStation || "").slice(0, 80)
   };
