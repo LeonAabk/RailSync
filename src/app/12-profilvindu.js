@@ -378,3 +378,13 @@ export async function selectDesign(value) {
       : `${DESIGN_NAMES[design]} er valgt på denne enheten. Det lagres på kontoen når du er på nett igjen.`;
   }
 }
+
+// Snarvei fra kontomenyen og sidemenyen: åpner Konto og profil og viser Utseende.
+export function openDesignPicker() {
+  openUserProfileModal();
+  renderDesignPicker();
+  setTimeout(() => {
+    const el = document.getElementById("design-picker");
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, 60);
+}

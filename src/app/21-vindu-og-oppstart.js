@@ -94,6 +94,7 @@ window.handleAddTripMember = handleAddTripMember;
 window.toggleTripMemberRole = toggleTripMemberRole;
 window.removeTripMember = removeTripMember;
 window.openUserProfileModal = openUserProfileModal;
+window.openDesignPicker = openDesignPicker;
 window.selectProfileColor = selectProfileColor;
 window.handleSaveUserProfile = handleSaveUserProfile;
 window.switchSocialSubTab = switchSocialSubTab;

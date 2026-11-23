@@ -451,6 +451,11 @@
           <span>Reiser</span>
           <span id="sidebar-trips-count-badge" class="ml-auto text-[11px] font-semibold px-2 py-0.5 rounded-md bg-white/10 text-fjord-100">1</span>
         </button>
+
+        <button data-onclick="openDesignPicker()" id="nav-btn-design" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all duration-150 text-fjord-200 hover:text-white hover:bg-white/5 mt-0.5">
+          <i data-lucide="palette" class="w-4 h-4 text-fjord-200"></i>
+          <span>Utseende</span>
+        </button>
       </div>
     </nav>
 
@@ -543,6 +548,9 @@
               </button>
               <button type="button" role="menuitem" data-onclick="closeAccountMenu(); openUserProfileModal()" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50">
                 <i data-lucide="settings" class="w-4 h-4 text-slate-400"></i><span>Kontoinnstillinger</span>
+              </button>
+              <button type="button" role="menuitem" data-onclick="closeAccountMenu(); openDesignPicker()" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                <i data-lucide="palette" class="w-4 h-4 text-slate-400"></i><span>Utseende</span>
               </button>
               <div class="my-1 border-t border-slate-100"></div>
               <button type="button" role="menuitem" data-install-item data-onclick="closeAccountMenu(); openInstallHelp()" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50">
@@ -1704,6 +1712,44 @@
           <p class="text-sm text-slate-600 mt-1">Det andre reisende ser om deg, og standardvalgene for reisene dine.</p>
         </div>
 
+        <!-- Designvelger: valget gjelder med en gang og lagres på profilen (se DESIGN.md) -->
+        <div id="design-picker" class="scroll-mt-20 bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-7 grid gap-6 md:grid-cols-3">
+          <div>
+            <h3 class="text-sm font-semibold text-slate-900">Utseende</h3>
+            <p class="text-xs text-slate-500 mt-1 leading-relaxed">Velg hvordan RailSync ser ut. Endringen vises med en gang og følger kontoen din til andre enheter.</p>
+          </div>
+          <fieldset class="md:col-span-2">
+            <legend class="sr-only">Design</legend>
+            <div class="grid grid-cols-2 gap-3">
+              <label class="design-option">
+                <input type="radio" name="app-design" value="standard" class="sr-only" data-onchange="selectDesign(this.value)">
+                <span class="design-swatch" data-swatch="standard" aria-hidden="true"><span></span><span></span><span></span></span>
+                <span class="design-option-name">Standard</span>
+                <span class="design-option-desc">Rolig fjordgrønt</span>
+              </label>
+              <label class="design-option">
+                <input type="radio" name="app-design" value="alpin" class="sr-only" data-onchange="selectDesign(this.value)">
+                <span class="design-swatch" data-swatch="alpin" aria-hidden="true"><span></span><span></span><span></span></span>
+                <span class="design-option-name">Alpin</span>
+                <span class="design-option-desc">Rødt, hvitt og fjell</span>
+              </label>
+              <label class="design-option">
+                <input type="radio" name="app-design" value="retro" class="sr-only" data-onchange="selectDesign(this.value)">
+                <span class="design-swatch" data-swatch="retro" aria-hidden="true"><span></span><span></span><span></span></span>
+                <span class="design-option-name">Retro 70</span>
+                <span class="design-option-desc">Varme 70-tallsstriper</span>
+              </label>
+              <label class="design-option">
+                <input type="radio" name="app-design" value="nattog" class="sr-only" data-onchange="selectDesign(this.value)">
+                <span class="design-swatch" data-swatch="nattog" aria-hidden="true"><span></span><span></span><span></span></span>
+                <span class="design-option-name">Nattog</span>
+                <span class="design-option-desc">Midnatt, gull og stjerner</span>
+              </label>
+            </div>
+            <p id="design-status" class="text-xs text-slate-500 mt-3" aria-live="polite"></p>
+          </fieldset>
+        </div>
+
         <form id="form-user-profile" data-onsubmit="handleSaveUserProfile(event)" class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs divide-y divide-slate-100">
           <div class="p-5 sm:p-7 grid gap-6 md:grid-cols-3">
             <div>
@@ -1808,44 +1854,6 @@
             <button type="submit" class="px-4 py-2 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white text-sm font-semibold transition">Lagre endringer</button>
           </div>
         </form>
-
-        <!-- Designvelger: valget gjelder med en gang og lagres på profilen (se DESIGN.md) -->
-        <div id="design-picker" class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-7 grid gap-6 md:grid-cols-3">
-          <div>
-            <h3 class="text-sm font-semibold text-slate-900">Utseende</h3>
-            <p class="text-xs text-slate-500 mt-1 leading-relaxed">Velg hvordan RailSync ser ut. Endringen vises med en gang og følger kontoen din til andre enheter.</p>
-          </div>
-          <fieldset class="md:col-span-2">
-            <legend class="sr-only">Design</legend>
-            <div class="grid grid-cols-2 gap-3">
-              <label class="design-option">
-                <input type="radio" name="app-design" value="standard" class="sr-only" data-onchange="selectDesign(this.value)">
-                <span class="design-swatch" data-swatch="standard" aria-hidden="true"><span></span><span></span><span></span></span>
-                <span class="design-option-name">Standard</span>
-                <span class="design-option-desc">Rolig fjordgrønt</span>
-              </label>
-              <label class="design-option">
-                <input type="radio" name="app-design" value="alpin" class="sr-only" data-onchange="selectDesign(this.value)">
-                <span class="design-swatch" data-swatch="alpin" aria-hidden="true"><span></span><span></span><span></span></span>
-                <span class="design-option-name">Alpin</span>
-                <span class="design-option-desc">Rødt, hvitt og fjell</span>
-              </label>
-              <label class="design-option">
-                <input type="radio" name="app-design" value="retro" class="sr-only" data-onchange="selectDesign(this.value)">
-                <span class="design-swatch" data-swatch="retro" aria-hidden="true"><span></span><span></span><span></span></span>
-                <span class="design-option-name">Retro 70</span>
-                <span class="design-option-desc">Varme 70-tallsstriper</span>
-              </label>
-              <label class="design-option">
-                <input type="radio" name="app-design" value="nattog" class="sr-only" data-onchange="selectDesign(this.value)">
-                <span class="design-swatch" data-swatch="nattog" aria-hidden="true"><span></span><span></span><span></span></span>
-                <span class="design-option-name">Nattog</span>
-                <span class="design-option-desc">Midnatt, gull og stjerner</span>
-              </label>
-            </div>
-            <p id="design-status" class="text-xs text-slate-500 mt-3" aria-live="polite"></p>
-          </fieldset>
-        </div>
 
         <div class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-7 grid gap-6 md:grid-cols-3">
           <div>
