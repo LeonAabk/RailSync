@@ -223,12 +223,13 @@
     <div class="min-h-full grid lg:grid-cols-2">
       <!-- Bildepanel (desktop) -->
       <div class="relative hidden lg:block bg-slate-900 min-h-screen">
-        <!-- Bildet vises bare på store skjermer; <source> med media gjør at mobil ikke laster det ned -->
+        <!-- Bildet vises bare på store skjermer; <source> med media gjør at mobil ikke laster det ned.
+             Panelet er høyere enn bredt, så bildet (3:2) beskjæres: det må være minst 1,5 × skjermhøyden bredt. -->
         <picture>
-          <source media="(min-width: 1024px)" srcset="./assets/img/innlogging-960.webp 960w, ./assets/img/innlogging-1600.webp 1600w" sizes="50vw">
+          <source media="(min-width: 1024px)" srcset="./assets/img/innlogging-960.webp 960w, ./assets/img/innlogging-1200.webp 1200w, ./assets/img/innlogging-1600.webp 1600w" sizes="max(50vw, 150vh)">
           <img src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" alt="" fetchpriority="high" class="absolute inset-0 w-full h-full object-cover opacity-80">
         </picture>
-        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/25 to-slate-950/40"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/45 to-slate-950/40"></div>
         <div class="relative h-full min-h-screen flex flex-col justify-between p-10 xl:p-14 text-white">
           <div class="flex items-center gap-3">
             <span class="w-9 h-9 rounded-lg bg-white/15 backdrop-blur flex items-center justify-center"><i data-lucide="train" class="w-4 h-4"></i></span>
@@ -238,7 +239,14 @@
             <p class="text-3xl xl:text-4xl font-semibold leading-tight tracking-tight">Planlegg Interrail-reisen sammen med reisefølget ditt.</p>
             <p class="text-sm text-white/75 leading-relaxed">Ruter, togtider, budsjett og pakkeliste på ett sted – oppdatert i sanntid for alle som er med.</p>
           </div>
-          <p class="text-xs text-white/70">Et prosjekt fra Aabak Studio</p>
+          <div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-1 text-xs text-white/70">
+            <p class="whitespace-nowrap">Et prosjekt fra Aabak Studio</p>
+            <!-- Bildet er lisensiert CC BY-SA 3.0 og krever kreditering av fotograf og lisens -->
+            <p class="whitespace-nowrap text-white/60">
+              Foto: <a href="https://commons.wikimedia.org/wiki/File:RhB_ABe_8-12_Allegra_between_Lagalb_and_Ospizio_Bernina.jpg" target="_blank" rel="noopener" class="underline decoration-white/30 hover:text-white">Kabelleger / David Gubler</a>,
+              <a href="https://creativecommons.org/licenses/by-sa/3.0/deed.no" target="_blank" rel="noopener" class="underline decoration-white/30 hover:text-white">CC BY-SA 3.0</a>
+            </p>
+          </div>
         </div>
       </div>
 
