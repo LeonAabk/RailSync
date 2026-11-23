@@ -73,7 +73,6 @@ function isFirebaseConfigured() {
 let db = null;
 let auth = null;
 export let currentUser = null;
-let userProfileUnsubscribe = null;
 
 export const EUROPEAN_INTERRAIL_COUNTRIES = [
   { name: "Norge", flag: "🇳🇴" },
@@ -122,6 +121,7 @@ export function getCountryFlag(countryName) {
 export function cleanTagLabel(tag) {
   if (!tag) return "Prioritert reisemål";
   return String(tag)
+    // eslint-disable-next-line no-misleading-character-class -- \u{FE0F} (variantvelger) skal fjernes alene, med vilje
     .replace(/^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\s]+/gu, "")
     .trim() || "Prioritert reisemål";
 }

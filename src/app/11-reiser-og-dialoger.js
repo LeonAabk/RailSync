@@ -508,7 +508,6 @@ export function handleAddTripMember(e) {
   if (!requireTripOwner(active)) return;
 
   const nameInput = document.getElementById("new-member-name");
-  const roleSelect = document.getElementById("new-member-role");
   if (!nameInput || !nameInput.value.trim()) return;
 
   const name = nameInput.value.trim().slice(0, 60);

@@ -331,8 +331,6 @@ function isCloudReady() {
   return Boolean(isFirebaseConfigured() && db && currentUser);
 }
 
-const PROTECTED_TRIP_KEYS = ["ownerUid", "owner", "memberUids", "editorUids", "members", "visibility", "sharePermission", "shareCode"];
-
 function isRealUid(id) {
   return typeof id === "string" && id.length > 0 && !id.startsWith("mem_") && !id.startsWith("local") && !isExampleTravelerUid(id);
 }
@@ -668,29 +666,26 @@ async function pushTripToFirestoreInner(tripObj, _retried = false) {
       delete tripObj._syncError;
     } else {
       let merged = null;
-      try {
-        await runTransaction(db, async (tx) => {
-          const snap = await tx.get(ref);
-          const local = tripContentOf(tripObj);
-          let content = local;
-          let remoteLog = [];
-          if (snap.exists()) {
-            const remoteData = snap.data() || {};
-            remoteLog = remoteData.activityLog;
-            const remote = tripContentOf(remoteData);
-            if (tripObj._base && !sameJson(remote, tripObj._base)) {
-              content = mergeTripContent(tripObj._base, local, remote);
-            }
+      // Feiler transaksjonen (f.eks. uten nett), kastes feilen videre: endringen ligger trygt
+      // på enheten og sendes (slått sammen) når nettet er tilbake.
+      await runTransaction(db, async (tx) => {
+        const snap = await tx.get(ref);
+        const local = tripContentOf(tripObj);
+        let content = local;
+        let remoteLog = [];
+        if (snap.exists()) {
+          const remoteData = snap.data() || {};
+          remoteLog = remoteData.activityLog;
+          const remote = tripContentOf(remoteData);
+          if (tripObj._base && !sameJson(remote, tripObj._base)) {
+            content = mergeTripContent(tripObj._base, local, remote);
           }
-          const payload = buildTripContentPayload({ ...tripObj, ...content, trip: { ...content.trip } });
-          payload.activityLog = mergeActivityLogs(remoteLog, payload.activityLog);
-          tx.set(ref, payload, { merge: true });
-          merged = { content, local, activityLog: payload.activityLog };
-        });
-      } catch (txErr) {
-        // Uten nett: endringen ligger trygt på enheten og sendes (slått sammen) når nettet er tilbake
-        throw txErr;
-      }
+        }
+        const payload = buildTripContentPayload({ ...tripObj, ...content, trip: { ...content.trip } });
+        payload.activityLog = mergeActivityLogs(remoteLog, payload.activityLog);
+        tx.set(ref, payload, { merge: true });
+        merged = { content, local, activityLog: payload.activityLog };
+      });
       if (merged) {
         delete tripObj._syncError;
         tripObj._base = merged.content;
@@ -845,12 +840,6 @@ function applyRemoteTripData(id, raw) {
 
   const afterSig = canonicalJson([tripContentOf(local), TRIP_META_KEYS.map(k => local[k]), local.activityLog]);
   return { isNew: false, changed: beforeSig !== afterSig, needsPush };
-}
-
-// Brukes av eldre kall
-function mergeCloudTripDoc(docSnap) {
-  if (!docSnap || !docSnap.exists()) return;
-  applyRemoteTripData(docSnap.id, docSnap.data());
 }
 
 function setTripContent(tripObj, content) {

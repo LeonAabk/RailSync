@@ -217,7 +217,7 @@ export function renderTrains() {
   }
 
   container.innerHTML = filteredTrains.map(train => {
-    let resBadge = '';
+    let resBadge;
     if (train.reservationStatus === "confirmed") {
       resBadge = `
         <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">

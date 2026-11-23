@@ -133,7 +133,6 @@ function describeLogin(user) {
 export function updateAuthUI(user) {
   const activeName = userProfile.displayName || (user && (user.displayName || (user.email ? user.email.split("@")[0] : ""))) || "Min profil";
   const handle = userProfile.username || "";
-  const initials = getInitials(activeName);
   const bgColor = safeColor(userProfile.avatarColor, "#0d9488");
   const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
 
@@ -208,7 +207,7 @@ export async function handleUsernameAuth(e) {
   }
 
   let authEmail = rawInput;
-  let username = rawInput;
+  let username;
   if (!rawInput.includes("@")) {
     const cleanUsername = rawInput.toLowerCase().replace(/[^a-z0-9._-]/g, "");
     if (cleanUsername.length < 3) {
