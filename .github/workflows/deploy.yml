@@ -66,9 +66,17 @@ jobs:
           grep -q "^const VERSION = \"${VER}\";" _site/sw.js
           echo "Versjon: ${VER}"
 
+      - name: Minifiser app.js (etter at versjonsnummeret er satt inn)
+        run: node scripts/minify.mjs _site/app.js
+
       - name: Sjekk bygget
         run: |
           test -s _site/assets/railsync.css
+          test -s _site/app.js.map
+          for f in fonts/plus-jakarta-sans-latin.woff2 fonts/plus-jakarta-sans-latin-ext.woff2 fonts/OFL.txt img/innlogging-1600.webp img/forside.webp img/steder/tog.webp; do test -s "_site/assets/$f"; done
+          grep -q 'plus-jakarta-sans-latin.woff2' _site/assets/railsync.css || { echo "Mangler @font-face i CSS-en"; exit 1; }
+          ! grep -q 'fonts.googleapis.com' _site/index.html
+          ! grep -q 'images.unsplash.com' _site/index.html _site/app.js
           for cls in '.bg-fjord-800' '.bg-sand-100' '.max-lg\:hidden' '.text-fjord-200' '.bg-white\/10' '.peer:checked'; do
             grep -qF "$cls" _site/assets/railsync.css || { echo "Mangler $cls i CSS-en"; exit 1; }
           done
