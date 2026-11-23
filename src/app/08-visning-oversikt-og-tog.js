@@ -45,12 +45,12 @@ export function renderOverview() {
   setText("stat-pass-days", passInfo.main);
   setText("stat-pass-sub", passInfo.warn || passInfo.sub);
   const statPassSub = document.getElementById("stat-pass-sub");
-  if (statPassSub) statPassSub.classList.toggle("text-amber-700", Boolean(passInfo.warn));
+  if (statPassSub) statPassSub.classList.toggle("text-amber-200", Boolean(passInfo.warn));
   const statPassBar = document.getElementById("stat-pass-bar");
   if (statPassBar) {
     statPassBar.style.width = `${passInfo.pct}%`;
-    statPassBar.classList.toggle("bg-amber-500", Boolean(passInfo.warn));
-    statPassBar.classList.toggle("bg-brand-600", !passInfo.warn);
+    statPassBar.classList.toggle("bg-amber-400", Boolean(passInfo.warn));
+    statPassBar.classList.toggle("bg-fjord-300", !passInfo.warn);
   }
   setText("sidebar-pass-days-text", passInfo.main);
   const sidebarPassBar = document.getElementById("sidebar-pass-progress-bar");

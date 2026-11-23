@@ -130,6 +130,13 @@ function renderOnboarding() {
   const show = active && !dismissed && doneCount < steps.length;
   card.classList.toggle("hidden", !show);
   if (!show) return;
+  // Ny reise (under to steg gjort): rett under toppseksjonen. Senere: under stopp og kart, så hovedinnholdet kommer først.
+  const hero = document.getElementById("overview-hero");
+  const later = document.getElementById("overview-day-card");
+  if (hero && later) {
+    if (doneCount < 2) { if (hero.nextElementSibling !== card) hero.after(card); }
+    else if (later.previousElementSibling !== card) later.before(card);
+  }
   card.innerHTML = `
     <div class="flex items-start justify-between gap-4">
       <div>
