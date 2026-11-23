@@ -30,3 +30,16 @@ men variabler (`let`/`const`) må være definert i en del som kommer *før* der 
 | 19-land-og-valuta.js | Landinfo, valutakurser, utgifter i andre valutaer, valutakalkulator, lenker for setereservasjon |
 | 20-reisen-i-tall.js | «Reisen i tall»: statistikk på oversikten og delbart bilde |
 | 21-vindu-og-oppstart.js | Funksjoner for HTML (`window.…`) og oppstart |
+
+## Sjekker og tester
+
+Kjør `npm ci` én gang først. GitHub Actions kjører alt dette før hver publisering, og stopper hvis noe feiler.
+
+| Kommando | Hva den gjør |
+| --- | --- |
+| `npm run lint` | ESLint på hele appen (delene limes sammen, feil vises med riktig fil og linje her i `src/app/`) |
+| `npm test` | Enhetstester i `tests/unit/` for rene beregninger: oppgjør av felles utgifter, Interrail-pass, sammenslåing ved samtidig redigering, escaping og valuta |
+| `npm run test:rules` | Tester sikkerhetsreglene (`firestore.rules`) mot Firestore-emulatoren. Krever Java 21 |
+
+Enhetstestene henter funksjonene rett fra disse filene med `tests/unit/load-app.mjs`, så koden trenger ikke endres for å kunne testes.
+Bare funksjoner og konstanter på øverste nivå lastes; DOM-kode og oppstart kjøres ikke.

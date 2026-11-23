@@ -26,6 +26,16 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
+          cache: npm
+
+      - name: Installer utviklingsverktøy
+        run: npm ci --no-audit --no-fund
+
+      - name: Lint (ESLint)
+        run: npm run lint
+
+      - name: Enhetstester
+        run: npm test
 
       - name: Bygg app.js fra src/app/
         run: node scripts/build-app.cjs
