@@ -640,7 +640,10 @@ export function renderSocialHub() {
   setText("social-stat-wishlist", `${wishlist.length} reisemål`);
   setText("social-top-friends-count", String(friendsCount));
   setText("social-subtab-friends-badge", pendingReqCount > 0 ? `${friendsCount} · ${pendingReqCount} ny` : String(friendsCount));
-  setText("sidebar-social-badge", pendingReqCount > 0 ? `${friendsCount} (+${pendingReqCount})` : `${friendsCount} ${friendsCount === 1 ? "venn" : "venner"}`);
+  // Bare tall i menyene, som de andre merkene. Nye venneforespørsler vises som «+N».
+  const socialBadge = pendingReqCount > 0 ? `${friendsCount} +${pendingReqCount}` : String(friendsCount);
+  setText("sidebar-social-badge", socialBadge);
+  setText("account-menu-social-badge", socialBadge);
   const mobileReqDot = document.getElementById("mobile-social-req-dot");
   if (mobileReqDot) mobileReqDot.classList.toggle("hidden", pendingReqCount === 0);
 

@@ -202,8 +202,8 @@ export function renderTripManagerList() {
   const mineTrips = allTrips.filter(t => isTripOwnedByCurrentUser(t));
   const sharedTrips = allTrips.filter(t => !isTripOwnedByCurrentUser(t));
 
-  [["sidebar-trips-count-badge", allTrips.length], ["header-trip-count-badge", allTrips.length],
-   ["header-trip-count-badge-mobile", allTrips.length], ["trip-tab-count-all", allTrips.length],
+  [["sidebar-trips-count-badge", allTrips.length], ["account-menu-trips-count", allTrips.length],
+   ["trip-tab-count-all", allTrips.length],
    ["trip-tab-count-mine", mineTrips.length], ["trip-tab-count-shared", sharedTrips.length]
   ].forEach(([id, n]) => { const el = document.getElementById(id); if (el) el.textContent = n; });
 

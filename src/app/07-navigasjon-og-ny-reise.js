@@ -205,7 +205,7 @@ export function switchTab(tabId) {
     btn.classList.add("text-slate-500", "font-medium");
   });
   document.querySelectorAll(".mobile-nav-btn").forEach(btn => btn.removeAttribute("aria-current"));
-  const mobileTabFor = { account: "social", welcome: "overview" };
+  const mobileTabFor = { welcome: "overview" };
   const activeMobileBtn = document.getElementById(`mobile-tab-${mobileTabFor[tabId] || tabId}`);
   if (activeMobileBtn) {
     activeMobileBtn.classList.add("text-brand-600", "font-bold", "bg-brand-50/70");

@@ -411,18 +411,15 @@
           <span class="text-[11px] text-fjord-200 font-medium mt-1 block">Europa med tog</span>
         </div>
       </div>
-      <button data-onclick="openTripSettingsModal()" class="p-1.5 text-fjord-200 hover:text-white hover:bg-white/10 rounded-lg transition" title="Reiseinnstillinger">
-        <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
-      </button>
     </div>
 
     <!-- Main Navigation Links -->
     <nav class="flex-1 px-3 py-5 space-y-1 overflow-y-auto" aria-label="Hovednavigasjon">
-      <p class="px-3 pb-2 text-[10px] font-semibold uppercase tracking-widest text-fjord-300">Planlegging</p>
+      <p class="px-3 pb-2 text-[10px] font-semibold uppercase tracking-widest text-fjord-300">Denne reisen</p>
       
       <button data-onclick="switchTab('overview')" id="nav-btn-overview" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-semibold text-sm transition-all duration-150 text-white bg-white/10">
         <i data-lucide="map" class="w-4 h-4 text-fjord-100"></i>
-        <span>Oversikt & Kart</span>
+        <span>Oversikt</span>
       </button>
 
       <button data-onclick="switchTab('plan')" id="nav-btn-plan" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all duration-150 text-fjord-200 hover:text-white hover:bg-white/5">
@@ -432,7 +429,7 @@
 
       <button data-onclick="switchTab('trains')" id="nav-btn-trains" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all duration-150 text-fjord-200 hover:text-white hover:bg-white/5">
         <i data-lucide="train-front" class="w-4 h-4 text-fjord-200"></i>
-        <span>Togruter</span>
+        <span>Tog</span>
         <span id="sidebar-train-badge" class="ml-auto text-[11px] font-semibold text-fjord-200">6</span>
       </button>
 
@@ -449,18 +446,18 @@
       </button>
 
       <div class="pt-5 pb-1">
-        <p class="px-3 pb-2 text-[10px] font-semibold uppercase tracking-widest text-fjord-300">Personer & Reiser</p>
+        <p class="px-3 pb-2 text-[10px] font-semibold uppercase tracking-widest text-fjord-300">Deg</p>
 
-        <button data-onclick="switchTab('social')" id="nav-btn-social" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all duration-150 text-fjord-200 hover:text-white hover:bg-white/5">
-          <i data-lucide="user-round" class="w-4 h-4 text-fjord-200"></i>
-          <span class="truncate">Profil og kontakter</span>
-          <span id="sidebar-social-badge" class="ml-auto whitespace-nowrap text-[11px] font-semibold px-2 py-0.5 rounded-md bg-white/10 text-fjord-100">2</span>
+        <button data-onclick="switchTab('trips')" id="nav-btn-trips" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all duration-150 text-fjord-200 hover:text-white hover:bg-white/5">
+          <i data-lucide="folder" class="w-4 h-4 text-fjord-200"></i>
+          <span>Mine reiser</span>
+          <span id="sidebar-trips-count-badge" class="ml-auto text-[11px] font-semibold text-fjord-200 tabular-nums">1</span>
         </button>
 
-        <button data-onclick="switchTab('trips')" id="nav-btn-trips" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all duration-150 text-fjord-200 hover:text-white hover:bg-white/5 mt-0.5">
-          <i data-lucide="folder" class="w-4 h-4 text-fjord-200"></i>
-          <span>Reiser</span>
-          <span id="sidebar-trips-count-badge" class="ml-auto text-[11px] font-semibold px-2 py-0.5 rounded-md bg-white/10 text-fjord-100">1</span>
+        <button data-onclick="switchTab('social')" id="nav-btn-social" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all duration-150 text-fjord-200 hover:text-white hover:bg-white/5 mt-0.5">
+          <i data-lucide="user-round" class="w-4 h-4 text-fjord-200"></i>
+          <span class="truncate">Profil og kontakter</span>
+          <span id="sidebar-social-badge" class="ml-auto whitespace-nowrap text-[11px] font-semibold text-fjord-200 tabular-nums"></span>
         </button>
 
         <button data-onclick="openDesignPicker()" id="nav-btn-design" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all duration-150 text-fjord-200 hover:text-white hover:bg-white/5 mt-0.5">
@@ -481,17 +478,6 @@
           <div id="sidebar-pass-progress-bar" class="bg-brand-500 h-1.5 rounded-full transition-all duration-300" style="width: 0%"></div>
         </div>
         <p id="sidebar-pass-remaining" class="mt-2 text-[11px] font-medium text-fjord-200 truncate"></p>
-      </button>
-
-      <button data-onclick="switchTab('social')" class="w-full flex items-center justify-between px-3 py-2 rounded-xl hover:bg-white/5 transition">
-        <div class="flex items-center gap-2.5 min-w-0">
-          <span id="sidebar-user-avatar" class="w-7 h-7 rounded-full bg-brand-600 text-white text-xs font-bold flex items-center justify-center shrink-0">R</span>
-          <span class="flex flex-col min-w-0 text-left">
-            <span id="sidebar-user-label" class="text-xs font-semibold text-fjord-100 truncate">Min profil</span>
-            <span id="sidebar-user-sublabel" class="text-[10px] text-fjord-300 truncate"></span>
-          </span>
-        </div>
-        <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-fjord-300 shrink-0"></i>
       </button>
     </div>
   </aside>
@@ -529,13 +515,6 @@
               </div>
             </div>
           </div>
-
-          <!-- MINE REISER SWITCHER BUTTON (DESKTOP / TABLET) -->
-          <button data-onclick="switchTab('trips')" class="hidden sm:flex md:hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs border border-slate-200 transition shrink-0">
-            <i data-lucide="folder" class="w-3.5 h-3.5 text-slate-500"></i>
-            <span>Reiser</span>
-            <span id="header-trip-count-badge" class="px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 font-bold text-[10px]">1</span>
-          </button>
         </div>
 
         <!-- Right: Action buttons (Profile, Settings, Save & Share) -->
@@ -545,7 +524,10 @@
           </button>
           <div id="auth-header-container" class="relative shrink-0">
             <button id="user-profile-pill" type="button" data-onclick="toggleAccountMenu(event)" aria-haspopup="menu" aria-expanded="false" aria-controls="account-menu" class="flex items-center gap-2 p-1 sm:pl-1 sm:pr-2.5 rounded-full hover:bg-slate-100 text-slate-800 text-xs font-semibold transition">
-              <span id="header-user-avatar" class="w-7 h-7 rounded-full bg-brand-600 text-white text-[11px] font-semibold flex items-center justify-center overflow-hidden">R</span>
+              <span class="relative shrink-0">
+                <span id="header-user-avatar" class="w-7 h-7 rounded-full bg-brand-600 text-white text-[11px] font-semibold flex items-center justify-center overflow-hidden">R</span>
+                <span id="mobile-social-req-dot" class="hidden absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-rail-accent ring-2 ring-white" aria-hidden="true"></span>
+              </span>
               <span id="user-display-name" class="hidden lg:inline truncate max-w-[120px]">Min profil</span>
               <i data-lucide="chevron-down" class="hidden lg:block w-3.5 h-3.5 text-slate-400"></i>
             </button>
@@ -554,8 +536,13 @@
                 <p id="account-menu-name" class="text-sm font-semibold text-slate-900 truncate">Min profil</p>
                 <p id="account-menu-handle" class="text-xs text-slate-500 truncate"></p>
               </div>
-              <button type="button" role="menuitem" data-onclick="closeAccountMenu(); switchTab('social')" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50">
-                <i data-lucide="user" class="w-4 h-4 text-slate-400"></i><span>Profil og kontakter</span>
+              <button type="button" role="menuitem" data-onclick="closeAccountMenu(); switchTab('trips')" class="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-slate-700 hover:bg-slate-50">
+                <i data-lucide="folder" class="w-4 h-4 text-slate-400"></i><span>Mine reiser</span>
+                <span id="account-menu-trips-count" class="ml-auto text-xs text-slate-500 tabular-nums"></span>
+              </button>
+              <button type="button" role="menuitem" data-onclick="closeAccountMenu(); switchTab('social')" class="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-slate-700 hover:bg-slate-50">
+                <i data-lucide="user-round" class="w-4 h-4 text-slate-400"></i><span>Profil og kontakter</span>
+                <span id="account-menu-social-badge" class="ml-auto text-xs text-slate-500 tabular-nums"></span>
               </button>
               <button type="button" role="menuitem" data-onclick="closeAccountMenu(); openUserProfileModal()" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50">
                 <i data-lucide="settings" class="w-4 h-4 text-slate-400"></i><span>Kontoinnstillinger</span>
@@ -1679,7 +1666,7 @@
       <section id="tab-trips" class="tab-content hidden w-full max-w-6xl mx-auto space-y-6">
         <div class="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h2 class="text-xl sm:text-2xl font-semibold tracking-tight text-slate-900">Reiser</h2>
+            <h2 class="text-xl sm:text-2xl font-semibold tracking-tight text-slate-900">Mine reiser</h2>
             <p class="text-sm text-slate-600 mt-1">Alle reisene dine og reisene andre har delt med deg.</p>
           </div>
           <div class="flex items-center gap-2">
@@ -1912,20 +1899,20 @@
   <!-- ========================================================================= -->
   <!-- MOBILE BOTTOM NAVIGATION BAR                                              -->
   <!-- ========================================================================= -->
-  <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-1.5 pt-1.5 pb-safe z-40 grid grid-cols-6 gap-0.5 shadow-xl" aria-label="Mobilnavigasjon">
-    
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-1.5 pt-1.5 pb-safe z-40 grid grid-cols-5 gap-0.5 shadow-xl" aria-label="Mobilnavigasjon">
+
     <button data-onclick="switchTab('overview')" id="mobile-tab-overview" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-brand-600 font-bold active:scale-95 transition min-w-0">
-      <i data-lucide="map-pin" class="w-5 h-5 shrink-0"></i>
+      <i data-lucide="map" class="w-5 h-5 shrink-0"></i>
       <span class="text-[10px] mt-0.5 truncate">Oversikt</span>
     </button>
 
     <button data-onclick="switchTab('plan')" id="mobile-tab-plan" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-slate-500 font-medium active:scale-95 transition min-w-0">
       <i data-lucide="calendar-days" class="w-5 h-5 shrink-0"></i>
-      <span class="text-[10px] mt-0.5 truncate">Dager</span>
+      <span class="text-[10px] mt-0.5 truncate">Dagsplan</span>
     </button>
 
     <button data-onclick="switchTab('trains')" id="mobile-tab-trains" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-slate-500 font-medium active:scale-95 transition min-w-0">
-      <i data-lucide="train" class="w-5 h-5 shrink-0"></i>
+      <i data-lucide="train-front" class="w-5 h-5 shrink-0"></i>
       <span class="text-[10px] mt-0.5 truncate">Tog</span>
     </button>
 
@@ -1937,12 +1924,6 @@
     <button data-onclick="switchTab('packing')" id="mobile-tab-packing" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-slate-500 font-medium active:scale-95 transition min-w-0">
       <i data-lucide="check-square" class="w-5 h-5 shrink-0"></i>
       <span class="text-[10px] mt-0.5 truncate">Pakkeliste</span>
-    </button>
-
-    <button data-onclick="switchTab('social')" id="mobile-tab-social" class="mobile-nav-btn flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-slate-500 font-medium active:scale-95 transition min-w-0 relative">
-      <i data-lucide="users" class="w-5 h-5 shrink-0"></i>
-      <span class="text-[10px] mt-0.5 truncate">Profil</span>
-      <span id="mobile-social-req-dot" class="hidden absolute top-1.5 right-3.5 w-2 h-2 rounded-full bg-rail-accent"></span>
     </button>
   </nav>
 

@@ -30,3 +30,26 @@ test('toppen holder seg under statuslinjen på mobil (safe-area-inset-top)', () 
   const header = html.match(/<header class="([^"]*)"/);
   assert.ok(header && header[1].split(/\s+/).includes('sticky'), 'header må ha klassen sticky');
 });
+
+test('menyen: samme navn på PC og mobil, delt i «Denne reisen» og «Deg», uten doble knapper', () => {
+  const sidebar = html.slice(html.indexOf('aria-label="Hovednavigasjon"'), html.indexOf('</aside>', html.indexOf('aria-label="Hovednavigasjon"')));
+  const mobile = html.slice(html.indexOf('aria-label="Mobilnavigasjon"'), html.indexOf('</nav>', html.indexOf('aria-label="Mobilnavigasjon"')));
+  const label = (part, id) => (part.match(new RegExp(`id="${id}"[\\s\\S]*?<span[^>]*>([^<]+)</span>`)) || [])[1];
+  const names = { overview: 'Oversikt', plan: 'Dagsplan', trains: 'Tog', budget: 'Budsjett', packing: 'Pakkeliste' };
+  for (const [tab, name] of Object.entries(names)) {
+    assert.equal(label(sidebar, `nav-btn-${tab}`), name, `sidemenyen: ${tab}`);
+    assert.equal(label(mobile, `mobile-tab-${tab}`), name, `mobilmenyen: ${tab}`);
+  }
+  assert.equal((mobile.match(/class="mobile-nav-btn/g) || []).length, 5, 'mobilmenyen skal ha 5 faner');
+  assert.match(sidebar, />Denne reisen</);
+  assert.match(sidebar, />Deg</);
+  assert.equal(label(sidebar, 'nav-btn-trips'), 'Mine reiser');
+  // Mine reiser og profilen nås fra kontomenyen (eneste vei på mobil)
+  const menu = html.slice(html.indexOf('id="account-menu"'), html.indexOf('handleLogout()', html.indexOf('id="account-menu"')));
+  assert.match(menu, /switchTab\('trips'\)/, 'Mine reiser mangler i kontomenyen');
+  assert.match(menu, /switchTab\('social'\)/, 'profilen mangler i kontomenyen');
+  // Ingen doble snarveier
+  assert.equal((html.match(/data-onclick="openTripSettingsModal\(\)"[^>]*title="Reiseinnstillinger"/g) || []).length, 1, 'reiseinnstillinger står flere steder');
+  assert.doesNotMatch(html, /id="header-trip-count-badge"/, '«Reiser»-knappen i toppen skal bort');
+  assert.doesNotMatch(sidebar.slice(sidebar.indexOf('</nav>')), /switchTab\('social'\)/, 'profillenken nederst i sidemenyen skal bort');
+});

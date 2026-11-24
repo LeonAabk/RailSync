@@ -63,7 +63,7 @@ html[data-design] #tab-plan, html[data-design] #nav-btn-plan, html[data-design] 
 html[data-design] #tab-trains, html[data-design] #nav-btn-trains, html[data-design] #mobile-tab-trains { --sec: var(--c-trains); }
 html[data-design] #tab-budget, html[data-design] #nav-btn-budget, html[data-design] #mobile-tab-budget { --sec: var(--c-budget); }
 html[data-design] #tab-packing, html[data-design] #nav-btn-packing, html[data-design] #mobile-tab-packing { --sec: var(--c-packing); }
-html[data-design] #tab-social, html[data-design] #tab-account, html[data-design] #nav-btn-social, html[data-design] #mobile-tab-social { --sec: var(--c-social); }
+html[data-design] #tab-social, html[data-design] #tab-account, html[data-design] #nav-btn-social { --sec: var(--c-social); }
 html[data-design] #tab-trips, html[data-design] #nav-btn-trips { --sec: var(--c-trips); }
 
 /* Sidetitlenes ikonboks får delens farge */

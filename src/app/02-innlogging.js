@@ -137,14 +137,10 @@ export function updateAuthUI(user) {
   const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
 
   setText("user-display-name", activeName);
-  setText("sidebar-user-label", activeName);
-  setText("sidebar-user-sublabel", handle);
   setText("account-menu-name", activeName);
   setText("account-menu-handle", handle);
 
-  ["header-user-avatar", "sidebar-user-avatar"].forEach(id => {
-    paintAvatar(document.getElementById(id), { displayName: activeName, avatarColor: bgColor, photo: userProfile.photo });
-  });
+  paintAvatar(document.getElementById("header-user-avatar"), { displayName: activeName, avatarColor: bgColor, photo: userProfile.photo });
 
   const login = describeLogin(user);
   setText("account-login-id", login.id);
