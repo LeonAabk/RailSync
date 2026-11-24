@@ -107,7 +107,7 @@ export function addPackingSuggestions() {
     .filter(p => !existing.has(String(p.title || p.name || "").toLowerCase()))
     .map((p, i) => ({ ...p, id: "pack-" + Date.now().toString(36) + "-" + i, checked: false }));
   appState.packingList.push(...toAdd);
-  persistState("La til forslag til pakkeliste");
+  persistState(); // pakkelisten er personlig: ingen linje i reisens aktivitetslogg
   renderAll();
   showToast("Forslag lagt til", `${toAdd.length} ting er lagt til. Fjern det du ikke trenger.`, "check");
 }

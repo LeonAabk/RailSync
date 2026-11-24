@@ -31,6 +31,13 @@ let budgetViewMode = "personal";
 let budgetViewUid = null;
 const budgetPushQueue = new Map();
 const pendingBudgetPushes = new Set();
+// Pakkelister: egen liste (myPackingByTrip i 04) og de synlige listene til reisefølget
+let tripPackingLists = {};       // tripId -> { uid -> pakkeliste } (bare de som ikke er skjult, og min egen)
+let packingUnsubs = [];
+let isApplyingRemotePacking = false;
+let packingViewUid = null;
+const packingPushQueue = new Map();
+const pendingPackingPushes = new Set();
 let sharedOutbox = [];
 try { sharedOutbox = JSON.parse(localStorage.getItem("railsync_shared_outbox_v1") || "[]") || []; } catch (e) { sharedOutbox = []; }
 
@@ -93,13 +100,172 @@ export function startBudgetListeners() {
   } catch (e) {
     console.warn("Kunne ikke starte budsjettlyttere:", e);
   }
+  startPackingListeners(tid);
   flushSharedOutbox();
 }
 
 function stopBudgetListeners() {
-  [budgetUnsub, sharedExpUnsub].forEach(fn => { if (typeof fn === "function") { try { fn(); } catch (e) {} } });
+  [budgetUnsub, sharedExpUnsub, ...packingUnsubs].forEach(fn => { if (typeof fn === "function") { try { fn(); } catch (e) {} } });
   budgetUnsub = sharedExpUnsub = null;
+  packingUnsubs = [];
+  packingViewUid = null;
   budgetListenTripId = null;
+}
+
+// --- Pakkelister -------------------------------------------------------------
+// Min egen: ett dokument. De andre: bare de som ikke er skjult (sikkerhetsreglene krever filteret).
+function startPackingListeners(tid) {
+  const uid = currentUser.uid;
+  const others = {};
+  let mine = null;
+  const publish = () => {
+    tripPackingLists[tid] = { ...others };
+    if (mine) tripPackingLists[tid][uid] = mine; else delete tripPackingLists[tid][uid];
+    if (tid === activeTripId) renderPacking();
+  };
+  try {
+    packingUnsubs.push(onSnapshot(doc(db, "trips", tid, "packing", uid), (snap) => {
+      mine = snap.exists() ? (snap.data() || {}) : null;
+      applyMyRemotePacking(tid, mine);
+      publish();
+    }, (err) => console.warn("Lytter for egen pakkeliste feilet:", err)));
+    packingUnsubs.push(onSnapshot(query(collection(db, "trips", tid, "packing"), where("hidden", "==", false)), (snap) => {
+      Object.keys(others).forEach(k => delete others[k]);
+      snap.docs.forEach(d => { if (d.id !== uid) others[d.id] = d.data() || {}; });
+      publish();
+    }, (err) => console.warn("Lytter for reisefølgets pakkelister feilet:", err)));
+  } catch (e) {
+    console.warn("Kunne ikke starte lyttere for pakkelister:", e);
+  }
+}
+
+function mergePackingContent(base, local, remote) {
+  return {
+    items: mergeItemList(base.items, local.items, remote.items),
+    hidden: local.hidden !== base.hidden ? local.hidden : remote.hidden
+  };
+}
+
+// Egen pakkeliste fra skyen: slås sammen med endringer på denne enheten som ikke er sendt ennå
+function applyMyRemotePacking(tid, remoteDoc) {
+  const t = allTrips.find(x => x.id === tid);
+  const entry = myPackingByTrip[tid] || (t ? getMyPackingForTrip(t) : null);
+  const local = packingContentOf(entry);
+  if (!remoteDoc) {
+    // Ikke i skyen ennå: last opp hvis det finnes noe (også den kopierte felles listen)
+    if ((local.items.length > 0 || local.hidden) && !pendingPackingPushes.has(tid)) pushMyPacking(tid);
+    return;
+  }
+  const remote = packingContentOf(remoteDoc);
+  const base = entry && entry._base ? entry._base : null;
+  let next = remote;
+  let needsPush = false;
+  if (base && !sameJson(local, base) && !sameJson(local, remote)) {
+    next = mergePackingContent(base, local, remote);
+    needsPush = !sameJson(next, remote);
+  }
+  myPackingByTrip[tid] = { ...(entry || {}), ...next, _base: remote, updatedAt: remoteDoc.updatedAt || new Date().toISOString() };
+  saveMyPackingToStorage();
+  if (tid === activeTripId && !sameJson(next.items, appState.packingList)) {
+    isApplyingRemotePacking = true;
+    try {
+      appState.packingList = JSON.parse(JSON.stringify(next.items));
+      renderPacking();
+      renderOverview();
+    } finally {
+      isApplyingRemotePacking = false;
+    }
+  }
+  if (needsPush) pushMyPacking(tid);
+}
+
+function pushMyPacking(tid) {
+  const t = allTrips.find(x => x.id === tid);
+  // Bare de som kan redigere reisen har egen pakkeliste i skyen (samme som knappene i appen)
+  if (!isTripInCloud(t) || !(isTripOwnedByCurrentUser(t) || canEditTrip(t))) return Promise.resolve(false);
+  const prev = packingPushQueue.get(tid) || Promise.resolve();
+  const next = prev.catch(() => {}).then(() => pushMyPackingNow(tid));
+  packingPushQueue.set(tid, next);
+  next.finally(() => { if (packingPushQueue.get(tid) === next) packingPushQueue.delete(tid); });
+  return next;
+}
+
+async function pushMyPackingNow(tid) {
+  if (!isCloudReady()) { pendingPackingPushes.add(tid); updateSyncStatus(); return false; }
+  const uid = currentUser.uid;
+  const ref = doc(db, "trips", tid, "packing", uid);
+  syncInFlight++;
+  updateSyncStatus();
+  try {
+    let result = null;
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(ref);
+      const entry = myPackingByTrip[tid] || {};
+      const local = packingContentOf(entry);
+      let content = local;
+      if (snap.exists()) {
+        const remote = packingContentOf(snap.data());
+        const base = entry._base || { items: [], hidden: false };
+        if (!sameJson(remote, base)) content = mergePackingContent(base, local, remote);
+      }
+      tx.set(ref, {
+        uid,
+        name: String(userProfile.displayName || "Reisende").slice(0, 60),
+        items: firestoreSafe(content.items.slice(0, 300)),
+        hidden: Boolean(content.hidden),
+        updatedAt: new Date().toISOString()
+      });
+      result = { content, local };
+    });
+    pendingPackingPushes.delete(tid);
+    lastSyncFailed = false;
+    const entry = myPackingByTrip[tid] || {};
+    entry._base = result.content;
+    if (!sameJson(result.content, result.local)) {
+      const current = packingContentOf(entry);
+      const merged = sameJson(current, result.local) ? result.content : mergePackingContent(result.local, current, result.content);
+      Object.assign(entry, merged);
+      if (tid === activeTripId) {
+        isApplyingRemotePacking = true;
+        try {
+          appState.packingList = JSON.parse(JSON.stringify(merged.items));
+          myPackingByTrip[tid] = entry;
+          renderPacking();
+        } finally { isApplyingRemotePacking = false; }
+      }
+    }
+    myPackingByTrip[tid] = entry;
+    saveMyPackingToStorage();
+    return true;
+  } catch (e) {
+    console.warn("Kunne ikke lagre pakkelisten:", e);
+    pendingPackingPushes.add(tid);
+    lastSyncFailed = true;
+    return false;
+  } finally {
+    syncInFlight = Math.max(0, syncInFlight - 1);
+    updateSyncStatus();
+  }
+}
+
+export function selectPackingPerson(uid) {
+  packingViewUid = uid;
+  renderPacking();
+}
+
+export function togglePackingHidden() {
+  if (!requireEditPermission()) return;
+  const active = getActiveTripObject();
+  if (!active) return;
+  const entry = getMyPackingForTrip(active);
+  const hidden = !entry.hidden;
+  updateMyPackingForTrip(active.id, appState.packingList, hidden);
+  renderPacking();
+  showToast(
+    hidden ? "Pakkelisten er skjult" : "Pakkelisten er synlig",
+    hidden ? "Reisefølget kan ikke se pakkelisten din." : "Reisefølget kan se pakkelisten din og hva du har pakket.",
+    hidden ? "eye-off" : "eye"
+  );
 }
 
 // Eget budsjett fra skyen: slås sammen med endringer på denne enheten som ikke er sendt ennå
@@ -720,8 +886,56 @@ function packingCategoryChipHtml(name) {
 }
 
 export function renderPacking() {
-  renderPackingAdapterHint();
-  const items = appState.packingList;
+  const active = getActiveTripObject();
+  const tid = active ? active.id : null;
+  const me = myUidOrLocal();
+  const inCloud = isTripInCloud(active);
+  const accountPeople = active ? tripParticipants(active).filter(p => p.hasAccount) : [];
+  const lists = (tid && tripPackingLists[tid]) || {};
+  if (!packingViewUid || !accountPeople.some(p => p.id === packingViewUid)) packingViewUid = me;
+  const viewingMe = packingViewUid === me;
+  const viewed = accountPeople.find(p => p.id === packingViewUid) || { id: me, name: userProfile.displayName || "Meg" };
+  const otherList = viewingMe ? null : lists[packingViewUid];
+  const myEntry = active ? getMyPackingForTrip(active) : { hidden: false };
+  const showPeople = inCloud && accountPeople.length > 1;
+  const set = (id, fn) => { const el = document.getElementById(id); if (el) fn(el); };
+
+  // Sidemenyen viser alltid din egen fremdrift
+  const myItems = appState.packingList || [];
+  const sProgress = document.getElementById("sidebar-packing-progress");
+  if (sProgress) sProgress.textContent = `${myItems.filter(i => i.checked).length}/${myItems.length}`;
+
+  set("packing-subtitle", el => {
+    el.textContent = !showPeople ? "Din egen pakkeliste for reisen."
+      : myEntry.hidden ? "Din egen pakkeliste. Den er skjult for reisefølget."
+      : "Hver har sin egen liste. Reisefølget kan se din, men bare du kan endre den.";
+  });
+  set("packing-person-picker", el => {
+    el.classList.toggle("hidden", !showPeople);
+    el.innerHTML = showPeople ? accountPeople.map(p => {
+      const on = p.id === packingViewUid;
+      return `<button type="button" data-onclick="selectPackingPerson(${jsArg(p.id)})" aria-pressed="${on}" class="shrink-0 inline-flex items-center gap-2 pl-1 pr-3 py-1 rounded-full border text-sm transition ${on ? "border-slate-900 bg-fjord-800 text-white" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}">
+        ${socialAvatarHtml({ displayName: p.name, avatarColor: p.avatarColor, photo: p.id === me ? userProfile.photo : ((userProfile.friends || []).find(f => f.uid === p.id) || {}).photo }, "w-6 h-6 text-[10px]", "#0b8176")}
+        <span>${escapeHtml(p.id === me ? "Meg" : p.name)}</span></button>`;
+    }).join("") : "";
+  });
+  set("packing-visibility", el => {
+    el.classList.toggle("hidden", !showPeople || !viewingMe || !canEditActiveTrip());
+    const input = el.querySelector("input");
+    if (input) input.checked = Boolean(myEntry.hidden);
+  });
+  set("packing-readonly-note", el => {
+    el.classList.toggle("hidden", viewingMe);
+    el.textContent = viewingMe ? "" : (otherList
+      ? `Du ser ${viewed.name} sin pakkeliste. Bare ${viewed.name} kan endre den.`
+      : `${viewed.name} har ikke delt en pakkeliste.`);
+  });
+  document.querySelectorAll("[data-packing-own-only]").forEach(el => el.classList.toggle("hidden", !viewingMe));
+
+  if (viewingMe) renderPackingAdapterHint();
+  else set("packing-adapter-hint", el => el.classList.add("hidden"));
+
+  const items = viewingMe ? myItems : (otherList && Array.isArray(otherList.items) ? otherList.items : []);
   const totalCount = items.length;
   const packedCount = items.filter(i => i.checked).length;
   const pct = totalCount > 0 ? Math.round((packedCount / totalCount) * 100) : 0;
@@ -731,9 +945,6 @@ export function renderPacking() {
 
   const pBar = document.getElementById("packing-progress-bar");
   if (pBar) pBar.style.width = `${pct}%`;
-
-  const sProgress = document.getElementById("sidebar-packing-progress");
-  if (sProgress) sProgress.textContent = `${packedCount}/${totalCount}`;
 
   const categoryOrder = [
     "Dokumenter & Billetter",
@@ -753,6 +964,14 @@ export function renderPacking() {
   const container = document.getElementById("packing-groups-container");
   if (!container) return;
 
+  if (items.length === 0 && !viewingMe) {
+    container.innerHTML = otherList ? `
+      <div class="md:col-span-2 rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
+        <p class="text-sm font-semibold text-slate-900">${escapeHtml(viewed.name)} sin pakkeliste er tom</p>
+      </div>` : "";
+    return;
+  }
+
   if (items.length === 0) {
     container.innerHTML = `
       <div class="md:col-span-2 rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
@@ -766,7 +985,7 @@ export function renderPacking() {
     return;
   }
 
-  container.innerHTML = Object.keys(groups).map(categoryName => {
+  container.innerHTML = Object.keys(groups).filter(c => viewingMe || groups[c].length > 0).map(categoryName => {
     const catItems = groups[categoryName] || [];
     const catPacked = catItems.filter(i => i.checked).length;
 
@@ -785,12 +1004,12 @@ export function renderPacking() {
 
           <div class="space-y-1.5 pt-2">
             ${catItems.length === 0 ? '<p class="text-xs text-slate-500 italic py-1">Ingen gjenstander i denne kategorien.</p>' : ''}
-            ${catItems.map(item => `
+            ${catItems.map(item => viewingMe ? `
               <div class="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition group">
                 <label class="flex items-center gap-3 cursor-pointer select-none flex-1 min-w-0 pr-2">
-                  <input 
-                    type="checkbox" 
-                    ${item.checked ? 'checked' : ''} 
+                  <input
+                    type="checkbox"
+                    ${item.checked ? 'checked' : ''}
                     data-onchange="togglePackingItem(${jsArg(item.id)})"
                     class="w-4 h-4 rounded text-brand-600 focus:ring-brand-500 border-slate-300 transition cursor-pointer"
                   >
@@ -802,11 +1021,18 @@ export function renderPacking() {
                   <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                 </button>
               </div>
+            ` : `
+              <div class="flex items-center gap-3 p-2">
+                <i data-lucide="${item.checked ? "circle-check" : "circle"}" class="w-4 h-4 shrink-0 ${item.checked ? "text-brand-600" : "text-slate-400"}" aria-hidden="true"></i>
+                <span class="text-xs sm:text-sm font-medium ${item.checked ? 'line-through text-slate-500' : 'text-slate-700'}">
+                  <span class="sr-only">${item.checked ? "Pakket: " : "Ikke pakket: "}</span>${escapeHtml(item.text)}
+                </span>
+              </div>
             `).join("")}
           </div>
         </div>
 
-        <div class="mt-2 pt-2 border-t border-slate-100">
+        <div class="mt-2 pt-2 border-t border-slate-100 ${viewingMe ? "" : "hidden"}">
           <form data-onsubmit="handleQuickAddPacking(event, ${jsArg(categoryName)})" class="flex items-center gap-1.5">
             <input 
               type="text" 

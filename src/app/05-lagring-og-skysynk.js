@@ -4,6 +4,7 @@
 export async function loadAppState() {
   loadLocalUserProfile();
   loadPersonalBudgetsFromStorage();
+  loadMyPackingFromStorage();
 
   // First load saved trips from localStorage so we don't lose existing trips when opening a shared link
   try {

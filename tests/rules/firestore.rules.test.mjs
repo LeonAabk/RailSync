@@ -21,6 +21,11 @@ import {
   arrayUnion,
   arrayRemove,
   runTransaction,
+  collection,
+  query,
+  where,
+  getDocs,
+  deleteDoc,
 } from 'firebase/firestore';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -321,6 +326,56 @@ describe('Vanlig redigering (skal virke som før)', () => {
     await assertSucceeds(setDoc(doc(db(VIEWER), `trips/t1/budgets/${VIEWER}`), budget(VIEWER)));
     await assertFails(setDoc(doc(db(VIEWER), `trips/t1/budgets/${EDITOR}`), budget(EDITOR)));
     await assertFails(setDoc(doc(db(STRANGER), `trips/t1/budgets/${STRANGER}`), budget(STRANGER)));
+  });
+
+  // pushMyPackingNow() i 10-budsjett.js
+  const packing = (uid, hidden = false) => ({
+    uid, name: 'Meg', hidden, updatedAt: NOW,
+    items: [{ id: 'pack-1', category: 'Elektronikk', text: 'Lader', checked: true }],
+  });
+
+  test('medlem kan lagre egen pakkeliste, ikke andres', async () => {
+    await seed('trips/t1', baseTrip());
+    await assertSucceeds(setDoc(doc(db(EDITOR), `trips/t1/packing/${EDITOR}`), packing(EDITOR)));
+    await assertFails(setDoc(doc(db(EDITOR), `trips/t1/packing/${OWNER}`), packing(OWNER)));
+    await assertFails(setDoc(doc(db(STRANGER), `trips/t1/packing/${STRANGER}`), packing(STRANGER)));
+    // hidden må være med og være sann/usann, og ingen ukjente felt
+    const noHidden = packing(EDITOR);
+    delete noHidden.hidden;
+    await assertFails(setDoc(doc(db(EDITOR), `trips/t1/packing/${EDITOR}`), noHidden));
+    await assertFails(setDoc(doc(db(EDITOR), `trips/t1/packing/${EDITOR}`), { ...packing(EDITOR), hidden: 'nei' }));
+    await assertFails(setDoc(doc(db(EDITOR), `trips/t1/packing/${EDITOR}`), { ...packing(EDITOR), extra: 1 }));
+  });
+
+  test('reisefølget ser synlige pakkelister, ikke skjulte', async () => {
+    await seed('trips/t1', baseTrip());
+    await seed(`trips/t1/packing/${EDITOR}`, packing(EDITOR, false));
+    await seed(`trips/t1/packing/${VIEWER}`, packing(VIEWER, true));
+    // Synlig: alle i reisefølget kan lese, ikke fremmede
+    await assertSucceeds(getDoc(doc(db(OWNER), `trips/t1/packing/${EDITOR}`)));
+    await assertFails(getDoc(doc(db(STRANGER), `trips/t1/packing/${EDITOR}`)));
+    // Skjult: bare personen selv, heller ikke reiseeieren
+    await assertSucceeds(getDoc(doc(db(VIEWER), `trips/t1/packing/${VIEWER}`)));
+    await assertFails(getDoc(doc(db(OWNER), `trips/t1/packing/${VIEWER}`)));
+    await assertFails(getDoc(doc(db(EDITOR), `trips/t1/packing/${VIEWER}`)));
+    // Lytteren i appen: bare med filteret hidden == false
+    const snap = await assertSucceeds(getDocs(query(collection(db(OWNER), 'trips/t1/packing'), where('hidden', '==', false))));
+    if (snap.docs.map((d) => d.id).join() !== EDITOR) throw new Error('feil lister: ' + snap.docs.map((d) => d.id).join());
+    await assertFails(getDocs(collection(db(OWNER), 'trips/t1/packing')));
+  });
+
+  test('egen pakkeliste: lese, lagre i transaksjon og slette', async () => {
+    await seed('trips/t1', baseTrip());
+    const viewerDb = db(VIEWER);
+    await assertSucceeds(runTransaction(viewerDb, async (tx) => {
+      const ref = doc(viewerDb, `trips/t1/packing/${VIEWER}`);
+      await tx.get(ref);
+      tx.set(ref, packing(VIEWER, true));
+    }));
+    await assertFails(deleteDoc(doc(db(EDITOR), `trips/t1/packing/${VIEWER}`)));
+    await assertSucceeds(deleteDoc(doc(db(VIEWER), `trips/t1/packing/${VIEWER}`)));
+    await seed(`trips/t1/packing/${EDITOR}`, packing(EDITOR));
+    await assertSucceeds(deleteDoc(doc(db(OWNER), `trips/t1/packing/${EDITOR}`)));
   });
 });
 

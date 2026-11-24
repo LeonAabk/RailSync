@@ -1139,17 +1139,31 @@
               <span class="w-10 h-10 rounded-xl bg-violet-50 text-violet-700 flex items-center justify-center shrink-0" aria-hidden="true"><i data-lucide="luggage" class="w-5 h-5"></i></span>
               <div class="min-w-0">
                 <h2 class="text-base sm:text-lg font-bold text-slate-900">Pakkeliste og forberedelser</h2>
-                <p class="text-xs text-slate-500">Dokumenter, elektronikk og klær til togreisen</p>
+                <p id="packing-subtitle" class="text-xs text-slate-500">Din egen pakkeliste for reisen.</p>
               </div>
             </div>
-            
-            <div class="flex items-center gap-2">
+
+            <div class="flex items-center gap-2" data-packing-own-only>
               <button data-onclick="openAddPackingItemModal()" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-fjord-800 hover:bg-fjord-700 text-white font-semibold text-xs sm:text-sm transition">
                 <i data-lucide="plus" class="w-4 h-4"></i>
                 <span>Ny gjenstand</span>
               </button>
             </div>
           </div>
+
+          <!-- Hvem sin pakkeliste (vises når reisen har flere med konto) -->
+          <div id="packing-person-picker" class="hidden flex items-center gap-2 overflow-x-auto pb-1 -mx-1 px-1" aria-label="Velg hvem sin pakkeliste du ser"></div>
+
+          <label id="packing-visibility" class="hidden flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-4 py-3 cursor-pointer">
+            <span class="min-w-0">
+              <span class="block text-sm font-semibold text-slate-900">Skjul pakkelisten min</span>
+              <span class="block text-xs text-slate-500">Reisefølget ser ikke listen din eller hva du har pakket.</span>
+            </span>
+            <input type="checkbox" role="switch" data-onchange="togglePackingHidden()" class="peer sr-only">
+            <span class="relative shrink-0 w-11 h-6 rounded-full bg-slate-300 transition peer-checked:bg-brand-600 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-500 peer-focus-visible:ring-offset-2 after:absolute after:top-0.5 after:left-0.5 after:w-5 after:h-5 after:rounded-full after:bg-white after:shadow-sm after:transition peer-checked:after:translate-x-5" aria-hidden="true"></span>
+          </label>
+
+          <p id="packing-readonly-note" class="hidden text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3"></p>
 
           <!-- Packing Progress Status -->
           <div class="bg-violet-50/50 p-4 rounded-xl border border-violet-100">

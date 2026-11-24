@@ -38,6 +38,76 @@ export function savePersonalBudgetsToStorage() {
   } catch (e) {}
 }
 
+// ---------------------------------------------------------------------------
+// Egen pakkeliste per person og reise: trips/{id}/packing/{uid} (synk og visning i 10-budsjett.js).
+// Her er kopien på enheten: tripId -> { items, hidden, _base, updatedAt }.
+// Den gamle felles listen (reisens packingList) brukes bare som utgangspunkt første gang.
+// ---------------------------------------------------------------------------
+export let myPackingByTrip = {};
+
+export function loadMyPackingFromStorage() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem("railsync_packing_v1") || "{}");
+    myPackingByTrip = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch (e) {
+    myPackingByTrip = {};
+  }
+}
+
+export function saveMyPackingToStorage() {
+  if (isLoggingOut) return;
+  try {
+    localStorage.setItem("railsync_packing_v1", JSON.stringify(myPackingByTrip));
+  } catch (e) {}
+}
+
+export function packingContentOf(entry) {
+  const e = entry || {};
+  return JSON.parse(JSON.stringify({
+    items: Array.isArray(e.items) ? e.items : [],
+    hidden: Boolean(e.hidden)
+  }));
+}
+
+// Første gang: kopier den felles listen. Er man flere på reisen, vet vi ikke hvem som krysset av,
+// så da starter alt uten kryss. Kopien blir også base, så en liste som allerede er i skyen vinner.
+export function seedPackingFromSharedList(sharedList, keepChecks) {
+  const items = (Array.isArray(sharedList) ? sharedList : [])
+    .filter(x => x && x.id != null && String(x.text || "").trim())
+    .map(x => ({
+      id: String(x.id),
+      category: String(x.category || "Annet"),
+      text: String(x.text),
+      checked: keepChecks ? Boolean(x.checked) : false
+    }));
+  const content = { items, hidden: false };
+  return { ...content, _base: JSON.parse(JSON.stringify(content)) };
+}
+
+export function getMyPackingForTrip(tripObj) {
+  if (!tripObj || !tripObj.id) return { items: [], hidden: false };
+  if (!myPackingByTrip[tripObj.id]) {
+    const people = Array.isArray(tripObj.members) ? tripObj.members.length : 0;
+    myPackingByTrip[tripObj.id] = seedPackingFromSharedList(tripObj.packingList, people <= 1);
+    saveMyPackingToStorage();
+  }
+  return myPackingByTrip[tripObj.id];
+}
+
+export function updateMyPackingForTrip(tid, items, hidden) {
+  if (!tid) return;
+  const t = allTrips.find(x => x.id === tid);
+  const prev = myPackingByTrip[tid] || (t ? getMyPackingForTrip(t) : { items: [], hidden: false });
+  const next = {
+    items: JSON.parse(JSON.stringify(Array.isArray(items) ? items : [])),
+    hidden: hidden === undefined ? Boolean(prev.hidden) : Boolean(hidden)
+  };
+  if (sameJson(packingContentOf(prev), next)) return;
+  myPackingByTrip[tid] = { ...prev, ...next, updatedAt: new Date().toISOString() };
+  saveMyPackingToStorage();
+  if (!isApplyingRemotePacking) pushMyPacking(tid);
+}
+
 export function getPersonalBudgetForTrip(tripObj) {
   if (!tripObj || !tripObj.id) {
     return { totalBudget: 0, expenses: [] };
@@ -103,7 +173,7 @@ export function syncActiveTripToState() {
   appState.stops = JSON.parse(JSON.stringify(active.stops || []));
   appState.trains = JSON.parse(JSON.stringify(active.trains || []));
   appState.expenses = myBudget.expenses;
-  appState.packingList = JSON.parse(JSON.stringify(active.packingList || []));
+  appState.packingList = JSON.parse(JSON.stringify(getMyPackingForTrip(active).items));
   appState.dayPlan = JSON.parse(JSON.stringify(active.dayPlan || []));
 
   active.trip.totalBudget = myBudget.totalBudget;
@@ -123,6 +193,8 @@ export function syncStateToActiveTrip(activityText = "") {
   ensureTripCollaborationFields(active);
 
   updatePersonalBudgetForTrip(active.id, appState.trip.totalBudget, appState.expenses);
+  // Pakkelisten er personlig og lagres for seg; reisens felles packingList endres ikke lenger
+  updateMyPackingForTrip(active.id, appState.packingList);
 
   // Bare stemple og laste opp når innholdet faktisk er endret – ellers kan en utdatert
   // lokal kopi overskrive det reisefølget har endret i mellomtiden.
@@ -138,7 +210,6 @@ export function syncStateToActiveTrip(activityText = "") {
   active.stops = JSON.parse(JSON.stringify(appState.stops));
   active.trains = JSON.parse(JSON.stringify(appState.trains));
   active.expenses = JSON.parse(JSON.stringify(appState.expenses));
-  active.packingList = JSON.parse(JSON.stringify(appState.packingList));
   active.dayPlan = JSON.parse(JSON.stringify(appState.dayPlan || []));
 
   const contentChanged = beforeSig !== contentSignature(active.title, active.trip, active.stops, active.trains, active.packingList, active.dayPlan);
@@ -277,6 +348,7 @@ function retryDirtyTrips() {
     if (isTripOwnedByCurrentUser(t) || canEditTrip(t)) pushTripToFirestore(t);
   });
   [...pendingBudgetPushes].forEach(tid => pushMyBudget(tid));
+  [...pendingPackingPushes].forEach(tid => pushMyPacking(tid));
   if (sharedOutbox.length > 0) flushSharedOutbox();
 }
 
@@ -535,7 +607,6 @@ function applyContentToTrip(tripObj, content) {
       appState.trip = JSON.parse(JSON.stringify(tripObj.trip));
       appState.stops = JSON.parse(JSON.stringify(tripObj.stops));
       appState.trains = JSON.parse(JSON.stringify(tripObj.trains));
-      appState.packingList = JSON.parse(JSON.stringify(tripObj.packingList));
       appState.dayPlan = JSON.parse(JSON.stringify(tripObj.dayPlan));
       renderAll();
       updateMapLayers();

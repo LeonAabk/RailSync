@@ -1208,13 +1208,20 @@ async function removeTripFromCloud(tripObj, ownsTrip) {
     const ref = doc(db, "trips", tripObj.id);
     if (ownsTrip) {
       if (!tripObj._cloudCreated) return;
-      // Rydd budsjetter og felles utgifter før selve reisen slettes
-      for (const sub of ["budgets", "sharedExpenses"]) {
+      // Rydd budsjetter, felles utgifter og pakkelister før selve reisen slettes.
+      // Skjulte pakkelister kan ikke eieren se, så bare de synlige og ens egen slettes.
+      const subQueries = [
+        ["budgets", collection(db, "trips", tripObj.id, "budgets")],
+        ["sharedExpenses", collection(db, "trips", tripObj.id, "sharedExpenses")],
+        ["packing", query(collection(db, "trips", tripObj.id, "packing"), where("hidden", "==", false))]
+      ];
+      for (const [sub, q] of subQueries) {
         try {
-          const snap = await getDocs(collection(db, "trips", tripObj.id, sub));
+          const snap = await getDocs(q);
           await Promise.all(snap.docs.map(d => deleteDoc(doc(db, "trips", tripObj.id, sub, d.id)).catch(() => {})));
         } catch (e) { /* ignorer */ }
       }
+      try { await deleteDoc(doc(db, "trips", tripObj.id, "packing", currentUser.uid)); } catch (e) { /* ignorer */ }
       await deleteDoc(ref);
       if (tripObj._shareCodeSynced) {
         try { await deleteDoc(doc(db, "shareCodes", tripObj._shareCodeSynced)); } catch (e) {}
@@ -1222,6 +1229,7 @@ async function removeTripFromCloud(tripObj, ownsTrip) {
     } else {
       const uid = currentUser.uid;
       try { await deleteDoc(doc(db, "trips", tripObj.id, "budgets", uid)); } catch (e) { /* ignorer */ }
+      try { await deleteDoc(doc(db, "trips", tripObj.id, "packing", uid)); } catch (e) { /* ignorer */ }
       // Les medlemslisten fra serveren i en transaksjon: den lokale kopien kan være utdatert,
       // og sikkerhetsreglene godtar bare at brukerens egne oppføringer fjernes.
       await runTransaction(db, async (tx) => {

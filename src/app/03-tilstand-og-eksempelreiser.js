@@ -177,6 +177,12 @@ function reassignTripId(tripObj) {
     delete personalBudgetsByTrip[oldId];
     savePersonalBudgetsToStorage();
   }
+  if (myPackingByTrip[oldId]) {
+    // Ny reise i skyen: pakkelisten må lastes opp på nytt der
+    myPackingByTrip[newId] = { ...myPackingByTrip[oldId], _base: null };
+    delete myPackingByTrip[oldId];
+    saveMyPackingToStorage();
+  }
   if (activeTripId === oldId) activeTripId = newId;
   saveAllTripsToLocalStorage();
   return newId;
