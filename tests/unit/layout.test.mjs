@@ -20,3 +20,13 @@ test('Utseende kan åpnes fra kontomenyen og sidemenyen, og står øverst på ko
   const account = html.indexOf('id="tab-account"');
   assert.ok(html.indexOf('id="design-picker"', account) < html.indexOf('id="form-user-profile"', account), 'velgeren står ikke øverst');
 });
+
+test('toppen holder seg under statuslinjen på mobil (safe-area-inset-top)', () => {
+  assert.match(html, /viewport-fit=cover/, 'forventet viewport-fit=cover');
+  const css = html.slice(html.indexOf('<style>'), html.indexOf('</style>'));
+  assert.match(css, /body > main > header\.sticky\s*\{[^}]*safe-area-inset-top/, 'toppmenyen mangler avstand');
+  assert.match(css, /#auth-screen[^{]*\{[^}]*safe-area-inset-top/, 'innloggingssiden mangler avstand');
+  assert.match(css, /max-height:[^;]*safe-area-inset-top/, 'bunnarkene kan gå under statuslinjen');
+  const header = html.match(/<header class="([^"]*)"/);
+  assert.ok(header && header[1].split(/\s+/).includes('sticky'), 'header må ha klassen sticky');
+});
