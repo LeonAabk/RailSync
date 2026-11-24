@@ -260,6 +260,9 @@
         max-width: none !important;
         max-height: calc(var(--vv-height, 100dvh) - 1.5rem - env(safe-area-inset-top, 0px)) !important;
         overflow-y: auto;
+        /* Bare opp og ned: uten dette gir overflow-y: auto også sidelengs bevegelse
+           så snart noe er en piksel for bredt (f.eks. datofelt på iPhone) */
+        overflow-x: hidden;
         overscroll-behavior: contain;
         border-radius: 1.25rem 1.25rem 0 0 !important;
         border-bottom: 0 !important;
@@ -279,6 +282,18 @@
         padding: 0.75rem 1.5rem max(0.75rem, env(safe-area-inset-bottom));
       }
       .modal-actions button { min-height: 44px; }
+      /* iPhone tegner datofelt med fast minstebredde, så to ved siden av hverandre
+         ble bredere enn vinduet. Uten egen appearance krymper de til kolonnen. */
+      input[type="date"], input[type="time"], input[type="datetime-local"] {
+        -webkit-appearance: none;
+        appearance: none;
+        display: block;
+        min-width: 0;
+        max-width: 100%;
+        min-height: 2.75rem;
+      }
+      input[type="date"]::-webkit-date-and-time-value,
+      input[type="time"]::-webkit-date-and-time-value { text-align: left; }
     }
     @keyframes sheet-up { from { transform: translateY(24px); opacity: 0.6; } to { transform: none; opacity: 1; } }
     @media (prefers-reduced-motion: reduce) { div[id^="modal-"].fixed > * { animation: none; } }

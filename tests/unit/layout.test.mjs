@@ -53,3 +53,10 @@ test('menyen: samme navn på PC og mobil, delt i «Denne reisen» og «Deg», ut
   assert.doesNotMatch(html, /id="header-trip-count-badge"/, '«Reiser»-knappen i toppen skal bort');
   assert.doesNotMatch(sidebar.slice(sidebar.indexOf('</nav>')), /switchTab\('social'\)/, 'profillenken nederst i sidemenyen skal bort');
 });
+
+test('vinduer kan bare blas opp og ned, og datofelt kan krympe (iPhone)', () => {
+  const css = html.slice(html.indexOf('<style>'), html.indexOf('</style>'));
+  assert.match(css, /div\[id\^="modal-"\]\.fixed > \*\s*\{[^}]*overflow-x:\s*hidden/, 'vinduene må låses sidelengs');
+  assert.match(css, /input\[type="date"\][^{]*\{[^}]*min-width:\s*0/, 'datofelt må kunne krympe');
+  assert.match(css, /input\[type="date"\][^{]*\{[^}]*-webkit-appearance:\s*none/, 'iPhone-datofelt har fast minstebredde uten appearance: none');
+});
