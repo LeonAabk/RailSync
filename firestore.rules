@@ -262,6 +262,24 @@ service cloud.firestore {
         && (!('rate' in d) || (d.rate is number && d.rate > 0 && d.rate <= 100000));
     }
 
+    // Punkt på reisens bucketliste (22-bucketliste.js)
+    function validBucketItem(itemId) {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['id', 'text', 'place', 'createdBy', 'createdByName', 'createdAt', 'updatedAt',
+                               'done', 'doneBy', 'doneByName', 'doneAt'])
+        && d.id == itemId
+        && d.text is string && d.text.size() >= 1 && d.text.size() <= 140
+        && d.createdBy is string
+        && d.createdAt is string && d.createdAt.size() <= 40
+        && d.done is bool
+        && (!('place' in d) || (d.place is string && d.place.size() <= 80))
+        && (!('createdByName' in d) || (d.createdByName is string && d.createdByName.size() <= 60))
+        && (!('updatedAt' in d) || (d.updatedAt is string && d.updatedAt.size() <= 40))
+        && (!('doneBy' in d) || (d.doneBy is string && d.doneBy.size() <= 128))
+        && (!('doneByName' in d) || (d.doneByName is string && d.doneByName.size() <= 60))
+        && (!('doneAt' in d) || (d.doneAt is string && d.doneAt.size() <= 40));
+    }
+
     match /trips/{tripId} {
       // Enkeltreise: eier, medlem, eller delt reise for innloggede som har lenken/koden
       allow get: if isTripOwner() || isTripMember()
@@ -322,6 +340,24 @@ service cloud.firestore {
           && (resource.data.createdBy == request.auth.uid || ownsTripDoc())
           && request.resource.data.createdBy == resource.data.createdBy
           && validSharedExpense(expenseId);
+        allow delete: if (inTrip() && resource.data.createdBy == request.auth.uid) || ownsTripDoc();
+      }
+
+      // Bucketliste: alle i reisefølget (også «Kun visning») kan legge til og hake av.
+      // Teksten og stedet kan bare endres av den som la til punktet (eller eieren).
+      // Den som haker av, står som doneBy. Bare den som la til (eller eieren) kan slette.
+      match /bucket/{itemId} {
+        allow read: if inTrip();
+        allow create: if inTrip() && validBucketItem(itemId)
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.done == false;
+        allow update: if inTrip() && validBucketItem(itemId)
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.createdAt == resource.data.createdAt
+          && (resource.data.createdBy == request.auth.uid || ownsTripDoc()
+              || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['done', 'doneBy', 'doneByName', 'doneAt', 'updatedAt']))
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['doneBy'])
+              || request.resource.data.get('doneBy', '') in [request.auth.uid, '']);
         allow delete: if (inTrip() && resource.data.createdBy == request.auth.uid) || ownsTripDoc();
       }
     }

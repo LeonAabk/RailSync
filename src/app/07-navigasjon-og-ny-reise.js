@@ -4,7 +4,7 @@
 // ---------------------------------------------------------------------------
 // Velkomst og ny reise
 // ---------------------------------------------------------------------------
-const TRIP_TABS = ["overview", "plan", "trains", "budget", "packing"];
+const TRIP_TABS = ["overview", "plan", "trains", "budget", "packing", "bucket"];
 let welcomeMode = "welcome";
 export let currentTab = "overview";
 
@@ -205,7 +205,7 @@ export function switchTab(tabId) {
     btn.classList.add("text-slate-500", "font-medium");
   });
   document.querySelectorAll(".mobile-nav-btn").forEach(btn => btn.removeAttribute("aria-current"));
-  const mobileTabFor = { welcome: "overview" };
+  const mobileTabFor = { welcome: "overview", bucket: "overview" };
   const activeMobileBtn = document.getElementById(`mobile-tab-${mobileTabFor[tabId] || tabId}`);
   if (activeMobileBtn) {
     activeMobileBtn.classList.add("text-brand-600", "font-bold", "bg-brand-50/70");
@@ -246,6 +246,11 @@ export function switchTab(tabId) {
   if (tabId === "plan") {
     renderDayPlan();
     applyEditMode();
+  }
+
+  if (tabId === "bucket") {
+    renderBucketList();
+    if (window.lucide) lucide.createIcons();
   }
 
   if (window.lucide) {

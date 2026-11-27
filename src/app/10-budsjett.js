@@ -26,6 +26,7 @@ let sharedExpensesByTrip = {};   // tripId -> [utgifter]
 let budgetListenTripId = null;
 let budgetUnsub = null;
 let sharedExpUnsub = null;
+let bucketUnsub = null;
 let isApplyingRemoteBudget = false;
 let budgetViewMode = "personal";
 let budgetViewUid = null;
@@ -97,6 +98,9 @@ export function startBudgetListeners() {
       sharedExpensesByTrip[tid] = snap.docs.map(d => ({ ...(d.data() || {}), id: d.id }));
       if (tid === activeTripId) renderBudget();
     }, (err) => console.warn("Lytter for felles utgifter feilet:", err));
+    bucketUnsub = onSnapshot(collection(db, "trips", tid, "bucket"), (snap) => {
+      applyRemoteBucket(tid, snap.docs.map(d => ({ ...(d.data() || {}), id: d.id })));
+    }, (err) => console.warn("Lytter for bucketlisten feilet:", err));
   } catch (e) {
     console.warn("Kunne ikke starte budsjettlyttere:", e);
   }
@@ -105,8 +109,8 @@ export function startBudgetListeners() {
 }
 
 function stopBudgetListeners() {
-  [budgetUnsub, sharedExpUnsub, ...packingUnsubs].forEach(fn => { if (typeof fn === "function") { try { fn(); } catch (e) {} } });
-  budgetUnsub = sharedExpUnsub = null;
+  [budgetUnsub, sharedExpUnsub, bucketUnsub, ...packingUnsubs].forEach(fn => { if (typeof fn === "function") { try { fn(); } catch (e) {} } });
+  budgetUnsub = sharedExpUnsub = bucketUnsub = null;
   packingUnsubs = [];
   packingViewUid = null;
   budgetListenTripId = null;
@@ -412,7 +416,7 @@ function tripParticipants(trip) {
 
 function sharedExpensesFor(tid) {
   const map = new Map((sharedExpensesByTrip[tid] || []).map(e => [e.id, e]));
-  sharedOutbox.filter(o => o.tripId === tid).forEach(o => {
+  sharedOutbox.filter(o => o.tripId === tid && (o.col || "sharedExpenses") === "sharedExpenses").forEach(o => {
     if (o.op === "delete") map.delete(o.id);
     else map.set(o.id, { ...o.data, _pending: true });
   });
@@ -500,13 +504,16 @@ async function flushSharedOutbox() {
   try {
     for (const op of [...sharedOutbox]) {
       try {
-        const ref = doc(db, "trips", op.tripId, "sharedExpenses", op.id);
+        // Utboksen brukes av felles utgifter og bucketlisten (col: "bucket", 22-bucketliste.js)
+        const col = op.col === "bucket" ? "bucket" : "sharedExpenses";
+        const ref = doc(db, "trips", op.tripId, col, op.id);
         if (op.op === "delete") await deleteDoc(ref);
         else await setDoc(ref, firestoreSafe(op.data));
         sharedOutbox = sharedOutbox.filter(o => o !== op);
         // Vis skrivingen med en gang, før lytteren melder fra
-        const list = sharedExpensesByTrip[op.tripId] || [];
-        sharedExpensesByTrip[op.tripId] = op.op === "delete" ? list.filter(e => e.id !== op.id) : [...list.filter(e => e.id !== op.id), { ...op.data }];
+        const store = col === "bucket" ? bucketByTrip : sharedExpensesByTrip;
+        const list = store[op.tripId] || [];
+        store[op.tripId] = op.op === "delete" ? list.filter(e => e.id !== op.id) : [...list.filter(e => e.id !== op.id), { ...op.data }];
       } catch (e) {
         if (e && e.code === "permission-denied") {
           sharedOutbox = sharedOutbox.filter(o => o !== op);
@@ -522,7 +529,7 @@ async function flushSharedOutbox() {
     sharedFlushRunning = false;
     syncInFlight = Math.max(0, syncInFlight - 1);
     updateSyncStatus();
-    if (budgetListenTripId === activeTripId) renderBudget();
+    if (budgetListenTripId === activeTripId) { renderBudget(); refreshBucketViews(); }
   }
 }
 
@@ -1127,6 +1134,8 @@ export function renderAll() {
   renderPacking();
   renderDayPlan();
   renderOverviewDayCard();
+  renderBucketList();
+  renderOverviewBucketCard();
   renderTripStats();
   renderTripManagerList();
   renderSocialHub();

@@ -380,6 +380,78 @@ describe('Vanlig redigering (skal virke som før)', () => {
 });
 
 // ---------------------------------------------------------------------------
+describe('Bucketliste', () => {
+  /** handleAddBucketItem() i 22-bucketliste.js */
+  const bucketItem = (id, uid, extra = {}) => ({
+    id, text: 'Se solnedgangen fra Sacré-Cœur', place: 'Paris',
+    createdBy: uid, createdByName: 'Navn', createdAt: NOW, updatedAt: NOW, done: false, ...extra,
+  });
+  /** toggledBucketItem() i 22-bucketliste.js */
+  const doneBy = (it, uid) => ({ ...it, done: true, doneBy: uid, doneByName: 'Navn', doneAt: NOW, updatedAt: NOW });
+
+  beforeEach(async () => {
+    await seed('trips/t1', baseTrip());
+  });
+
+  test('alle på reisen, også «Kun visning», kan legge til slik appen gjør', async () => {
+    await assertSucceeds(setDoc(doc(db(OWNER), 'trips/t1/bucket/b1'), bucketItem('b1', OWNER)));
+    await assertSucceeds(setDoc(doc(db(EDITOR), 'trips/t1/bucket/b2'), bucketItem('b2', EDITOR)));
+    await assertSucceeds(setDoc(doc(db(VIEWER), 'trips/t1/bucket/b3'), bucketItem('b3', VIEWER)));
+  });
+
+  test('alle på reisen kan lese, ingen andre', async () => {
+    await seed('trips/t1/bucket/b1', bucketItem('b1', OWNER));
+    await assertSucceeds(getDocs(collection(db(VIEWER), 'trips/t1/bucket')));
+    await assertFails(getDocs(collection(db(STRANGER), 'trips/t1/bucket')));
+    await assertFails(getDoc(doc(anon(), 'trips/t1/bucket/b1')));
+  });
+
+  test('ANGREP: utenforstående kan ikke legge til', async () => {
+    await assertFails(setDoc(doc(db(STRANGER), 'trips/t1/bucket/b1'), bucketItem('b1', STRANGER)));
+  });
+
+  test('ANGREP: kan ikke legge til i andres navn, som gjort, eller med ugyldige felt', async () => {
+    await assertFails(setDoc(doc(db(VIEWER), 'trips/t1/bucket/b1'), bucketItem('b1', OWNER)));
+    await assertFails(setDoc(doc(db(VIEWER), 'trips/t1/bucket/b1'), doneBy(bucketItem('b1', VIEWER), VIEWER)));
+    await assertFails(setDoc(doc(db(VIEWER), 'trips/t1/bucket/b1'), bucketItem('b1', VIEWER, { text: '' })));
+    await assertFails(setDoc(doc(db(VIEWER), 'trips/t1/bucket/b1'), bucketItem('b1', VIEWER, { text: 'x'.repeat(141) })));
+    await assertFails(setDoc(doc(db(VIEWER), 'trips/t1/bucket/b1'), bucketItem('b1', VIEWER, { place: 'x'.repeat(81) })));
+    await assertFails(setDoc(doc(db(VIEWER), 'trips/t1/bucket/b1'), bucketItem('b1', VIEWER, { secret: 1 })));
+    await assertFails(setDoc(doc(db(VIEWER), 'trips/t1/bucket/b1'), bucketItem('annen-id', VIEWER)));
+  });
+
+  test('alle på reisen kan hake av og fjerne avhaking i eget navn', async () => {
+    const it = bucketItem('b1', OWNER);
+    await seed('trips/t1/bucket/b1', it);
+    await assertSucceeds(setDoc(doc(db(VIEWER), 'trips/t1/bucket/b1'), doneBy(it, VIEWER)));
+    await assertSucceeds(setDoc(doc(db(EDITOR), 'trips/t1/bucket/b1'), { ...it, updatedAt: NOW }));
+  });
+
+  test('ANGREP: kan ikke hake av i andres navn', async () => {
+    const it = bucketItem('b1', OWNER);
+    await seed('trips/t1/bucket/b1', it);
+    await assertFails(setDoc(doc(db(VIEWER), 'trips/t1/bucket/b1'), doneBy(it, EDITOR)));
+  });
+
+  test('ANGREP: andre kan ikke endre teksten eller hvem som la til', async () => {
+    const it = bucketItem('b1', EDITOR);
+    await seed('trips/t1/bucket/b1', it);
+    await assertFails(setDoc(doc(db(VIEWER), 'trips/t1/bucket/b1'), { ...it, text: 'Endret av noen andre' }));
+    await assertFails(setDoc(doc(db(VIEWER), 'trips/t1/bucket/b1'), { ...it, createdBy: VIEWER }));
+    await assertFails(setDoc(doc(db(EDITOR), 'trips/t1/bucket/b1'), { ...it, createdBy: VIEWER }));
+    await assertSucceeds(setDoc(doc(db(EDITOR), 'trips/t1/bucket/b1'), { ...it, text: 'Endret av meg' }));
+  });
+
+  test('den som la til og reiseeieren kan slette, ingen andre', async () => {
+    await seed('trips/t1/bucket/b1', bucketItem('b1', VIEWER));
+    await assertFails(deleteDoc(doc(db(EDITOR), 'trips/t1/bucket/b1')));
+    await assertSucceeds(deleteDoc(doc(db(VIEWER), 'trips/t1/bucket/b1')));
+    await seed('trips/t1/bucket/b2', bucketItem('b2', EDITOR));
+    await assertSucceeds(deleteDoc(doc(db(OWNER), 'trips/t1/bucket/b2')));
+  });
+});
+
+// ---------------------------------------------------------------------------
 describe('Venneforespørsler', () => {
   /** myPublicSnippet() i 01-firebase-profil-og-venner.js */
   const snippet = (overrides = {}) => ({

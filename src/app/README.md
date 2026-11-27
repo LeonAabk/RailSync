@@ -30,7 +30,8 @@ men variabler (`let`/`const`) må være definert i en del som kommer *før* der 
 | 19-vaer.js | Vær i dagsplanen: værmelding fra Open-Meteo de neste 16 dagene, ellers vanlig vær for årstiden (snitt av de siste 10 årene) |
 | 20-land-og-valuta.js | Landinfo, valutakurser, utgifter i andre valutaer, valutakalkulator, lenker for setereservasjon |
 | 21-reisen-i-tall.js | «Reisen i tall»: statistikk på oversikten og delbart bilde |
-| 22-vindu-og-oppstart.js | Funksjoner for HTML (`window.…`) og oppstart |
+| 22-bucketliste.js | Bucketliste: felles liste per reise (`trips/{id}/bucket`), snarvei på oversikten |
+| 23-vindu-og-oppstart.js | Funksjoner for HTML (`window.…`) og oppstart |
 
 ## Sjekker og tester
 

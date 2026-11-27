@@ -1211,11 +1211,12 @@ async function removeTripFromCloud(tripObj, ownsTrip) {
     const ref = doc(db, "trips", tripObj.id);
     if (ownsTrip) {
       if (!tripObj._cloudCreated) return;
-      // Rydd budsjetter, felles utgifter og pakkelister før selve reisen slettes.
+      // Rydd budsjetter, felles utgifter, bucketliste og pakkelister før selve reisen slettes.
       // Skjulte pakkelister kan ikke eieren se, så bare de synlige og ens egen slettes.
       const subQueries = [
         ["budgets", collection(db, "trips", tripObj.id, "budgets")],
         ["sharedExpenses", collection(db, "trips", tripObj.id, "sharedExpenses")],
+        ["bucket", collection(db, "trips", tripObj.id, "bucket")],
         ["packing", query(collection(db, "trips", tripObj.id, "packing"), where("hidden", "==", false))]
       ];
       for (const [sub, q] of subQueries) {

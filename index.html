@@ -460,6 +460,12 @@
         <span id="sidebar-packing-progress" class="ml-auto text-[11px] font-semibold text-fjord-200">12/20</span>
       </button>
 
+      <button data-onclick="switchTab('bucket')" id="nav-btn-bucket" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all duration-150 text-fjord-200 hover:text-white hover:bg-white/5">
+        <i data-lucide="flag" class="w-4 h-4 text-fjord-200"></i>
+        <span>Bucketliste</span>
+        <span id="sidebar-bucket-progress" class="ml-auto text-[11px] font-semibold text-fjord-200 tabular-nums"></span>
+      </button>
+
       <div class="pt-5 pb-1">
         <p class="px-3 pb-2 text-[10px] font-semibold uppercase tracking-widest text-fjord-300">Deg</p>
 
@@ -830,6 +836,7 @@
 
         <div id="getting-started-card" class="hidden bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-5"></div>
         <div id="overview-day-card" data-needs-trip class="hidden bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-5"></div>
+        <div id="overview-bucket-card" data-needs-trip class="hidden bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-5"></div>
         <div id="trip-stats-card" data-needs-trip class="hidden bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-5"></div>
       </section>
 
@@ -848,6 +855,30 @@
         </div>
         <button type="button" id="plan-past-toggle" data-onclick="togglePlanPastDays()" aria-expanded="false" class="hidden w-full text-sm font-medium text-slate-600 bg-sand-200 hover:bg-sand-300 rounded-xl py-2 transition"></button>
         <div id="plan-days" class="space-y-3"></div>
+      </section>
+
+      <!-- BUCKETLISTE: felles for reisefølget (src/app/22-bucketliste.js) -->
+      <section id="tab-bucket" class="tab-content hidden w-full max-w-3xl mx-auto space-y-4">
+        <div class="flex items-center gap-3 min-w-0">
+          <span class="w-10 h-10 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center shrink-0" aria-hidden="true"><i data-lucide="flag" class="w-5 h-5"></i></span>
+          <div class="min-w-0">
+            <h2 class="text-xl sm:text-2xl font-semibold tracking-tight text-slate-900">Bucketliste</h2>
+            <p id="bucket-subtitle" class="text-sm text-slate-600 mt-0.5">Ting dere vil rekke på turen. Alle på reisen kan legge til.</p>
+          </div>
+        </div>
+        <form id="bucket-form" data-onsubmit="handleAddBucketItem(event)" class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-3 sm:p-4 flex flex-col sm:flex-row gap-2">
+          <label for="bucket-text" class="sr-only">Hva vil dere gjøre?</label>
+          <input id="bucket-text" name="text" type="text" maxlength="140" required autocomplete="off" placeholder="Hva vil dere gjøre på turen?"
+            class="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-base sm:text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500">
+          <div class="flex gap-2">
+            <label for="bucket-place" class="sr-only">Sted (valgfritt)</label>
+            <select id="bucket-place" name="place" class="hidden min-w-0 flex-1 sm:flex-none sm:w-40 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-base sm:text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
+              <option value="">Sted (valgfritt)</option>
+            </select>
+            <button type="submit" class="shrink-0 px-4 py-2 rounded-lg bg-fjord-800 hover:bg-fjord-700 text-white text-sm font-semibold transition inline-flex items-center gap-1.5"><i data-lucide="plus" class="w-4 h-4" aria-hidden="true"></i>Legg til</button>
+          </div>
+        </form>
+        <div id="bucket-list" class="space-y-3"></div>
       </section>
 
       <section id="tab-trains" class="tab-content hidden flex-col gap-4 sm:gap-6 [&:not(.hidden)]:flex">
