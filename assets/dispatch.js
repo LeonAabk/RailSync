@@ -6,7 +6,7 @@
  *
  * Tillatt i attributtene: ett eller flere funksjonskall skilt med «;», der hvert argument er
  *   'tekst' | "tekst" (JSON) | tall | true | false | null | event | this | this.value | this.checked
- * Funksjonene må ligge på window (appen legger dem der i src/app/21-vindu-og-oppstart.js).
+ * Funksjonene må ligge på window (appen legger dem der i src/app/22-vindu-og-oppstart.js).
  *
  * Filen lastes tidlig og synkront (før app.js): skjemaer stoppes fra å sendes på vanlig måte
  * mens appen laster, så f.eks. brukernavn og passord aldri havner i adresselinjen.

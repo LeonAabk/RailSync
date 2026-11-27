@@ -65,7 +65,7 @@ function planDayInfo(date) {
   } else if (here) {
     place = here.city || "";
   }
-  return { date, trains, items, night, place };
+  return { date, trains, items, night, here, place };
 }
 
 function planTrainResBadge(train) {
@@ -172,7 +172,7 @@ function planDayCardHtml(info, dayNo, today, { compact = false } = {}) {
         ${isToday ? `<span class="text-xs font-bold px-2 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200 shrink-0">I dag</span>` : ""}${addButton}
       </header>
       <div class="mt-3 space-y-2.5">
-        ${trainsHtml}${nightHtml}${itemsHtml}${empty}${addForm}
+        ${weatherRowHtml(info, today)}${trainsHtml}${nightHtml}${itemsHtml}${empty}${addForm}
       </div>
     </article>`;
 }
@@ -234,10 +234,13 @@ export function renderDayPlan() {
         }).join("")}
       </ol>
     </nav>` : "";
-  list.innerHTML = stripHtml + shown.map(date => {
+  const shownInfos = shown.map(date => planDayInfo(date));
+  list.innerHTML = stripHtml + shownInfos.map(info => {
+    const date = info.date;
     const dayNo = start && date >= start && (!end || date <= end) ? isoDiffDays(start, date) + 1 : 0;
-    return planDayCardHtml(planDayInfo(date), dayNo, today);
-  }).join("") + extraHtml;
+    return planDayCardHtml(info, dayNo, today);
+  }).join("") + weatherNoteHtml(shownInfos, today) + extraHtml;
+  queueWeatherFetch(shownInfos, today);
 }
 
 export function scrollToPlanDay(date) {
@@ -283,6 +286,9 @@ export function renderOverviewDayCard() {
     const nextTrain = info.trains.find(t => !t.departureTime || t.departureTime >= new Date().toTimeString().slice(0, 5)) || info.trains[0];
     const openItems = info.items.filter(p => !p.done);
     const lines = [];
+    const weatherLine = weatherTodayLineHtml(info, today);
+    if (weatherLine) lines.push(weatherLine);
+    queueWeatherFetch([info], today);
     if (nextTrain) lines.push(`<li class="flex items-center gap-2 min-w-0">${planRowIcon("train-front", "bg-sky-50 text-sky-700")}<span class="text-sm text-slate-900 truncate"><span class="font-semibold tabular-nums">${escapeHtml(nextTrain.departureTime || "–")}</span> ${escapeHtml(nextTrain.fromCity || "")} → ${escapeHtml(nextTrain.toCity || "")}</span></li>`);
     if (info.night) lines.push(`<li class="flex items-center gap-2 min-w-0">${planRowIcon("bed", "bg-violet-50 text-violet-700")}<span class="text-sm text-slate-900 truncate">Overnatting i ${escapeHtml(info.night.city || "")}</span>${planAccommodationBadge(info.night)}</li>`);
     openItems.slice(0, 3).forEach(p => lines.push(`<li class="flex items-center gap-2 min-w-0">${planRowIcon("map-pin", "bg-amber-50 text-amber-700")}<span class="text-sm text-slate-900 truncate">${p.time ? `<span class="font-semibold tabular-nums">${escapeHtml(p.time)}</span> ` : ""}${escapeHtml(p.text || "")}</span></li>`));

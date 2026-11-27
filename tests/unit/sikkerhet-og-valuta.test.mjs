@@ -1,4 +1,4 @@
-// Escaping av brukerinnhold (16-vinduer-og-bilder.js) og valutaomregning (19-land-og-valuta.js)
+// Escaping av brukerinnhold (16-vinduer-og-bilder.js) og valutaomregning (20-land-og-valuta.js)
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { loadApp } from './load-app.mjs';
